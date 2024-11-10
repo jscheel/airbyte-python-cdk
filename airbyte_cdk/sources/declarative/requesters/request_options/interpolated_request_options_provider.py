@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 from deprecated import deprecated
 
