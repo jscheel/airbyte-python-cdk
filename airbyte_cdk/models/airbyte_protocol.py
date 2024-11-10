@@ -81,10 +81,13 @@ class AirbyteGlobalState:
 @dataclass
 class AirbyteStateMessage:
     type: Optional[models.AirbyteStateType] = None
-    stream: Optional[models.AirbyteStreamState] = None
+
+    # These two use custom classes defined above
+    stream: Optional[AirbyteStreamState] = None
     global_: Annotated[Optional[AirbyteGlobalState], Alias("global")] = (
         None  # "global" is a reserved keyword in python ⇒ Alias is used for (de-)serialization
     )
+
     data: Optional[dict[str, Any]] = None
     sourceStats: Optional[models.AirbyteStateStats] = None
     destinationStats: Optional[models.AirbyteStateStats] = None

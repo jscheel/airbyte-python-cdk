@@ -62,7 +62,7 @@ class ConnectorStateManager:
             HashableStreamDescriptor(name=stream_name, namespace=namespace)
         )
         if stream_state:
-            return copy.deepcopy(dict(stream_state.__dict__.items()))
+            return copy.deepcopy({k: v for k, v in stream_state.__dict__.items()})
         return {}
 
     def update_state_for_stream(
@@ -125,6 +125,7 @@ class ConnectorStateManager:
                 for per_stream_state in global_state.stream_states  # type: ignore[union-attr] # global_state has shared_state
             }
             return shared_state, streams
+
         streams = {
             HashableStreamDescriptor(
                 name=per_stream_state.stream.stream_descriptor.name,

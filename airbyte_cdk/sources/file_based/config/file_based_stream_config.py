@@ -3,24 +3,22 @@
 #
 from __future__ import annotations
 
+from collections.abc import Mapping
+
+# ruff: noqa: TCH001, TCH002, TCH003  # Don't move imports to TYPE_CHECKING blocks
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic.v1 import BaseModel, Field, validator
 
+from airbyte_cdk.sources.file_based.config.avro_format import AvroFormat
+from airbyte_cdk.sources.file_based.config.csv_format import CsvFormat
+from airbyte_cdk.sources.file_based.config.excel_format import ExcelFormat
+from airbyte_cdk.sources.file_based.config.jsonl_format import JsonlFormat
+from airbyte_cdk.sources.file_based.config.parquet_format import ParquetFormat
+from airbyte_cdk.sources.file_based.config.unstructured_format import UnstructuredFormat
 from airbyte_cdk.sources.file_based.exceptions import ConfigValidationError, FileBasedSourceError
 from airbyte_cdk.sources.file_based.schema_helpers import type_mapping_to_jsonschema
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from airbyte_cdk.sources.file_based.config.avro_format import AvroFormat
-    from airbyte_cdk.sources.file_based.config.csv_format import CsvFormat
-    from airbyte_cdk.sources.file_based.config.excel_format import ExcelFormat
-    from airbyte_cdk.sources.file_based.config.jsonl_format import JsonlFormat
-    from airbyte_cdk.sources.file_based.config.parquet_format import ParquetFormat
-    from airbyte_cdk.sources.file_based.config.unstructured_format import UnstructuredFormat
 
 
 PrimaryKeyType = str | list[str] | None

@@ -170,6 +170,7 @@ ignore = [
     # Consider re-enabling these when we have time to address them:
     "A003",    # Class attribute 'type' is shadowing a Python builtin
     "BLE001",  # Do not catch blind exception: Exception
+    "C416",    # Allow unnecessary-comprehensions. Auto-fix sometimes unsafe if operating over a mapping.
     "D",       # pydocstyle (Docstring conventions)
     "D102",    # Missing docstring in public method
     "D103",    # Missing docstring in public function

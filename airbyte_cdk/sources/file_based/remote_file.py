@@ -3,13 +3,10 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+# ruff: noqa: TCH003  # Don'e move types to TYPE_CHECKING blocks. Pydantic needs them at runtime.
+from datetime import datetime
 
 from pydantic.v1 import BaseModel
-
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 class RemoteFile(BaseModel):
