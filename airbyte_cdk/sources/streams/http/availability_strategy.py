@@ -3,16 +3,17 @@
 #
 from __future__ import annotations
 
-import logging
 import typing
 
-from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
 
 if typing.TYPE_CHECKING:
+    import logging
+
     from airbyte_cdk.sources import Source
+    from airbyte_cdk.sources.streams import Stream
 
 
 class HttpAvailabilityStrategy(AvailabilityStrategy):

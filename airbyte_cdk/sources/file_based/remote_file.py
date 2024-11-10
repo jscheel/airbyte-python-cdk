@@ -3,9 +3,13 @@
 #
 from __future__ import annotations
 
-from datetime import datetime
+from typing import TYPE_CHECKING
 
 from pydantic.v1 import BaseModel
+
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class RemoteFile(BaseModel):

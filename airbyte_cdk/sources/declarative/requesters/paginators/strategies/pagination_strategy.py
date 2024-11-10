@@ -5,11 +5,13 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import requests
 
-from airbyte_cdk.sources.types import Record
+if TYPE_CHECKING:
+    import requests
+
+    from airbyte_cdk.sources.types import Record
 
 
 @dataclass

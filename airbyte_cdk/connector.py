@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 import pkgutil
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any, Generic, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
 
 import yaml
 
@@ -18,6 +17,10 @@ from airbyte_cdk.models import (
     ConnectorSpecification,
     ConnectorSpecificationSerializer,
 )
+
+
+if TYPE_CHECKING:
+    import logging
 
 
 def load_optional_package_file(package: str, filename: str) -> bytes | None:
@@ -50,7 +53,7 @@ class BaseConnector(ABC, Generic[TConfig]):
 
     @staticmethod
     def _read_json_file(file_path: str) -> Any:
-        with open(file_path) as file:
+        with open(file_path, encoding="utf-8") as file:
             contents = file.read()
 
         try:
@@ -62,7 +65,7 @@ class BaseConnector(ABC, Generic[TConfig]):
 
     @staticmethod
     def write_config(config: TConfig, config_path: str) -> None:
-        with open(config_path, "w") as fh:
+        with open(config_path, "w", encoding="utf-8") as fh:
             fh.write(json.dumps(config))
 
     def spec(self, logger: logging.Logger) -> ConnectorSpecification:

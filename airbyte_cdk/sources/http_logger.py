@@ -3,9 +3,13 @@
 #
 from __future__ import annotations
 
-import requests
+from typing import TYPE_CHECKING
 
-from airbyte_cdk.sources.message import LogMessage
+
+if TYPE_CHECKING:
+    import requests
+
+    from airbyte_cdk.sources.message import LogMessage
 
 
 def format_http_message(
@@ -13,7 +17,8 @@ def format_http_message(
     title: str,
     description: str,
     stream_name: str | None,
-    is_auxiliary: bool = None,
+    *,
+    is_auxiliary: bool | None = None,
 ) -> LogMessage:
     request = response.request
     log_message = {
@@ -48,4 +53,4 @@ def format_http_message(
 
 
 def _normalize_body_string(body_str: str | bytes | None) -> str | None:
-    return body_str.decode() if isinstance(body_str, (bytes, bytearray)) else body_str
+    return body_str.decode() if isinstance(body_str, bytes | bytearray) else body_str

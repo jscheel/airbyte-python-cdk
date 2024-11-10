@@ -6,9 +6,8 @@ from __future__ import annotations
 import numbers
 import re
 import time
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 
@@ -19,7 +18,12 @@ from airbyte_cdk.sources.declarative.requesters.error_handlers.backoff_strategie
 from airbyte_cdk.sources.declarative.requesters.error_handlers.backoff_strategy import (
     BackoffStrategy,
 )
-from airbyte_cdk.sources.types import Config
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources.types import Config
 
 
 @dataclass

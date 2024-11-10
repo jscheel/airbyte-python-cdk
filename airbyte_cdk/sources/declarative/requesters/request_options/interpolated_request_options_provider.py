@@ -5,11 +5,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from deprecated import deprecated
 
-from airbyte_cdk.sources.declarative.interpolation.interpolated_nested_mapping import NestedMapping
 from airbyte_cdk.sources.declarative.requesters.request_options.interpolated_nested_request_input_provider import (
     InterpolatedNestedRequestInputProvider,
 )
@@ -20,10 +19,16 @@ from airbyte_cdk.sources.declarative.requesters.request_options.request_options_
     RequestOptionsProvider,
 )
 from airbyte_cdk.sources.source import ExperimentalClassWarning
-from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 
 
-RequestInput = Union[str, Mapping[str, str]]
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.declarative.interpolation.interpolated_nested_mapping import (
+        NestedMapping,
+    )
+    from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
+
+
+RequestInput = str | Mapping[str, str]
 ValidRequestTypes = (str, list)
 
 

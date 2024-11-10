@@ -3,15 +3,18 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
-from typing import Annotated, Any
-
-from serpyco_rs.metadata import Alias
+from typing import TYPE_CHECKING, Annotated, Any
 
 from airbyte_protocol_dataclasses.models import *  # noqa: F403  # Allow '*'
 
-from airbyte_cdk.models.file_transfer_record_message import AirbyteFileTransferRecordMessage
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from serpyco_rs.metadata import Alias
+
+    from airbyte_cdk.models.file_transfer_record_message import AirbyteFileTransferRecordMessage
 
 
 # ruff: noqa: F405  # ignore fuzzy import issues with 'import *'

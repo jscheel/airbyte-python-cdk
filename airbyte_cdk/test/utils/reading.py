@@ -1,13 +1,17 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk import AbstractSource
-from airbyte_cdk.models import AirbyteStateMessage, ConfiguredAirbyteCatalog, SyncMode
 from airbyte_cdk.test.catalog_builder import CatalogBuilder
 from airbyte_cdk.test.entrypoint_wrapper import EntrypointOutput, read
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk import AbstractSource
+    from airbyte_cdk.models import AirbyteStateMessage, ConfiguredAirbyteCatalog, SyncMode
 
 
 def catalog(stream_name: str, sync_mode: SyncMode) -> ConfiguredAirbyteCatalog:

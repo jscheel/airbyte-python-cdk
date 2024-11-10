@@ -3,13 +3,17 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import abstractmethod
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.abstract_source import AbstractSource
-from airbyte_cdk.sources.declarative.checks.connection_checker import ConnectionChecker
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources.declarative.checks.connection_checker import ConnectionChecker
 
 
 class DeclarativeSource(AbstractSource):

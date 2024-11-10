@@ -3,17 +3,12 @@
 #
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterable, Mapping
-from io import IOBase
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 from numpy import datetime64, issubdtype
 from numpy import dtype as dtype_
 from orjson import orjson
-from pydantic.v1 import BaseModel
 
 from airbyte_cdk.sources.file_based.config.file_based_stream_config import (
     ExcelFormat,
@@ -29,8 +24,18 @@ from airbyte_cdk.sources.file_based.file_based_stream_reader import (
     FileReadMode,
 )
 from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
-from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, Mapping
+    from io import IOBase
+    from pathlib import Path
+
+    from pydantic.v1 import BaseModel
+
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
+    from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
 
 
 class ExcelParser(FileTypeParser):
@@ -70,7 +75,7 @@ class ExcelParser(FileTypeParser):
                 prev_frame_column_type = fields.get(column)
                 fields[column] = self.dtype_to_json_type(prev_frame_column_type, df_type)
 
-        schema = {
+        return {
             field: (
                 {"type": "string", "format": "date-time"}
                 if fields[field] == "date-time"
@@ -78,7 +83,6 @@ class ExcelParser(FileTypeParser):
             )
             for field in fields
         }
-        return schema
 
     def parse_records(
         self,

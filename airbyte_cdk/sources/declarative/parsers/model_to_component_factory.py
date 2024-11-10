@@ -11,6 +11,7 @@ import re
 from collections.abc import Callable, Mapping, MutableMapping
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     get_args,
     get_origin,
@@ -18,13 +19,10 @@ from typing import (
 )
 
 from isodate import parse_duration
-from pydantic.v1 import BaseModel
 
 from airbyte_cdk.models import FailureType, Level
-from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.declarative.async_job.job_orchestrator import AsyncJobOrchestrator
 from airbyte_cdk.sources.declarative.async_job.job_tracker import JobTracker
-from airbyte_cdk.sources.declarative.async_job.repository import AsyncJobRepository
 from airbyte_cdk.sources.declarative.async_job.status import AsyncJobStatus
 from airbyte_cdk.sources.declarative.auth import DeclarativeOauth2Authenticator, JwtAuthenticator
 from airbyte_cdk.sources.declarative.auth.declarative_authenticator import (
@@ -154,7 +152,8 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     CustomRetriever as CustomRetrieverModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    CustomSchemaLoader as CustomSchemaLoader,
+    CustomSchemaLoader,
+    ValueType,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     CustomTransformation as CustomTransformationModel,
@@ -268,7 +267,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SubstreamPartitionRouter as SubstreamPartitionRouterModel,
 )
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import ValueType
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     WaitTimeFromHeader as WaitTimeFromHeaderModel,
 )
@@ -332,7 +330,6 @@ from airbyte_cdk.sources.declarative.schema import (
     JsonFileSchemaLoader,
 )
 from airbyte_cdk.sources.declarative.spec import Spec
-from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
 from airbyte_cdk.sources.declarative.transformations import (
     AddFields,
     RecordTransformation,
@@ -353,8 +350,16 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_sta
     DateTimeStreamStateConverter,
 )
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction
-from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
+
+
+if TYPE_CHECKING:
+    from pydantic.v1 import BaseModel
+
+    from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
+    from airbyte_cdk.sources.declarative.async_job.repository import AsyncJobRepository
+    from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
+    from airbyte_cdk.sources.types import Config
 
 
 ComponentDefinition = Mapping[str, Any]
@@ -371,7 +376,7 @@ class ModelToComponentFactory:
         disable_retries: bool = False,
         disable_cache: bool = False,
         message_repository: MessageRepository | None = None,
-    ):
+    ) -> None:
         self._init_mappings()
         self._limit_pages_fetched_per_slice = limit_pages_fetched_per_slice
         self._limit_slices_fetched = limit_slices_fetched
@@ -601,7 +606,7 @@ class ModelToComponentFactory:
             )
         partition_router = retriever.partition_router
         if not isinstance(
-            partition_router, (SubstreamPartitionRouterModel, CustomPartitionRouterModel)
+            partition_router, SubstreamPartitionRouterModel | CustomPartitionRouterModel
         ):
             raise ValueError(
                 f"LegacyToPerPartitionStateMigrations can only be applied on a SimpleRetriever with a Substream partition router. Got {type(partition_router)}"
@@ -894,13 +899,13 @@ class ModelToComponentFactory:
         self, model: CursorPaginationModel, config: Config, decoder: Decoder, **kwargs: Any
     ) -> CursorPaginationStrategy:
         if isinstance(decoder, PaginationDecoderDecorator):
-            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder.decoder, JsonDecoder | XmlDecoder):
                 raise ValueError(
                     f"Provided decoder of {type(decoder.decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )
             decoder_to_use = decoder
         else:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder, JsonDecoder | XmlDecoder):
                 raise ValueError(
                     f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )
@@ -969,7 +974,7 @@ class ModelToComponentFactory:
 
         kwargs = {
             class_field: model_args[class_field]
-            for class_field in component_fields.keys()
+            for class_field in component_fields
             if class_field in model_args
         }
         return custom_component_class(**kwargs)
@@ -1162,7 +1167,7 @@ class ModelToComponentFactory:
                 "substream_cursor": (
                     combined_slicers
                     if isinstance(
-                        combined_slicers, (PerPartitionWithGlobalCursor, GlobalSubstreamCursor)
+                        combined_slicers, PerPartitionWithGlobalCursor | GlobalSubstreamCursor
                     )
                     else None
                 ),
@@ -1358,7 +1363,7 @@ class ModelToComponentFactory:
         cursor_used_for_stop_condition: DeclarativeCursor | None = None,
     ) -> DefaultPaginator | PaginatorTestReadDecorator:
         if decoder:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder, JsonDecoder | XmlDecoder):
                 raise ValueError(
                     f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )
@@ -1402,11 +1407,8 @@ class ModelToComponentFactory:
         decoder: Decoder | None = None,
         **kwargs: Any,
     ) -> DpathExtractor:
-        if decoder:
-            decoder_to_use = decoder
-        else:
-            decoder_to_use = JsonDecoder(parameters={})
-        model_field_path: list[InterpolatedString | str] = [x for x in model.field_path]
+        decoder_to_use = decoder or JsonDecoder(parameters={})
+        model_field_path: list[InterpolatedString | str] = list(model.field_path)
         return DpathExtractor(
             decoder=decoder_to_use,
             field_path=model_field_path,
@@ -1482,10 +1484,7 @@ class ModelToComponentFactory:
     def create_http_response_filter(
         model: HttpResponseFilterModel, config: Config, **kwargs: Any
     ) -> HttpResponseFilter:
-        if model.action:
-            action = ResponseAction(model.action.value)
-        else:
-            action = None
+        action = ResponseAction(model.action.value) if model.action else None
 
         failure_type = FailureType(model.failure_type.value) if model.failure_type else None
 
@@ -1668,13 +1667,13 @@ class ModelToComponentFactory:
         model: OffsetIncrementModel, config: Config, decoder: Decoder, **kwargs: Any
     ) -> OffsetIncrement:
         if isinstance(decoder, PaginationDecoderDecorator):
-            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder.decoder, JsonDecoder | XmlDecoder):
                 raise ValueError(
                     f"Provided decoder of {type(decoder.decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )
             decoder_to_use = decoder
         else:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder, JsonDecoder | XmlDecoder):
                 raise ValueError(
                     f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )

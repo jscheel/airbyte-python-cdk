@@ -7,22 +7,14 @@ import json
 import logging
 import pkgutil
 import re
-from collections.abc import Iterator, Mapping
 from copy import deepcopy
 from importlib import metadata
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from jsonschema.exceptions import ValidationError
 from jsonschema.validators import validate
 
-from airbyte_cdk.models import (
-    AirbyteConnectionStatus,
-    AirbyteMessage,
-    AirbyteStateMessage,
-    ConfiguredAirbyteCatalog,
-    ConnectorSpecification,
-)
 from airbyte_cdk.sources.declarative.checks.connection_checker import ConnectionChecker
 from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -41,14 +33,26 @@ from airbyte_cdk.sources.declarative.parsers.manifest_reference_resolver import 
 from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
     ModelToComponentFactory,
 )
-from airbyte_cdk.sources.message import MessageRepository
-from airbyte_cdk.sources.streams.core import Stream
-from airbyte_cdk.sources.types import ConnectionDefinition
 from airbyte_cdk.sources.utils.slice_logger import (
     AlwaysLogSliceLogger,
     DebugSliceLogger,
     SliceLogger,
 )
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator, Mapping
+
+    from airbyte_cdk.models import (
+        AirbyteConnectionStatus,
+        AirbyteMessage,
+        AirbyteStateMessage,
+        ConfiguredAirbyteCatalog,
+        ConnectorSpecification,
+    )
+    from airbyte_cdk.sources.message import MessageRepository
+    from airbyte_cdk.sources.streams.core import Stream
+    from airbyte_cdk.sources.types import ConnectionDefinition
 
 
 class ManifestDeclarativeSource(DeclarativeSource):
@@ -60,7 +64,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
         debug: bool = False,
         emit_connector_builder_messages: bool = False,
         component_factory: ModelToComponentFactory | None = None,
-    ):
+    ) -> None:
         """:param source_config(Mapping[str, Any]): The manifest of low-code components that describe the source connector
         :param debug(bool): True if debug mode is enabled
         :param component_factory(ModelToComponentFactory): optional factory if ModelToComponentFactory's default behaviour needs to be tweaked
@@ -105,7 +109,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
         check_stream = self._constructor.create_component(
             CheckStreamModel,
             check,
-            dict(),
+            {},
             emit_connector_builder_messages=self._emit_connector_builder_messages,
         )
         if isinstance(check_stream, ConnectionChecker):
@@ -120,7 +124,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
         )
         stream_configs = self._stream_configs(self._source_config)
 
-        source_streams = [
+        return [
             self._constructor.create_component(
                 DeclarativeStreamModel,
                 stream_config,
@@ -129,8 +133,6 @@ class ManifestDeclarativeSource(DeclarativeSource):
             )
             for stream_config in self._initialize_cache_for_parent_streams(deepcopy(stream_configs))
         ]
-
-        return source_streams
 
     @staticmethod
     def _initialize_cache_for_parent_streams(
@@ -183,7 +185,11 @@ class ManifestDeclarativeSource(DeclarativeSource):
         if spec:
             if "type" not in spec:
                 spec["type"] = "Spec"
-            spec_component = self._constructor.create_component(SpecModel, spec, dict())
+            spec_component = self._constructor.create_component(
+                model_type=SpecModel,
+                component_definition=spec,
+                config={},
+            )
             return spec_component.generate_spec()
         return super().spec(logger)
 
@@ -239,14 +245,15 @@ class ManifestDeclarativeSource(DeclarativeSource):
             ) from e
 
         cdk_version = metadata.version("airbyte_cdk")
-        cdk_major, cdk_minor, cdk_patch = self._get_version_parts(cdk_version, "airbyte-cdk")
+        cdk_major, cdk_minor, _ = self._get_version_parts(cdk_version, "airbyte-cdk")
         manifest_version = self._source_config.get("version")
         if manifest_version is None:
             raise RuntimeError(
                 "Manifest version is not defined in the manifest. This is unexpected since it should be a required field. Please contact support."
             )
-        manifest_major, manifest_minor, manifest_patch = self._get_version_parts(
-            manifest_version, "manifest"
+        manifest_major, manifest_minor, _ = self._get_version_parts(
+            manifest_version,
+            "manifest",
         )
 
         if cdk_major < manifest_major or (
@@ -267,7 +274,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
     def _get_version_parts(version: str, version_type: str) -> tuple[int, int, int]:
         """Takes a semantic version represented as a string and splits it into a tuple of its major, minor, and patch versions."""
         version_parts = re.split(r"\.", version)
-        if len(version_parts) != 3 or not all([part.isdigit() for part in version_parts]):
+        if len(version_parts) != 3 or not all(part.isdigit() for part in version_parts):
             raise ValidationError(
                 f"The {version_type} version {version} specified is not a valid version format (ex. 1.2.3)"
             )

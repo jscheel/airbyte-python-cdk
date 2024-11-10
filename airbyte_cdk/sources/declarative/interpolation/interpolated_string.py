@@ -3,16 +3,20 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.interpolation.jinja import JinjaInterpolation
-from airbyte_cdk.sources.types import Config
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources.types import Config
 
 
 @dataclass
-class InterpolatedString:
+class InterpolatedString:  # noqa: PLW1641  # Ignore missing __hash__()
     """Wrapper around a raw string to be interpolated with the Jinja2 templating engine
 
     Attributes:

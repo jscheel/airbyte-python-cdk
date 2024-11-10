@@ -3,18 +3,12 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import ABC
-from collections.abc import Callable, Iterator, Mapping, MutableMapping
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import AirbyteMessage, AirbyteStateMessage, ConfiguredAirbyteCatalog
 from airbyte_cdk.sources import AbstractSource
-from airbyte_cdk.sources.concurrent_source.concurrent_source import ConcurrentSource
-from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
-from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
 from airbyte_cdk.sources.streams.concurrent.abstract_stream_facade import AbstractStreamFacade
 from airbyte_cdk.sources.streams.concurrent.adapters import StreamFacade
 from airbyte_cdk.sources.streams.concurrent.cursor import (
@@ -25,9 +19,19 @@ from airbyte_cdk.sources.streams.concurrent.cursor import (
     FinalStateCursor,
     GapType,
 )
-from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
-    AbstractStreamStateConverter,
-)
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Callable, Iterator, Mapping, MutableMapping
+
+    from airbyte_cdk.sources.concurrent_source.concurrent_source import ConcurrentSource
+    from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
+    from airbyte_cdk.sources.streams import Stream
+    from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
+    from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
+        AbstractStreamStateConverter,
+    )
 
 
 DEFAULT_LOOKBACK_SECONDS = 0

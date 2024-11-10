@@ -3,13 +3,16 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.streams.http.requests_native_auth.abstract_token import (
     AbstractHeaderAuthenticator,
 )
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 @dataclass

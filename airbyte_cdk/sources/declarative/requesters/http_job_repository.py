@@ -5,11 +5,7 @@ import logging
 import uuid
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import timedelta
-from typing import Any
-
-import requests
-from requests import Response
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk import AirbyteMessage
 from airbyte_cdk.logger import lazy_log
@@ -17,17 +13,25 @@ from airbyte_cdk.models import FailureType, Type
 from airbyte_cdk.sources.declarative.async_job.job import AsyncJob
 from airbyte_cdk.sources.declarative.async_job.repository import AsyncJobRepository
 from airbyte_cdk.sources.declarative.async_job.status import AsyncJobStatus
-from airbyte_cdk.sources.declarative.extractors.dpath_extractor import (
-    DpathExtractor,
-    RecordExtractor,
-)
 from airbyte_cdk.sources.declarative.extractors.response_to_file_extractor import (
     ResponseToFileExtractor,
 )
-from airbyte_cdk.sources.declarative.requesters.requester import Requester
-from airbyte_cdk.sources.declarative.retrievers.simple_retriever import SimpleRetriever
 from airbyte_cdk.sources.types import Record, StreamSlice
 from airbyte_cdk.utils import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    from datetime import timedelta
+
+    import requests
+    from requests import Response
+
+    from airbyte_cdk.sources.declarative.extractors.dpath_extractor import (
+        DpathExtractor,
+        RecordExtractor,
+    )
+    from airbyte_cdk.sources.declarative.requesters.requester import Requester
+    from airbyte_cdk.sources.declarative.retrievers.simple_retriever import SimpleRetriever
 
 
 LOGGER = logging.getLogger("airbyte")
@@ -189,7 +193,7 @@ class AsyncHttpJobRepository(AsyncJobRepository):
                 elif isinstance(message, AirbyteMessage):
                     if message.type == Type.RECORD:
                         yield message.record.data  # type: ignore  # message.record won't be None here as the message is a record
-                elif isinstance(message, (dict, Mapping)):
+                elif isinstance(message, dict | Mapping):
                     yield message
                 else:
                     raise TypeError(f"Unknown type `{type(message)}` for message")
@@ -214,8 +218,7 @@ class AsyncHttpJobRepository(AsyncJobRepository):
         del self._polling_job_response_by_id[job_id]
 
     def _get_create_job_stream_slice(self, job: AsyncJob) -> StreamSlice:
-        stream_slice = StreamSlice(
+        return StreamSlice(
             partition={"create_job_response": self._create_job_response_by_id[job.api_job_id()]},
             cursor_slice={},
         )
-        return stream_slice

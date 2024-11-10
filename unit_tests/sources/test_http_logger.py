@@ -18,7 +18,7 @@ ANY_REQUEST = requests.Request(
 
 
 class ResponseBuilder:
-    def __init__(self):
+    def __init__(self) -> None:
         self._body_content = ""
         self._headers = {}
         self._request = ANY_REQUEST
@@ -225,9 +225,21 @@ EMPTY_RESPONSE = {"body": {"content": ""}, "headers": {}, "status_code": 100}
     ],
 )
 def test_prepared_request_to_airbyte_message(
-    test_name, http_method, url, headers, params, body_json, body_data, expected_airbyte_message
-):
-    request = requests.Request(method=http_method, url=url, headers=headers, params=params)
+    test_name,
+    http_method,
+    url,
+    headers,
+    params,
+    body_json,
+    body_data,
+    expected_airbyte_message,
+) -> None:
+    request = requests.Request(
+        method=http_method,
+        url=url,
+        headers=headers,
+        params=params,
+    )
     if body_json:
         request.json = body_json
     if body_data:
@@ -235,7 +247,10 @@ def test_prepared_request_to_airbyte_message(
     prepared_request = request.prepare()
 
     actual_airbyte_message = format_http_message(
-        ResponseBuilder().request(prepared_request).build(), A_TITLE, A_DESCRIPTION, A_STREAM_NAME
+        ResponseBuilder().request(prepared_request).build(),
+        A_TITLE,
+        A_DESCRIPTION,
+        A_STREAM_NAME,
     )
 
     assert actual_airbyte_message == expected_airbyte_message
@@ -279,8 +294,12 @@ def test_prepared_request_to_airbyte_message(
     ],
 )
 def test_response_to_airbyte_message(
-    test_name, response_body, response_headers, status_code, expected_airbyte_message
-):
+    test_name,
+    response_body,
+    response_headers,
+    status_code,
+    expected_airbyte_message,
+) -> None:
     response = (
         ResponseBuilder()
         .body_content(response_body)
@@ -289,6 +308,11 @@ def test_response_to_airbyte_message(
         .build()
     )
 
-    actual_airbyte_message = format_http_message(response, A_TITLE, A_DESCRIPTION, A_STREAM_NAME)
+    actual_airbyte_message = format_http_message(
+        response,
+        A_TITLE,
+        A_DESCRIPTION,
+        A_STREAM_NAME,
+    )
 
     assert actual_airbyte_message["http"]["response"] == expected_airbyte_message

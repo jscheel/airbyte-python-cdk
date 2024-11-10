@@ -3,18 +3,19 @@
 #
 from __future__ import annotations
 
-import logging
 import typing
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
 from typing import Any
 
 from airbyte_cdk.models import SyncMode
-from airbyte_cdk.sources.streams.core import Stream, StreamData
 
 
 if typing.TYPE_CHECKING:
+    import logging
+    from collections.abc import Mapping
+
     from airbyte_cdk.sources import Source
+    from airbyte_cdk.sources.streams.core import Stream, StreamData
 
 
 class AvailabilityStrategy(ABC):

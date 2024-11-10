@@ -2,10 +2,14 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from .status import AsyncJobStatus
 from airbyte_cdk.sources.declarative.async_job.timer import Timer
-from airbyte_cdk.sources.types import StreamSlice
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.types import StreamSlice
 
 
 class AsyncJob:

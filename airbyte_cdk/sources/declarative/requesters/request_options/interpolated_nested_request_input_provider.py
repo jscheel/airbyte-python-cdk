@@ -3,16 +3,20 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_nested_mapping import (
     InterpolatedNestedMapping,
     NestedMapping,
 )
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
-from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 
 
 @dataclass

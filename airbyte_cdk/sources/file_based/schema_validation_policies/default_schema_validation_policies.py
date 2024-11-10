@@ -3,8 +3,7 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.file_based.config.file_based_stream_config import ValidationPolicy
 from airbyte_cdk.sources.file_based.exceptions import (
@@ -13,6 +12,10 @@ from airbyte_cdk.sources.file_based.exceptions import (
 )
 from airbyte_cdk.sources.file_based.schema_helpers import conforms_to_schema
 from airbyte_cdk.sources.file_based.schema_validation_policies import AbstractSchemaValidationPolicy
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class EmitRecordPolicy(AbstractSchemaValidationPolicy):

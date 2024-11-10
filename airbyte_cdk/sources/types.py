@@ -17,7 +17,11 @@ StreamState = Mapping[str, Any]
 
 
 class Record(Mapping[str, Any]):
-    def __init__(self, data: Mapping[str, Any], associated_slice: StreamSlice | None):
+    def __init__(
+        self,
+        data: Mapping[str, Any],
+        associated_slice: StreamSlice | None,
+    ) -> None:
         self._data = data
         self._associated_slice = associated_slice
 

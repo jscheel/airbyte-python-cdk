@@ -4,10 +4,9 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import jwt
 
@@ -15,6 +14,10 @@ from airbyte_cdk.sources.declarative.auth.declarative_authenticator import Decla
 from airbyte_cdk.sources.declarative.interpolation.interpolated_boolean import InterpolatedBoolean
 from airbyte_cdk.sources.declarative.interpolation.interpolated_mapping import InterpolatedMapping
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class JwtAlgorithm(str):

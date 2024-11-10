@@ -4,11 +4,14 @@ from __future__ import annotations
 import functools
 import json
 from abc import ABC, abstractmethod
-from pathlib import Path as FilePath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.test.mock_http import HttpResponse
 from airbyte_cdk.test.utils.data import get_unit_test_folder
+
+
+if TYPE_CHECKING:
+    from pathlib import Path as FilePath
 
 
 def _extract(path: list[str], response_template: dict[str, Any]) -> Any:
@@ -43,7 +46,7 @@ class Path(ABC):
 
 
 class FieldPath(Path):
-    def __init__(self, field: str):
+    def __init__(self, field: str) -> None:
         self._path = [field]
 
     def write(self, template: dict[str, Any], value: Any) -> None:
@@ -60,7 +63,7 @@ class FieldPath(Path):
 
 
 class NestedPath(Path):
-    def __init__(self, path: list[str]):
+    def __init__(self, path: list[str]) -> None:
         self._path = path
 
     def write(self, template: dict[str, Any], value: Any) -> None:
@@ -83,7 +86,7 @@ class PaginationStrategy(ABC):
 
 
 class FieldUpdatePaginationStrategy(PaginationStrategy):
-    def __init__(self, path: Path, value: Any):
+    def __init__(self, path: Path, value: Any) -> None:
         self._path = path
         self._value = value
 
@@ -97,7 +100,7 @@ class RecordBuilder:
         template: dict[str, Any],
         id_path: Path | None,
         cursor_path: FieldPath | NestedPath | None,
-    ):
+    ) -> None:
         self._record = template
         self._id_path = id_path
         self._cursor_path = cursor_path
@@ -153,7 +156,7 @@ class HttpResponseBuilder:
         template: dict[str, Any],
         records_path: FieldPath | NestedPath,
         pagination_strategy: PaginationStrategy | None,
-    ):
+    ) -> None:
         self._response = template
         self._records: list[RecordBuilder] = []
         self._records_path = records_path
@@ -195,7 +198,7 @@ def find_template(resource: str, execution_folder: str) -> dict[str, Any]:
         / "response"
         / f"{resource}.json"
     )
-    with open(response_template_filepath) as template_file:
+    with open(response_template_filepath, encoding="utf-8") as template_file:
         return json.load(template_file)  # type: ignore  # we assume the dev correctly set up the resource file
 
 

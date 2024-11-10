@@ -5,10 +5,9 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Iterable, Iterator, Mapping
 from copy import deepcopy
 from json import JSONDecodeError
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.connector_builder.models import (
     AuxiliaryRequest,
@@ -31,18 +30,28 @@ from airbyte_cdk.models import (
     TraceType,
 )
 from airbyte_cdk.models import Type as MessageType
-from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 from airbyte_cdk.sources.utils.slice_logger import SliceLogger
-from airbyte_cdk.sources.utils.types import JsonType
 from airbyte_cdk.utils import AirbyteTracedException
 from airbyte_cdk.utils.datetime_format_inferrer import DatetimeFormatInferrer
 from airbyte_cdk.utils.schema_inferrer import SchemaInferrer, SchemaValidationException
 
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator, Mapping
+
+    from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
+    from airbyte_cdk.sources.utils.types import JsonType
+
+
 class MessageGrouper:
     logger = logging.getLogger("airbyte.connector-builder")
 
-    def __init__(self, max_pages_per_slice: int, max_slices: int, max_record_limit: int = 1000):
+    def __init__(
+        self,
+        max_pages_per_slice: int,
+        max_slices: int,
+        max_record_limit: int = 1000,
+    ) -> None:
         self._max_pages_per_slice = max_pages_per_slice
         self._max_slices = max_slices
         self._max_record_limit = max_record_limit

@@ -3,20 +3,26 @@
 #
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
 from functools import cache
-from logging import Logger
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import AirbyteStream, SyncMode
 from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
-from airbyte_cdk.sources.streams.concurrent.availability_strategy import (
-    AbstractAvailabilityStrategy,
-    StreamAvailability,
-)
-from airbyte_cdk.sources.streams.concurrent.cursor import Cursor
-from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.partition_generator import PartitionGenerator
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+    from logging import Logger
+
+    from airbyte_cdk.sources.streams.concurrent.availability_strategy import (
+        AbstractAvailabilityStrategy,
+        StreamAvailability,
+    )
+    from airbyte_cdk.sources.streams.concurrent.cursor import Cursor
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition_generator import (
+        PartitionGenerator,
+    )
 
 
 class DefaultStream(AbstractStream):

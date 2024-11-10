@@ -3,17 +3,21 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
-
-import requests
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
 from airbyte_cdk.sources.declarative.requesters.paginators.strategies.pagination_strategy import (
     PaginationStrategy,
 )
-from airbyte_cdk.sources.types import Config, Record
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    import requests
+
+    from airbyte_cdk.sources.types import Config, Record
 
 
 @dataclass

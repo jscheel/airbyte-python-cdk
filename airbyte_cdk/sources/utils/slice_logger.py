@@ -6,11 +6,14 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level
 from airbyte_cdk.models import Type as MessageType
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class SliceLogger(ABC):

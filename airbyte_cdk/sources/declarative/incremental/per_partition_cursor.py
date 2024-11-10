@@ -5,22 +5,26 @@ from __future__ import annotations
 
 import logging
 from collections import OrderedDict
-from collections.abc import Callable, Iterable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
-from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
 from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import (
     PerPartitionKeySerializer,
 )
 from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
 
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping
+
+    from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
+
+
 logger = logging.getLogger("airbyte")
 
 
 class CursorFactory:
-    def __init__(self, create_function: Callable[[], DeclarativeCursor]):
+    def __init__(self, create_function: Callable[[], DeclarativeCursor]) -> None:
         self._create_function = create_function
 
     def create(self) -> DeclarativeCursor:
@@ -51,7 +55,11 @@ class PerPartitionCursor(DeclarativeCursor):
     _VALUE = 1
     _state_to_migrate_from: Mapping[str, Any] = {}
 
-    def __init__(self, cursor_factory: CursorFactory, partition_router: PartitionRouter):
+    def __init__(
+        self,
+        cursor_factory: CursorFactory,
+        partition_router: PartitionRouter,
+    ) -> None:
         self._cursor_factory = cursor_factory
         self._partition_router = partition_router
         # The dict is ordered to ensure that once the maximum number of partitions is reached,
@@ -332,5 +340,4 @@ class PerPartitionCursor(DeclarativeCursor):
             raise ValueError(
                 "Invalid state as stream slices that are emitted should refer to an existing cursor"
             )
-        cursor = self._cursor_per_partition[partition_key]
-        return cursor
+        return self._cursor_per_partition[partition_key]

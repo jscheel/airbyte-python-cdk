@@ -1,13 +1,16 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.incremental import DeclarativeCursor
 from airbyte_cdk.sources.declarative.types import Record, StreamSlice, StreamState
 from airbyte_cdk.sources.streams.checkpoint.checkpoint_reader import FULL_REFRESH_COMPLETE_STATE
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
 
 
 @dataclass

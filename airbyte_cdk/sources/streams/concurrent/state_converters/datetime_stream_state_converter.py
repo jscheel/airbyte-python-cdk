@@ -4,9 +4,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pendulum
 from pendulum.datetime import DateTime
@@ -14,11 +13,16 @@ from pendulum.datetime import DateTime
 # FIXME We would eventually like the Concurrent package do be agnostic of the declarative package. However, this is a breaking change and
 #  the goal in the short term is only to fix the issue we are seeing for source-declarative-manifest.
 from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
-from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
 from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
     AbstractStreamStateConverter,
     ConcurrencyCompatibleStateType,
 )
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, MutableMapping
+
+    from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
 
 
 class DateTimeStreamStateConverter(AbstractStreamStateConverter):
@@ -154,7 +158,7 @@ class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
 
     def __init__(
         self, is_sequential_state: bool = True, cursor_granularity: timedelta | None = None
-    ):
+    ) -> None:
         super().__init__(is_sequential_state=is_sequential_state)
         self._cursor_granularity = cursor_granularity or timedelta(milliseconds=1)
 
@@ -184,7 +188,7 @@ class CustomFormatConcurrentStreamStateConverter(IsoMillisConcurrentStreamStateC
         input_datetime_formats: list[str] | None = None,
         is_sequential_state: bool = True,
         cursor_granularity: timedelta | None = None,
-    ):
+    ) -> None:
         super().__init__(
             is_sequential_state=is_sequential_state, cursor_granularity=cursor_granularity
         )

@@ -6,15 +6,18 @@ from __future__ import annotations
 import itertools
 import logging
 from collections import ChainMap
-from collections.abc import Callable, Iterable, Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
 from airbyte_cdk.sources.declarative.partition_routers.substream_partition_router import (
     SubstreamPartitionRouter,
 )
 from airbyte_cdk.sources.types import StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping
 
 
 def check_for_substream_in_slicers(
@@ -152,10 +155,7 @@ class CartesianProductStreamSlicer(PartitionRouter):
                 raise ValueError(
                     f"There should only be a single cursor slice. Found {cursor_slices}"
                 )
-            if cursor_slices:
-                cursor_slice = cursor_slices[0]
-            else:
-                cursor_slice = {}
+            cursor_slice = cursor_slices[0] if cursor_slices else {}
             yield StreamSlice(partition=partition, cursor_slice=cursor_slice)
 
     def set_initial_state(self, stream_state: StreamState) -> None:

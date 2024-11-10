@@ -19,19 +19,19 @@ class EventTimer:
        Event nesting follows a LIFO pattern, so finish will apply to the last started event.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.name = name
         self.events = {}
         self.count = 0
         self.stack = []
 
-    def start_event(self, name):
+    def start_event(self, name: str) -> None:
         """Start a new event and push it to the stack."""
         self.events[name] = Event(name=name)
         self.count += 1
         self.stack.insert(0, self.events[name])
 
-    def finish_event(self):
+    def finish_event(self) -> None:
         """Finish the current event and pop it from the stack."""
         if self.stack:
             event = self.stack.pop(0)
@@ -39,7 +39,7 @@ class EventTimer:
         else:
             logger.warning(f"{self.name} finish_event called without start_event")
 
-    def report(self, order_by="name"):
+    def report(self, order_by="name") -> str:
         """:param order_by: 'name' or 'duration'"""
         if order_by == "name":
             events = sorted(self.events.values(), key=lambda event: event.name)
@@ -63,10 +63,10 @@ class Event:
             return (self.end - self.start) / 1e9
         return float("+inf")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} {datetime.timedelta(seconds=self.duration)}"
 
-    def finish(self):
+    def finish(self) -> None:
         self.end = time.perf_counter_ns()
 
 

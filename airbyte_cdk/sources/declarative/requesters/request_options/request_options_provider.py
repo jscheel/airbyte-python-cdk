@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.types import StreamSlice, StreamState
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources.types import StreamSlice, StreamState
 
 
 @dataclass

@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 from orjson import orjson
 
 from airbyte_cdk.sources.declarative.decoders.decoder import Decoder
+
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Mapping
 
 
 logger = logging.getLogger("airbyte")

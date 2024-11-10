@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import requests
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    import requests
 
 
 @dataclass

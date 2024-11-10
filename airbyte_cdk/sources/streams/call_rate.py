@@ -8,7 +8,6 @@ import dataclasses
 import datetime
 import logging
 import time
-from collections.abc import Mapping
 from datetime import timedelta
 from threading import RLock
 from typing import TYPE_CHECKING, Any
@@ -23,6 +22,7 @@ from pyrate_limiter.exceptions import BucketFullException
 
 # prevents mypy from complaining about missing session attributes in LimiterMixin
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     MIXIN_BASE = requests.Session
 else:
     MIXIN_BASE = object
@@ -39,7 +39,14 @@ class Rate:
 
 
 class CallRateLimitHit(Exception):
-    def __init__(self, error: str, item: Any, weight: int, rate: str, time_to_wait: timedelta):
+    def __init__(
+        self,
+        error: str,
+        item: Any,
+        weight: int,
+        rate: str,
+        time_to_wait: timedelta,
+    ) -> None:
         """Constructor
 
         :param error: error message
@@ -105,7 +112,7 @@ class HttpRequestMatcher(RequestMatcher):
         url: str | None = None,
         params: Mapping[str, Any] | None = None,
         headers: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """Constructor
 
         :param method:
@@ -139,9 +146,8 @@ class HttpRequestMatcher(RequestMatcher):
         else:
             return False
 
-        if self._method is not None:
-            if prepared_request.method != self._method:
-                return False
+        if self._method is not None and prepared_request.method != self._method:
+            return False
         if self._url is not None and prepared_request.url is not None:
             url_without_params = prepared_request.url.split("?")[0]
             if url_without_params != self._url:
@@ -158,7 +164,7 @@ class HttpRequestMatcher(RequestMatcher):
 
 
 class BaseCallRatePolicy(AbstractCallRatePolicy, abc.ABC):
-    def __init__(self, matchers: list[RequestMatcher]):
+    def __init__(self, matchers: list[RequestMatcher]) -> None:
         self._matchers = matchers
 
     def matches(self, request: Any) -> bool:
@@ -208,7 +214,7 @@ class FixedWindowCallRatePolicy(BaseCallRatePolicy):
         period: timedelta,
         call_limit: int,
         matchers: list[RequestMatcher],
-    ):
+    ) -> None:
         """A policy that allows {call_limit} calls within a {period} time interval
 
         :param next_reset_ts: next call rate reset time point
@@ -279,7 +285,7 @@ class FixedWindowCallRatePolicy(BaseCallRatePolicy):
         now = datetime.datetime.now()
         if now > self._next_reset_ts:
             logger.debug("started new window, %s calls available now", self._call_limit)
-            self._next_reset_ts = self._next_reset_ts + self._offset
+            self._next_reset_ts += self._offset
             self._calls_num = 0
 
 
@@ -290,7 +296,7 @@ class MovingWindowCallRatePolicy(BaseCallRatePolicy):
     This strategy requires saving of timestamps of all requests within a window.
     """
 
-    def __init__(self, rates: list[Rate], matchers: list[RequestMatcher]):
+    def __init__(self, rates: list[Rate], matchers: list[RequestMatcher]) -> None:
         """Constructor
 
         :param rates: list of rates, the order is important and must be ascending
@@ -440,7 +446,7 @@ class APIBudget(AbstractAPIBudget):
         """
         last_exception = None
         # sometimes we spend all budget before a second attempt, so we have few more here
-        for attempt in range(1, self._maximum_attempts_to_acquire):
+        for _attempt in range(1, self._maximum_attempts_to_acquire):
             try:
                 policy.try_acquire(request, weight=1)
                 return
@@ -478,7 +484,7 @@ class HttpAPIBudget(APIBudget):
         ratelimit_remaining_header: str = "ratelimit-remaining",
         status_codes_for_ratelimit_hit: tuple[int] = (429,),
         **kwargs: Any,
-    ):
+    ) -> None:
         """Constructor
 
         :param ratelimit_reset_header: name of the header that has a timestamp of the next reset of call budget
@@ -524,7 +530,7 @@ class LimiterMixin(MIXIN_BASE):
         self,
         api_budget: AbstractAPIBudget,
         **kwargs: Any,
-    ):
+    ) -> None:
         self._api_budget = api_budget
         super().__init__(**kwargs)  # type: ignore # Base Session doesn't take any kwargs
 

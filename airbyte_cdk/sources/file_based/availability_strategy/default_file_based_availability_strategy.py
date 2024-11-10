@@ -3,12 +3,10 @@
 #
 from __future__ import annotations
 
-import logging
 import traceback
 from typing import TYPE_CHECKING
 
 from airbyte_cdk import AirbyteTracedException
-from airbyte_cdk.sources import Source
 from airbyte_cdk.sources.file_based.availability_strategy import (
     AbstractFileBasedAvailabilityStrategy,
 )
@@ -17,17 +15,22 @@ from airbyte_cdk.sources.file_based.exceptions import (
     CustomFileBasedException,
     FileBasedSourceError,
 )
-from airbyte_cdk.sources.file_based.file_based_stream_reader import AbstractFileBasedStreamReader
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 from airbyte_cdk.sources.file_based.schema_helpers import conforms_to_schema
 
 
 if TYPE_CHECKING:
+    import logging
+
+    from airbyte_cdk.sources import Source
+    from airbyte_cdk.sources.file_based.file_based_stream_reader import (
+        AbstractFileBasedStreamReader,
+    )
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
     from airbyte_cdk.sources.file_based.stream import AbstractFileBasedStream
 
 
 class DefaultFileBasedAvailabilityStrategy(AbstractFileBasedAvailabilityStrategy):
-    def __init__(self, stream_reader: AbstractFileBasedStreamReader):
+    def __init__(self, stream_reader: AbstractFileBasedStreamReader) -> None:
         self.stream_reader = stream_reader
 
     def check_availability(
@@ -75,8 +78,8 @@ class DefaultFileBasedAvailabilityStrategy(AbstractFileBasedAvailabilityStrategy
                 # If the parser is set to not check parsability, we still want to check that we can open the file.
                 handle = stream.stream_reader.open_file(file, parser.file_read_mode, None, logger)
                 handle.close()
-        except AirbyteTracedException as ate:
-            raise ate
+        except AirbyteTracedException:
+            raise
         except CheckAvailabilityError:
             return False, "".join(traceback.format_exc())
 
@@ -118,8 +121,8 @@ class DefaultFileBasedAvailabilityStrategy(AbstractFileBasedAvailabilityStrategy
             # consider the connection check successful even though it means
             # we skip the schema validation check.
             return
-        except AirbyteTracedException as ate:
-            raise ate
+        except AirbyteTracedException:
+            raise
         except Exception as exc:
             raise CheckAvailabilityError(
                 FileBasedSourceError.ERROR_READING_FILE, stream=stream.name, file=file.uri

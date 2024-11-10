@@ -1,17 +1,21 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import FailureType
 from airbyte_cdk.sources.streams.checkpoint import Cursor
 from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import (
     PerPartitionKeySerializer,
 )
-from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
 from airbyte_cdk.utils import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, MutableMapping
+
+    from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
 
 
 FULL_REFRESH_COMPLETE_STATE: Mapping[str, Any] = {"__ab_full_refresh_sync_complete": True}

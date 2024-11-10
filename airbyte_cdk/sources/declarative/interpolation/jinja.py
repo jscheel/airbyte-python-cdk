@@ -4,19 +4,24 @@
 from __future__ import annotations
 
 import ast
-from collections.abc import Mapping
 from functools import cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from jinja2 import meta
-from jinja2.environment import Template
 from jinja2.exceptions import UndefinedError
 from jinja2.sandbox import SandboxedEnvironment
 
 from airbyte_cdk.sources.declarative.interpolation.filters import filters
 from airbyte_cdk.sources.declarative.interpolation.interpolation import Interpolation
 from airbyte_cdk.sources.declarative.interpolation.macros import macros
-from airbyte_cdk.sources.types import Config
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from jinja2.environment import Template
+
+    from airbyte_cdk.sources.types import Config
 
 
 class StreamPartitionAccessEnvironment(SandboxedEnvironment):

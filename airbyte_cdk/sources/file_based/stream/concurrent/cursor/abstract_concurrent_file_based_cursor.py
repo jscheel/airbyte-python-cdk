@@ -3,22 +3,23 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, MutableMapping
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 from airbyte_cdk.sources.file_based.stream.cursor import AbstractFileBasedCursor
-from airbyte_cdk.sources.file_based.types import StreamState
 from airbyte_cdk.sources.streams.concurrent.cursor import Cursor
-from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 
 
 if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, MutableMapping
+    from datetime import datetime
+
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
     from airbyte_cdk.sources.file_based.stream.concurrent.adapters import FileBasedStreamPartition
+    from airbyte_cdk.sources.file_based.types import StreamState
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
+    from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 
 
 class AbstractConcurrentFileBasedCursor(Cursor, AbstractFileBasedCursor, ABC):

@@ -7,11 +7,15 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from collections import deque
-from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, Type
 from airbyte_cdk.sources.utils.types import JsonType
 from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
 
 _LOGGER = logging.getLogger("MessageRepository")
@@ -102,7 +106,7 @@ class LogAppenderMessageRepositoryDecorator(MessageRepository):
         dict_to_append: LogMessage,
         decorated: MessageRepository,
         log_level: Level = Level.INFO,
-    ):
+    ) -> None:
         self._dict_to_append = dict_to_append
         self._decorated = decorated
         self._log_level = log_level
@@ -128,10 +132,18 @@ class LogAppenderMessageRepositoryDecorator(MessageRepository):
         for key in second:
             if key in first:
                 if isinstance(first[key], dict) and isinstance(second[key], dict):
-                    self._append_second_to_first(first[key], second[key], path + [str(key)])  # type: ignore # type is verified above
+                    self._append_second_to_first(
+                        first[key],
+                        second[key],
+                        [*path, str(key)],
+                    )
                 else:
                     if first[key] != second[key]:
-                        _LOGGER.warning("Conflict at %s" % ".".join(path + [str(key)]))
+                        _LOGGER.warning(
+                            "Conflict at {}".format(
+                                ".".join([*path, str(key)]),
+                            ),
+                        )
                     first[key] = second[key]
             else:
                 first[key] = second[key]

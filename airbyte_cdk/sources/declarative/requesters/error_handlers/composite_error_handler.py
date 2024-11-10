@@ -3,11 +3,8 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
-
-import requests
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.streams.http.error_handlers import ErrorHandler
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
@@ -15,6 +12,12 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
     ResponseAction,
     create_fallback_error_resolution,
 )
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    import requests
 
 
 @dataclass
@@ -54,7 +57,7 @@ class CompositeErrorHandler(ErrorHandler):
 
     @property
     def max_time(self) -> int | None:
-        return max([error_handler.max_time or 0 for error_handler in self.error_handlers])
+        return max(error_handler.max_time or 0 for error_handler in self.error_handlers)
 
     def interpret_response(
         self, response_or_exception: requests.Response | Exception | None
@@ -70,8 +73,7 @@ class CompositeErrorHandler(ErrorHandler):
                 return matched_error_resolution
 
             if (
-                matched_error_resolution.response_action == ResponseAction.RETRY
-                or matched_error_resolution.response_action == ResponseAction.IGNORE
+                matched_error_resolution.response_action in {ResponseAction.RETRY, ResponseAction.IGNORE}
             ):
                 return matched_error_resolution
         if matched_error_resolution:

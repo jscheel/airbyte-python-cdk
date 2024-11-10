@@ -3,9 +3,8 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 
@@ -21,7 +20,12 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
     ErrorResolution,
     create_fallback_error_resolution,
 )
-from airbyte_cdk.sources.types import Config
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, MutableMapping
+
+    from airbyte_cdk.sources.types import Config
 
 
 @dataclass

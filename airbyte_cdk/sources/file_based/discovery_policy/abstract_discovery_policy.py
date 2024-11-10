@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
 
 
 class AbstractDiscoveryPolicy(ABC):

@@ -12,7 +12,7 @@ class BaseBackoffException(requests.exceptions.HTTPError):
         request: requests.PreparedRequest,
         response: requests.Response | Exception | None,
         error_message: str = "",
-    ):
+    ) -> None:
         if isinstance(response, requests.Response):
             error_message = (
                 error_message
@@ -37,7 +37,7 @@ class UserDefinedBackoffException(BaseBackoffException):
         request: requests.PreparedRequest,
         response: requests.Response | Exception | None,
         error_message: str = "",
-    ):
+    ) -> None:
         """:param backoff: how long to backoff in seconds
         :param request: the request that triggered this backoff exception
         :param response: the response that triggered the backoff exception

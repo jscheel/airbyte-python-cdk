@@ -6,25 +6,28 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from langchain.embeddings.cohere import CohereEmbeddings
 from langchain.embeddings.fake import FakeEmbeddings
 from langchain.embeddings.localai import LocalAIEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
 
-from airbyte_cdk.destinations.vector_db_based.config import (
-    AzureOpenAIEmbeddingConfigModel,
-    CohereEmbeddingConfigModel,
-    FakeEmbeddingConfigModel,
-    FromFieldEmbeddingConfigModel,
-    OpenAICompatibleEmbeddingConfigModel,
-    OpenAIEmbeddingConfigModel,
-    ProcessingConfigModel,
-)
 from airbyte_cdk.destinations.vector_db_based.utils import create_chunks, format_exception
-from airbyte_cdk.models import AirbyteRecordMessage
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException, FailureType
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.destinations.vector_db_based.config import (
+        AzureOpenAIEmbeddingConfigModel,
+        CohereEmbeddingConfigModel,
+        FakeEmbeddingConfigModel,
+        FromFieldEmbeddingConfigModel,
+        OpenAICompatibleEmbeddingConfigModel,
+        OpenAIEmbeddingConfigModel,
+        ProcessingConfigModel,
+    )
+    from airbyte_cdk.models import AirbyteRecordMessage
 
 
 @dataclass
@@ -67,7 +70,11 @@ OPEN_AI_TOKEN_LIMIT = 150_000  # limit of tokens per minute
 
 
 class BaseOpenAIEmbedder(Embedder):
-    def __init__(self, embeddings: OpenAIEmbeddings, chunk_size: int):
+    def __init__(
+        self,
+        embeddings: OpenAIEmbeddings,
+        chunk_size: int,
+    ) -> None:
         super().__init__()
         self.embeddings = embeddings
         self.chunk_size = chunk_size
@@ -103,7 +110,11 @@ class BaseOpenAIEmbedder(Embedder):
 
 
 class OpenAIEmbedder(BaseOpenAIEmbedder):
-    def __init__(self, config: OpenAIEmbeddingConfigModel, chunk_size: int):
+    def __init__(
+        self,
+        config: OpenAIEmbeddingConfigModel,
+        chunk_size: int,
+    ) -> None:
         super().__init__(
             OpenAIEmbeddings(
                 openai_api_key=config.openai_key, max_retries=15, disallowed_special=()
@@ -113,7 +124,11 @@ class OpenAIEmbedder(BaseOpenAIEmbedder):
 
 
 class AzureOpenAIEmbedder(BaseOpenAIEmbedder):
-    def __init__(self, config: AzureOpenAIEmbeddingConfigModel, chunk_size: int):
+    def __init__(
+        self,
+        config: AzureOpenAIEmbeddingConfigModel,
+        chunk_size: int,
+    ) -> None:
         # Azure OpenAI API has — as of 20230927 — a limit of 16 documents per request
         super().__init__(
             OpenAIEmbeddings(
@@ -134,7 +149,7 @@ COHERE_VECTOR_SIZE = 1024
 
 
 class CohereEmbedder(Embedder):
-    def __init__(self, config: CohereEmbeddingConfigModel):
+    def __init__(self, config: CohereEmbeddingConfigModel) -> None:
         super().__init__()
         # Client is set internally
         self.embeddings = CohereEmbeddings(
@@ -161,7 +176,7 @@ class CohereEmbedder(Embedder):
 
 
 class FakeEmbedder(Embedder):
-    def __init__(self, config: FakeEmbeddingConfigModel):
+    def __init__(self, config: FakeEmbeddingConfigModel) -> None:
         super().__init__()
         self.embeddings = FakeEmbeddings(size=OPEN_AI_VECTOR_SIZE)
 
@@ -188,7 +203,7 @@ CLOUD_DEPLOYMENT_MODE = "cloud"
 
 
 class OpenAICompatibleEmbedder(Embedder):
-    def __init__(self, config: OpenAICompatibleEmbeddingConfigModel):
+    def __init__(self, config: OpenAICompatibleEmbeddingConfigModel) -> None:
         super().__init__()
         self.config = config
         # Client is set internally
@@ -228,7 +243,7 @@ class OpenAICompatibleEmbedder(Embedder):
 
 
 class FromFieldEmbedder(Embedder):
-    def __init__(self, config: FromFieldEmbeddingConfigModel):
+    def __init__(self, config: FromFieldEmbeddingConfigModel) -> None:
         super().__init__()
         self.config = config
 
@@ -249,7 +264,7 @@ class FromFieldEmbedder(Embedder):
                     message=f"Record {str(data)[:250]}... in stream {document.record.stream}  does not contain embedding vector field {self.config.field_name}. Please check your embedding configuration, the embedding vector field has to be set correctly on every record.",
                 )
             field = data[self.config.field_name]
-            if not isinstance(field, list) or not all(isinstance(x, (int, float)) for x in field):
+            if not isinstance(field, list) or not all(isinstance(x, int | float) for x in field):
                 raise AirbyteTracedException(
                     internal_message="Embedding vector field not a list of numbers",
                     failure_type=FailureType.config_error,
@@ -289,7 +304,7 @@ def create_from_config(
     | OpenAICompatibleEmbeddingConfigModel,
     processing_config: ProcessingConfigModel,
 ) -> Embedder:
-    if embedding_config.mode == "azure_openai" or embedding_config.mode == "openai":
+    if embedding_config.mode in {"azure_openai", "openai"}:
         return cast(
             Embedder,
             embedder_map[embedding_config.mode](embedding_config, processing_config.chunk_size),

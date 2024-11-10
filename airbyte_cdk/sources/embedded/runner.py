@@ -5,18 +5,22 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
-from typing import Generic
+from typing import TYPE_CHECKING, Generic
 
 from airbyte_cdk.connector import TConfig
-from airbyte_cdk.models import (
-    AirbyteCatalog,
-    AirbyteMessage,
-    AirbyteStateMessage,
-    ConfiguredAirbyteCatalog,
-    ConnectorSpecification,
-)
-from airbyte_cdk.sources.source import Source
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from airbyte_cdk.models import (
+        AirbyteCatalog,
+        AirbyteMessage,
+        AirbyteStateMessage,
+        ConfiguredAirbyteCatalog,
+        ConnectorSpecification,
+    )
+    from airbyte_cdk.sources.source import Source
 
 
 class SourceRunner(ABC, Generic[TConfig]):
@@ -39,7 +43,7 @@ class SourceRunner(ABC, Generic[TConfig]):
 
 
 class CDKRunner(SourceRunner[TConfig]):
-    def __init__(self, source: Source, name: str):
+    def __init__(self, source: Source, name: str) -> None:
         self._source = source
         self._logger = logging.getLogger(name)
 

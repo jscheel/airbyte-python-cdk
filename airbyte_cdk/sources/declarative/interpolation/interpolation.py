@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.types import Config
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.types import Config
 
 
 class Interpolation(ABC):

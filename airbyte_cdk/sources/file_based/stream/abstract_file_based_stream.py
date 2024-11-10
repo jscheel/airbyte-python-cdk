@@ -4,36 +4,44 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Mapping
 from functools import cache, cached_property
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from deprecated import deprecated
 
-from airbyte_cdk import AirbyteMessage
-from airbyte_cdk.models import SyncMode
-from airbyte_cdk.sources.file_based.availability_strategy import (
-    AbstractFileBasedAvailabilityStrategy,
-)
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import (
-    FileBasedStreamConfig,
-    PrimaryKeyType,
-)
-from airbyte_cdk.sources.file_based.discovery_policy import AbstractDiscoveryPolicy
 from airbyte_cdk.sources.file_based.exceptions import (
     FileBasedErrorsCollector,
     FileBasedSourceError,
     RecordParseError,
     UndefinedParserError,
 )
-from airbyte_cdk.sources.file_based.file_based_stream_reader import AbstractFileBasedStreamReader
-from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
-from airbyte_cdk.sources.file_based.schema_validation_policies import AbstractSchemaValidationPolicy
-from airbyte_cdk.sources.file_based.stream.cursor import AbstractFileBasedCursor
-from airbyte_cdk.sources.file_based.types import StreamSlice
 from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.checkpoint import Cursor
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    from airbyte_cdk import AirbyteMessage
+    from airbyte_cdk.models import SyncMode
+    from airbyte_cdk.sources.file_based.availability_strategy import (
+        AbstractFileBasedAvailabilityStrategy,
+    )
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import (
+        FileBasedStreamConfig,
+        PrimaryKeyType,
+    )
+    from airbyte_cdk.sources.file_based.discovery_policy import AbstractDiscoveryPolicy
+    from airbyte_cdk.sources.file_based.file_based_stream_reader import (
+        AbstractFileBasedStreamReader,
+    )
+    from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
+    from airbyte_cdk.sources.file_based.schema_validation_policies import (
+        AbstractSchemaValidationPolicy,
+    )
+    from airbyte_cdk.sources.file_based.stream.cursor import AbstractFileBasedCursor
+    from airbyte_cdk.sources.file_based.types import StreamSlice
+    from airbyte_cdk.sources.streams.checkpoint import Cursor
 
 
 class AbstractFileBasedStream(Stream):
@@ -62,7 +70,7 @@ class AbstractFileBasedStream(Stream):
         validation_policy: AbstractSchemaValidationPolicy,
         errors_collector: FileBasedErrorsCollector,
         cursor: AbstractFileBasedCursor,
-    ):
+    ) -> None:
         super().__init__()
         self.config = config
         self.catalog_schema = catalog_schema

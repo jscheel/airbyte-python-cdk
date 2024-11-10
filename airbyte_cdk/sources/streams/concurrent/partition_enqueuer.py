@@ -4,15 +4,20 @@
 from __future__ import annotations
 
 import time
-from queue import Queue
+from typing import TYPE_CHECKING
 
 from airbyte_cdk.sources.concurrent_source.partition_generation_completed_sentinel import (
     PartitionGenerationCompletedSentinel,
 )
 from airbyte_cdk.sources.concurrent_source.stream_thread_exception import StreamThreadException
-from airbyte_cdk.sources.concurrent_source.thread_pool_manager import ThreadPoolManager
-from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
-from airbyte_cdk.sources.streams.concurrent.partitions.types import QueueItem
+
+
+if TYPE_CHECKING:
+    from queue import Queue
+
+    from airbyte_cdk.sources.concurrent_source.thread_pool_manager import ThreadPoolManager
+    from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
+    from airbyte_cdk.sources.streams.concurrent.partitions.types import QueueItem
 
 
 class PartitionEnqueuer:

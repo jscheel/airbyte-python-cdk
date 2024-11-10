@@ -27,7 +27,7 @@ class MultipleTokenAuthenticator(AbstractHeaderAuthenticator):
 
     def __init__(
         self, tokens: list[str], auth_method: str = "Bearer", auth_header: str = "Authorization"
-    ):
+    ) -> None:
         self._auth_method = auth_method
         self._auth_header = auth_header
         self._tokens = tokens
@@ -47,7 +47,12 @@ class TokenAuthenticator(AbstractHeaderAuthenticator):
     def token(self) -> str:
         return f"{self._auth_method} {self._token}"
 
-    def __init__(self, token: str, auth_method: str = "Bearer", auth_header: str = "Authorization"):
+    def __init__(
+        self,
+        token: str,
+        auth_method: str = "Bearer",
+        auth_header: str = "Authorization",
+    ) -> None:
         self._auth_header = auth_header
         self._auth_method = auth_method
         self._token = token
@@ -72,7 +77,7 @@ class BasicHttpAuthenticator(AbstractHeaderAuthenticator):
         password: str = "",
         auth_method: str = "Basic",
         auth_header: str = "Authorization",
-    ):
+    ) -> None:
         auth_string = f"{username}:{password}".encode()
         b64_encoded = base64.b64encode(auth_string).decode("utf8")
         self._auth_header = auth_header

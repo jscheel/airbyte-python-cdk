@@ -7,7 +7,6 @@ import abc
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import cached_property
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, final
 
 import pandas as pd
@@ -17,8 +16,6 @@ from pandas import Index
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Table, and_, create_engine, insert, null, select, text, update
 from sqlalchemy.exc import ProgrammingError, SQLAlchemyError
-
-from airbyte_protocol_dataclasses.models import AirbyteStateMessage
 
 from airbyte_cdk.sql import exceptions as exc
 from airbyte_cdk.sql._util.hashing import one_way_hash
@@ -35,6 +32,7 @@ from airbyte_cdk.sql.types import SQLTypeConverter
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from pathlib import Path
 
     from sqlalchemy.engine import Connection, Engine
     from sqlalchemy.engine.cursor import CursorResult
@@ -42,6 +40,8 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.base import Executable
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.type_api import TypeEngine
+
+    from airbyte_protocol_dataclasses.models import AirbyteStateMessage
 
     from airbyte_cdk.sql.shared.catalog_providers import CatalogProvider
 

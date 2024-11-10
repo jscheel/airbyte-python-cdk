@@ -3,13 +3,15 @@
 #
 from __future__ import annotations
 
+import operator
 from abc import ABC, abstractmethod
-from collections.abc import MutableMapping
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
 
 
@@ -30,7 +32,11 @@ class AbstractStreamStateConverter(ABC):
     def _to_state_message(self, value: Any) -> Any:
         pass
 
-    def __init__(self, is_sequential_state: bool = True):
+    def __init__(
+        self,
+        *,
+        is_sequential_state: bool = True,
+    ) -> None:
         self._is_sequential_state = is_sequential_state
 
     def convert_to_state_message(
@@ -128,7 +134,11 @@ class AbstractStreamStateConverter(ABC):
             return []
 
         sorted_intervals = sorted(
-            intervals, key=lambda interval: (interval[self.START_KEY], interval[self.END_KEY])
+            intervals,
+            key=operator.itemgetter(
+                self.START_KEY,
+                self.END_KEY,
+            ),
         )
         merged_intervals = [sorted_intervals[0]]
 

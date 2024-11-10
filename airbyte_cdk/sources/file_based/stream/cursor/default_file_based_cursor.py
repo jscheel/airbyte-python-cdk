@@ -3,17 +3,22 @@
 #
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterable, MutableMapping
+import operator
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
 from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 from airbyte_cdk.sources.file_based.stream.cursor.abstract_file_based_cursor import (
     AbstractFileBasedCursor,
 )
-from airbyte_cdk.sources.file_based.types import StreamState
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, MutableMapping
+
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
+    from airbyte_cdk.sources.file_based.types import StreamState
 
 
 class DefaultFileBasedCursor(AbstractFileBasedCursor):
@@ -22,7 +27,7 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
     DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
     CURSOR_FIELD = "_ab_source_file_last_modified"
 
-    def __init__(self, stream_config: FileBasedStreamConfig, **_: Any):
+    def __init__(self, stream_config: FileBasedStreamConfig, **_: Any) -> None:
         super().__init__(stream_config)
         self._file_to_datetime_history: MutableMapping[str, str] = {}
         self._time_window_if_history_is_full = timedelta(
@@ -58,8 +63,7 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
                 )
 
     def get_state(self) -> StreamState:
-        state = {"history": self._file_to_datetime_history, self.CURSOR_FIELD: self._get_cursor()}
-        return state
+        return {"history": self._file_to_datetime_history, self.CURSOR_FIELD: self._get_cursor()}
 
     def _get_cursor(self) -> str | None:
         """Returns the cursor value.
@@ -69,7 +73,7 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
         """
         if self._file_to_datetime_history.items():
             filename, timestamp = max(
-                self._file_to_datetime_history.items(), key=lambda x: (x[1], x[0])
+                self._file_to_datetime_history.items(), key=operator.itemgetter(1, 0)
             )
             return f"{timestamp}_{filename}"
         return None
@@ -126,7 +130,7 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
     def _compute_earliest_file_in_history(self) -> RemoteFile | None:
         if self._file_to_datetime_history:
             filename, last_modified = min(
-                self._file_to_datetime_history.items(), key=lambda f: (f[1], f[0])
+                self._file_to_datetime_history.items(), key=operator.itemgetter(1, 0)
             )
             return RemoteFile(
                 uri=filename, last_modified=datetime.strptime(last_modified, self.DATE_TIME_FORMAT)

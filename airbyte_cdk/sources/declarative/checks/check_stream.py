@@ -3,15 +3,19 @@
 #
 from __future__ import annotations
 
-import logging
 import traceback
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk import AbstractSource
 from airbyte_cdk.sources.declarative.checks.connection_checker import ConnectionChecker
 from airbyte_cdk.sources.streams.http.availability_strategy import HttpAvailabilityStrategy
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Mapping
+
+    from airbyte_cdk import AbstractSource
 
 
 @dataclass
@@ -51,7 +55,8 @@ class CheckStream(ConnectionChecker):
                     return False, reason
             except Exception as error:
                 logger.error(
-                    f"Encountered an error trying to connect to stream {stream_name}. Error: \n {traceback.format_exc()}"
+                    f"Encountered an error trying to connect to stream {stream_name}. "
+                    f"Error: \n {traceback.format_exc()}"
                 )
                 return False, f"Unable to connect to stream {stream_name} - {error}"
         return True, None

@@ -6,7 +6,7 @@ from __future__ import annotations
 import time
 from collections.abc import Mapping
 from collections.abc import Mapping as ABCMapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import (
     AirbyteLogMessage,
@@ -16,8 +16,11 @@ from airbyte_cdk.models import (
 )
 from airbyte_cdk.models import Type as MessageType
 from airbyte_cdk.models.file_transfer_record_message import AirbyteFileTransferRecordMessage
-from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.streams.core import StreamData
 
 
 def stream_data_to_airbyte_message(

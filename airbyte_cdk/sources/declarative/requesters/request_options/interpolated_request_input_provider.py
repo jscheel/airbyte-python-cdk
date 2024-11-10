@@ -3,13 +3,17 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_mapping import InterpolatedMapping
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
-from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 
 
 @dataclass
@@ -63,6 +67,5 @@ class InterpolatedRequestInputProvider:
         )
 
         if isinstance(interpolated_value, dict):
-            non_null_tokens = {k: v for k, v in interpolated_value.items() if v is not None}
-            return non_null_tokens
+            return {k: v for k, v in interpolated_value.items() if v is not None}
         return interpolated_value  # type: ignore[no-any-return]

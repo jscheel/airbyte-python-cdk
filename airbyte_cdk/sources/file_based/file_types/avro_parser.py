@@ -3,22 +3,26 @@
 #
 from __future__ import annotations
 
-import logging
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fastavro
 
 from airbyte_cdk.sources.file_based.config.avro_format import AvroFormat
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
 from airbyte_cdk.sources.file_based.exceptions import FileBasedSourceError, RecordParseError
 from airbyte_cdk.sources.file_based.file_based_stream_reader import (
     AbstractFileBasedStreamReader,
     FileReadMode,
 )
 from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
-from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
+
+
+if TYPE_CHECKING:
+    import logging
+
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
+    from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
 
 
 AVRO_TYPE_TO_JSON_TYPE = {
@@ -72,13 +76,12 @@ class AvroParser(FileTypeParser):
             raise ValueError(
                 f"Only record based avro files are supported. Found {unsupported_type}"
             )
-        json_schema = {
+        return {
             field["name"]: AvroParser._convert_avro_type_to_json(
                 avro_format, field["name"], field["type"]
             )
             for field in avro_schema["fields"]
         }
-        return json_schema
 
     @classmethod
     def _convert_avro_type_to_json(
@@ -213,7 +216,7 @@ class AvroParser(FileTypeParser):
             if record_type == "double" and avro_format.double_as_string:
                 return str(record_value)
             return record_value
-        if record_type.get("logicalType") in ("decimal", "uuid"):
+        if record_type.get("logicalType") in {"decimal", "uuid"}:
             return str(record_value)
         if record_type.get("logicalType") == "date":
             return record_value.isoformat()

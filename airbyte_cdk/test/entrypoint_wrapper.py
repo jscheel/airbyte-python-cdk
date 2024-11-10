@@ -20,10 +20,9 @@ import logging
 import re
 import tempfile
 import traceback
-from collections.abc import Mapping
 from io import StringIO
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from orjson import orjson
 from pydantic import ValidationError as V2ValidationError
@@ -45,11 +44,20 @@ from airbyte_cdk.models import (
     TraceType,
     Type,
 )
-from airbyte_cdk.sources import Source
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources import Source
 
 
 class EntrypointOutput:
-    def __init__(self, messages: list[str], uncaught_exception: BaseException | None = None):
+    def __init__(
+        self,
+        messages: list[str],
+        uncaught_exception: BaseException | None = None,
+    ) -> None:
         try:
             self._messages = [self._parse_message(message) for message in messages]
         except V2ValidationError as exception:
@@ -115,12 +123,12 @@ class EntrypointOutput:
         return catalog[0]
 
     def get_stream_statuses(self, stream_name: str) -> list[AirbyteStreamStatus]:
-        status_messages = map(
-            lambda message: message.trace.stream_status.status,  # type: ignore
-            filter(
+        status_messages = (
+            message.trace.stream_status.status
+            for message in filter(
                 lambda message: message.trace.stream_status.stream_descriptor.name == stream_name,  # type: ignore # callable; trace has `stream_status`
                 self._get_trace_message_by_trace_type(TraceType.STREAM_STATUS),
-            ),
+            )
         )
         return list(status_messages)
 

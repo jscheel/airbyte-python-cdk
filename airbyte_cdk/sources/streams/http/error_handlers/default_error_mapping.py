@@ -3,7 +3,7 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 from requests.exceptions import InvalidSchema, InvalidURL, RequestException
 
@@ -12,6 +12,10 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
     ErrorResolution,
     ResponseAction,
 )
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 DEFAULT_ERROR_MAPPING: Mapping[int | str | type[Exception], ErrorResolution] = {

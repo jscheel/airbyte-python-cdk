@@ -1,25 +1,29 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from deprecated.classic import deprecated
 
 from airbyte_cdk.models import FailureType
-from airbyte_cdk.sources.declarative.async_job.job_orchestrator import (
-    AsyncJobOrchestrator,
-    AsyncPartition,
-)
-from airbyte_cdk.sources.declarative.extractors.record_selector import RecordSelector
 from airbyte_cdk.sources.declarative.partition_routers import SinglePartitionRouter
 from airbyte_cdk.sources.declarative.retrievers import Retriever
-from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
 from airbyte_cdk.sources.source import ExperimentalClassWarning
-from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping
+
+    from airbyte_cdk.sources.declarative.async_job.job_orchestrator import (
+        AsyncJobOrchestrator,
+        AsyncPartition,
+    )
+    from airbyte_cdk.sources.declarative.extractors.record_selector import RecordSelector
+    from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
+    from airbyte_cdk.sources.streams.core import StreamData
 
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)

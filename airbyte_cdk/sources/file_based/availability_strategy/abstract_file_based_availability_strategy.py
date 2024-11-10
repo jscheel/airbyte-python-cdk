@@ -3,11 +3,9 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from airbyte_cdk.sources import Source
 from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams.concurrent.availability_strategy import (
     AbstractAvailabilityStrategy,
@@ -15,11 +13,14 @@ from airbyte_cdk.sources.streams.concurrent.availability_strategy import (
     StreamAvailable,
     StreamUnavailable,
 )
-from airbyte_cdk.sources.streams.core import Stream
 
 
 if TYPE_CHECKING:
+    import logging
+
+    from airbyte_cdk.sources import Source
     from airbyte_cdk.sources.file_based.stream import AbstractFileBasedStream
+    from airbyte_cdk.sources.streams.core import Stream
 
 
 class AbstractFileBasedAvailabilityStrategy(AvailabilityStrategy):
@@ -46,7 +47,7 @@ class AbstractFileBasedAvailabilityStrategy(AvailabilityStrategy):
 
 
 class AbstractFileBasedAvailabilityStrategyWrapper(AbstractAvailabilityStrategy):
-    def __init__(self, stream: AbstractFileBasedStream):
+    def __init__(self, stream: AbstractFileBasedStream) -> None:
         self.stream = stream
 
     def check_availability(self, logger: logging.Logger) -> StreamAvailability:

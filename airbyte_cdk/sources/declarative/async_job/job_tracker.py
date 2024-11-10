@@ -16,7 +16,7 @@ class ConcurrentJobLimitReached(Exception):
 
 
 class JobTracker:
-    def __init__(self, limit: int):
+    def __init__(self, limit: int) -> None:
         self._jobs: set[str] = set()
         self._limit = limit
         self._lock = threading.Lock()

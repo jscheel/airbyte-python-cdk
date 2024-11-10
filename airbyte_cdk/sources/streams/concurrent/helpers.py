@@ -1,7 +1,11 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 from __future__ import annotations
 
-from airbyte_cdk.sources.streams import Stream
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.streams import Stream
 
 
 def get_primary_key_from_stream(

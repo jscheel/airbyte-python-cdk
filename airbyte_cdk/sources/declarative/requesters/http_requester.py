@@ -5,18 +5,14 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Callable, Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
-
-import requests
 
 from airbyte_cdk.sources.declarative.auth.declarative_authenticator import (
     DeclarativeAuthenticator,
     NoAuth,
 )
-from airbyte_cdk.sources.declarative.decoders import Decoder
 from airbyte_cdk.sources.declarative.decoders.json_decoder import JsonDecoder
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 from airbyte_cdk.sources.declarative.requesters.request_options.interpolated_request_options_provider import (
@@ -25,9 +21,17 @@ from airbyte_cdk.sources.declarative.requesters.request_options.interpolated_req
 from airbyte_cdk.sources.declarative.requesters.requester import HttpMethod, Requester
 from airbyte_cdk.sources.message import MessageRepository, NoopMessageRepository
 from airbyte_cdk.sources.streams.http import HttpClient
-from airbyte_cdk.sources.streams.http.error_handlers import ErrorHandler
-from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 from airbyte_cdk.utils.mapping_helpers import combine_mappings
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping, MutableMapping
+
+    import requests
+
+    from airbyte_cdk.sources.declarative.decoders import Decoder
+    from airbyte_cdk.sources.streams.http.error_handlers import ErrorHandler
+    from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 
 
 @dataclass
@@ -256,7 +260,7 @@ class HttpRequester(Requester):
             raise ValueError("Request params cannot be a string")
 
         for k, v in options.items():
-            if isinstance(v, (dict,)):
+            if isinstance(v, dict):
                 raise ValueError(
                     f"Invalid value for `{k}` parameter. The values of request params cannot be an object."
                 )
@@ -328,7 +332,7 @@ class HttpRequester(Requester):
         request_body_json: Mapping[str, Any] | None = None,
         log_formatter: Callable[[requests.Response], Any] | None = None,
     ) -> requests.Response | None:
-        request, response = self._http_client.send_request(
+        _, response = self._http_client.send_request(
             http_method=self.get_method().value,
             url=self._join_url(
                 self.get_url_base(),

@@ -3,12 +3,15 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk import AbstractSource
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Mapping
+
+    from airbyte_cdk import AbstractSource
 
 
 class ConnectionChecker(ABC):

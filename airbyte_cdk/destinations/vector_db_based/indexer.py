@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import itertools
 from abc import ABC, abstractmethod
-from collections.abc import Generator, Iterable
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from airbyte_cdk.destinations.vector_db_based.document_processor import Chunk
-from airbyte_cdk.models import AirbyteMessage, ConfiguredAirbyteCatalog
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable
+
+    from airbyte_cdk.destinations.vector_db_based.document_processor import Chunk
+    from airbyte_cdk.models import AirbyteMessage, ConfiguredAirbyteCatalog
 
 
 class Indexer(ABC):
@@ -19,7 +22,7 @@ class Indexer(ABC):
     In a destination connector, implement a custom indexer by extending this class and implementing the abstract methods.
     """
 
-    def __init__(self, config: Any):
+    def __init__(self, config: Any) -> None:
         self.config = config
         pass
 

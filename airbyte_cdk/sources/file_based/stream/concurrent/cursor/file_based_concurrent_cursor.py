@@ -3,29 +3,31 @@
 #
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterable, MutableMapping
+import operator
 from datetime import datetime, timedelta
 from threading import RLock
 from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, Type
-from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
 from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 from airbyte_cdk.sources.file_based.stream.concurrent.cursor.abstract_concurrent_file_based_cursor import (
     AbstractConcurrentFileBasedCursor,
 )
 from airbyte_cdk.sources.file_based.stream.cursor import DefaultFileBasedCursor
-from airbyte_cdk.sources.file_based.types import StreamState
-from airbyte_cdk.sources.message.repository import MessageRepository
-from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
-from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 
 
 if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, MutableMapping
+
+    from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
     from airbyte_cdk.sources.file_based.stream.concurrent.adapters import FileBasedStreamPartition
+    from airbyte_cdk.sources.file_based.types import StreamState
+    from airbyte_cdk.sources.message.repository import MessageRepository
+    from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
+    from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 
 _NULL_FILE = ""
 
@@ -90,7 +92,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                 if _slice is None:
                     continue
                 for file in _slice["files"]:
-                    if file.uri in self._pending_files.keys():
+                    if file.uri in self._pending_files:
                         raise RuntimeError(
                             f"Already found file {_slice} in pending files. This is unexpected. Please contact Support."
                         )
@@ -124,7 +126,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
         with self._state_lock:
             if self._file_to_datetime_history:
                 filename, last_modified = min(
-                    self._file_to_datetime_history.items(), key=lambda f: (f[1], f[0])
+                    self._file_to_datetime_history.items(), key=operator.itemgetter(1, 0)
                 )
                 return RemoteFile(
                     uri=filename,
@@ -205,7 +207,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
         with self._state_lock:
             if self._file_to_datetime_history:
                 filename, last_modified = max(
-                    self._file_to_datetime_history.items(), key=lambda f: (f[1], f[0])
+                    self._file_to_datetime_history.items(), key=operator.itemgetter(1, 0)
                 )
                 return RemoteFile(
                     uri=filename,

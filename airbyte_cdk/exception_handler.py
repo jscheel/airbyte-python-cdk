@@ -3,14 +3,17 @@
 #
 from __future__ import annotations
 
-import logging
 import sys
-from collections.abc import Mapping
-from types import TracebackType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Mapping
+    from types import TracebackType
 
 
 def assemble_uncaught_exception(
@@ -49,7 +52,7 @@ def init_uncaught_exception_handler(logger: logging.Logger) -> None:
 def generate_failed_streams_error_message(stream_failures: Mapping[str, list[Exception]]) -> str:
     failures = "\n".join(
         [
-            f"{stream}: {filter_secrets(exception.__repr__())}"
+            f"{stream}: {filter_secrets(repr(exception))}"
             for stream, exceptions in stream_failures.items()
             for exception in exceptions
         ]

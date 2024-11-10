@@ -3,11 +3,14 @@
 #
 from __future__ import annotations
 
-import logging
 import threading
-from collections.abc import Callable
-from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Callable
+    from concurrent.futures import Future, ThreadPoolExecutor
 
 
 class ThreadPoolManager:
@@ -20,7 +23,7 @@ class ThreadPoolManager:
         threadpool: ThreadPoolExecutor,
         logger: logging.Logger,
         max_concurrent_tasks: int = DEFAULT_MAX_QUEUE_SIZE,
-    ):
+    ) -> None:
         """:param threadpool: The threadpool to use
         :param logger: The logger to use
         :param max_concurrent_tasks: The maximum number of tasks that can be pending at the same time
@@ -78,7 +81,7 @@ class ThreadPoolManager:
         self._threadpool.shutdown(wait=False, cancel_futures=True)
 
     def is_done(self) -> bool:
-        return all([f.done() for f in self._futures])
+        return all(f.done() for f in self._futures)
 
     def check_for_errors_and_shutdown(self) -> None:
         """Check if any of the futures have an exception, and raise it if so. If all futures are done, shutdown the threadpool.

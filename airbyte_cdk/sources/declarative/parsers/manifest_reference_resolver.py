@@ -4,13 +4,16 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.parsers.custom_exceptions import (
     CircularReferenceException,
     UndefinedReferenceException,
 )
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 REF_TAG = "$ref"

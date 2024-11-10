@@ -3,16 +3,20 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import (
     AdvancedAuth,
     ConnectorSpecification,
     ConnectorSpecificationSerializer,
 )  # type: ignore [attr-defined]
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import AuthFlow
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources.declarative.models.declarative_component_schema import AuthFlow
 
 
 @dataclass

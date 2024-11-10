@@ -3,9 +3,7 @@
 #
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterator, Mapping
-from typing import Any, Generic
+from typing import TYPE_CHECKING, Any, Generic
 
 from airbyte_cdk.models import (
     AirbyteCatalog,
@@ -27,22 +25,28 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     DatetimeBasedCursor as DatetimeBasedCursorModel,
 )
-from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
-    ModelToComponentFactory,
-)
 from airbyte_cdk.sources.declarative.requesters import HttpRequester
 from airbyte_cdk.sources.declarative.retrievers import SimpleRetriever
 from airbyte_cdk.sources.declarative.transformations.add_fields import AddFields
-from airbyte_cdk.sources.declarative.types import ConnectionDefinition
 from airbyte_cdk.sources.source import TState
-from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
 from airbyte_cdk.sources.streams.concurrent.adapters import CursorPartitionGenerator
 from airbyte_cdk.sources.streams.concurrent.availability_strategy import (
     AlwaysAvailableAvailabilityStrategy,
 )
 from airbyte_cdk.sources.streams.concurrent.default_stream import DefaultStream
 from airbyte_cdk.sources.streams.concurrent.helpers import get_primary_key_from_stream
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterator, Mapping
+
+    from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
+        ModelToComponentFactory,
+    )
+    from airbyte_cdk.sources.declarative.types import ConnectionDefinition
+    from airbyte_cdk.sources.streams import Stream
+    from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
 
 
 class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
@@ -122,9 +126,9 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
         # ConcurrentReadProcessor pops streams that are finished being read so before syncing, the names of the concurrent
         # streams must be saved so that they can be removed from the catalog before starting synchronous streams
         if self._concurrent_streams:
-            concurrent_stream_names = set(
-                [concurrent_stream.name for concurrent_stream in self._concurrent_streams]
-            )
+            concurrent_stream_names = {
+                concurrent_stream.name for concurrent_stream in self._concurrent_streams
+            }
 
             selected_concurrent_streams = self._select_streams(
                 streams=self._concurrent_streams, configured_catalog=catalog

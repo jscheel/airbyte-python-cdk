@@ -3,25 +3,30 @@
 #
 from __future__ import annotations
 
-import datetime
 from abc import abstractmethod
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dpath
 import pendulum
-from isodate import Duration
 from pendulum import DateTime
 
-from airbyte_cdk.sources.declarative.decoders.decoder import Decoder
 from airbyte_cdk.sources.declarative.decoders.json_decoder import JsonDecoder
 from airbyte_cdk.sources.declarative.exceptions import ReadException
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
-from airbyte_cdk.sources.declarative.requesters.requester import Requester
 from airbyte_cdk.sources.http_logger import format_http_message
 from airbyte_cdk.sources.message import MessageRepository, NoopMessageRepository
-from airbyte_cdk.sources.types import Config
+
+
+if TYPE_CHECKING:
+    import datetime
+    from collections.abc import Mapping
+
+    from isodate import Duration
+
+    from airbyte_cdk.sources.declarative.decoders.decoder import Decoder
+    from airbyte_cdk.sources.declarative.requesters.requester import Requester
+    from airbyte_cdk.sources.types import Config
 
 
 class TokenProvider:

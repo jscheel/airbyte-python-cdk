@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import itertools
 import traceback
-from collections.abc import Iterable, Iterator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import AirbyteRecordMessage, AirbyteStream
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
 
 
 def format_exception(exception: Exception) -> str:

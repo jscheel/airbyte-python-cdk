@@ -3,11 +3,8 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
-
-import requests
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.decoders import (
     Decoder,
@@ -16,15 +13,22 @@ from airbyte_cdk.sources.declarative.decoders import (
 )
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 from airbyte_cdk.sources.declarative.requesters.paginators.paginator import Paginator
-from airbyte_cdk.sources.declarative.requesters.paginators.strategies.pagination_strategy import (
-    PaginationStrategy,
-)
 from airbyte_cdk.sources.declarative.requesters.request_option import (
     RequestOption,
     RequestOptionType,
 )
 from airbyte_cdk.sources.declarative.requesters.request_path import RequestPath
-from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, MutableMapping
+
+    import requests
+
+    from airbyte_cdk.sources.declarative.requesters.paginators.strategies.pagination_strategy import (
+        PaginationStrategy,
+    )
+    from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
 
 
 @dataclass

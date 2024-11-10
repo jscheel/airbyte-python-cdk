@@ -4,10 +4,13 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 
 
 class Partition(ABC):

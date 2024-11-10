@@ -4,13 +4,18 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from airbyte_cdk.sources.declarative.requesters.request_options.request_options_provider import (
     RequestOptionsProvider,
 )
-from airbyte_cdk.sources.types import StreamSlice
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from airbyte_cdk.sources.types import StreamSlice
 
 
 @dataclass

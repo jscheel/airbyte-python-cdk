@@ -4,10 +4,8 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
-from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote
 
 import pyarrow as pa
@@ -28,8 +26,14 @@ from airbyte_cdk.sources.file_based.file_based_stream_reader import (
     FileReadMode,
 )
 from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
-from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, Mapping
+
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
+    from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
 
 
 class ParquetParser(FileTypeParser):
@@ -153,7 +157,7 @@ class ParquetParser(FileTypeParser):
             return str(parquet_value.as_py())
 
         if pa.types.is_map(parquet_value.type):
-            return {k: v for k, v in parquet_value.as_py()}
+            return dict(parquet_value.as_py())
 
         if pa.types.is_null(parquet_value.type):
             return None

@@ -3,11 +3,12 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 
 
@@ -18,8 +19,9 @@ class Record:
         self,
         data: Mapping[str, Any],
         partition: Partition,
+        *,
         is_file_transfer_message: bool = False,
-    ):
+    ) -> None:
         self.data = data
         self.partition = partition
         self.is_file_transfer_message = is_file_transfer_message

@@ -3,12 +3,10 @@
 #
 from __future__ import annotations
 
-import logging
 import traceback
-from collections.abc import Iterable, Mapping
 from datetime import datetime
 from io import BytesIO, IOBase
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import backoff
 import dpath
@@ -21,7 +19,6 @@ from unstructured.file_utils.filetype import (
 )
 
 from airbyte_cdk.models import FailureType
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
 from airbyte_cdk.sources.file_based.config.unstructured_format import (
     APIParameterConfigModel,
     APIProcessingConfigModel,
@@ -35,9 +32,16 @@ from airbyte_cdk.sources.file_based.file_based_stream_reader import (
 )
 from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
 from airbyte_cdk.sources.file_based.remote_file import RemoteFile
-from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
 from airbyte_cdk.utils import is_cloud_environment
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, Mapping
+
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
+    from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
 
 
 unstructured_partition_pdf = None
@@ -146,15 +150,17 @@ class UnstructuredParser(FileTypeParser):
                 # otherwise, we raise the error to fail the sync
                 if format.skip_unprocessable_files:
                     exception_str = str(e)
-                    logger.warn(f"File {file.uri} caused an error during parsing: {exception_str}.")
+                    logger.warning(
+                        f"File {file.uri} caused an error during parsing: {exception_str}."
+                    )
                     yield {
                         "content": None,
                         "document_key": file.uri,
                         "_ab_source_file_parse_error": exception_str,
                     }
-                    logger.warn(f"File {file.uri} cannot be parsed. Skipping it.")
+                    logger.warning(f"File {file.uri} cannot be parsed. Skipping it.")
                 else:
-                    raise e
+                    raise
 
     def _read_file(
         self,
@@ -174,7 +180,7 @@ class UnstructuredParser(FileTypeParser):
 
         filetype = self._get_filetype(file_handle, remote_file)
 
-        if filetype == FileType.MD or filetype == FileType.TXT:
+        if filetype in {FileType.MD, FileType.TXT}:
             file_content: bytes = file_handle.read()
             decoded_content: str = optional_decode(file_content)
             return decoded_content
@@ -193,12 +199,13 @@ class UnstructuredParser(FileTypeParser):
                 # For other exceptions, re-throw as config error so the sync is stopped as problems with the external API need to be resolved by the user and are not considered part of the SLA.
                 # Once this parser leaves experimental stage, we should consider making this a system error instead for issues that might be transient.
                 if isinstance(e, RecordParseError):
-                    raise e
+                    raise
                 raise AirbyteTracedException.from_exception(
                     e, failure_type=FailureType.config_error
-                )
+                ) from None
 
             return result
+        return None
 
     def _params_to_dict(
         self, params: list[APIParameterConfigModel] | None, strategy: str

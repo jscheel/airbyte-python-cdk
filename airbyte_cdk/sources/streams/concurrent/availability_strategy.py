@@ -3,12 +3,16 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from deprecated.classic import deprecated
 
 from airbyte_cdk.sources.source import ExperimentalClassWarning
+
+
+if TYPE_CHECKING:
+    import logging
 
 
 class StreamAvailability(ABC):
@@ -30,7 +34,7 @@ class StreamAvailable(StreamAvailability):
 
 
 class StreamUnavailable(StreamAvailability):
-    def __init__(self, message: str):
+    def __init__(self, message: str) -> None:
         self._message = message
 
     def is_available(self) -> bool:

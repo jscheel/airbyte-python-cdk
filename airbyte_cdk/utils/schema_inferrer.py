@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from genson import SchemaBuilder, SchemaNode
 from genson.schema.strategies.object import Object
 from genson.schema.strategies.scalar import Number
 
-from airbyte_cdk.models import AirbyteRecordMessage
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.models import AirbyteRecordMessage
 
 
 # schema keywords
@@ -33,7 +36,7 @@ class NoRequiredObj(Object):
     """
 
     def to_schema(self) -> Mapping[str, Any]:
-        schema: dict[str, Any] = super(NoRequiredObj, self).to_schema()
+        schema: dict[str, Any] = super().to_schema()
         schema.pop("required", None)
         return schema
 
@@ -41,7 +44,7 @@ class NoRequiredObj(Object):
 class IntegerToNumber(Number):
     """This class has the regular Number behaviour, but it will never emit an integer type."""
 
-    def __init__(self, node_class: SchemaNode):
+    def __init__(self, node_class: SchemaNode) -> None:
         super().__init__(node_class)
         self._type = "number"
 
@@ -65,7 +68,11 @@ class SchemaValidationException(Exception):
             [x for exception in exceptions for x in exception._validation_errors],
         )
 
-    def __init__(self, schema: InferredSchema, validation_errors: list[Exception]):
+    def __init__(
+        self,
+        schema: InferredSchema,
+        validation_errors: list[Exception],
+    ) -> None:
         self._schema = schema
         self._validation_errors = validation_errors
 
@@ -75,7 +82,7 @@ class SchemaValidationException(Exception):
 
     @property
     def validation_errors(self) -> list[str]:
-        return list(map(lambda error: str(error), self._validation_errors))
+        return [str(error) for error in self._validation_errors]
 
 
 class SchemaInferrer:

@@ -1,13 +1,17 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 from airbyte_cdk.sources.declarative.migrations.state_migration import StateMigration
-from airbyte_cdk.sources.declarative.models import DatetimeBasedCursor, SubstreamPartitionRouter
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import ParentStreamConfig
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from airbyte_cdk.sources.declarative.models import DatetimeBasedCursor, SubstreamPartitionRouter
 
 
 def _is_already_migrated(stream_state: Mapping[str, Any]) -> bool:
@@ -36,7 +40,7 @@ class LegacyToPerPartitionStateMigration(StateMigration):
         cursor: DatetimeBasedCursor,
         config: Mapping[str, Any],
         parameters: Mapping[str, Any],
-    ):
+    ) -> None:
         self._partition_router = partition_router
         self._cursor = cursor
         self._config = config
@@ -57,7 +61,6 @@ class LegacyToPerPartitionStateMigration(StateMigration):
             if isinstance(parent_stream_config, ParentStreamConfig)
             else parent_stream_config.get("partition_field")  # type: ignore # See above comment on why parent_stream_config might be a dict
         )
-
         return partition_field
 
     def should_migrate(self, stream_state: Mapping[str, Any]) -> bool:
@@ -76,7 +79,7 @@ class LegacyToPerPartitionStateMigration(StateMigration):
         }
         """
         if stream_state:
-            for key, value in stream_state.items():
+            for value in stream_state.values():
                 if isinstance(value, dict):
                     keys = list(value.keys())
                     if len(keys) != 1:

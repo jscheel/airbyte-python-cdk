@@ -4,11 +4,9 @@
 from __future__ import annotations
 
 import concurrent
-import logging
-from collections.abc import Iterable, Iterator
 from queue import Queue
+from typing import TYPE_CHECKING
 
-from airbyte_cdk.models import AirbyteMessage
 from airbyte_cdk.sources.concurrent_source.concurrent_read_processor import ConcurrentReadProcessor
 from airbyte_cdk.sources.concurrent_source.partition_generation_completed_sentinel import (
     PartitionGenerationCompletedSentinel,
@@ -16,7 +14,6 @@ from airbyte_cdk.sources.concurrent_source.partition_generation_completed_sentin
 from airbyte_cdk.sources.concurrent_source.stream_thread_exception import StreamThreadException
 from airbyte_cdk.sources.concurrent_source.thread_pool_manager import ThreadPoolManager
 from airbyte_cdk.sources.message import InMemoryMessageRepository, MessageRepository
-from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
 from airbyte_cdk.sources.streams.concurrent.partition_enqueuer import PartitionEnqueuer
 from airbyte_cdk.sources.streams.concurrent.partition_reader import PartitionReader
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
@@ -26,6 +23,14 @@ from airbyte_cdk.sources.streams.concurrent.partitions.types import (
     QueueItem,
 )
 from airbyte_cdk.sources.utils.slice_logger import DebugSliceLogger, SliceLogger
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, Iterator
+
+    from airbyte_cdk.models import AirbyteMessage
+    from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
 
 
 class ConcurrentSource:

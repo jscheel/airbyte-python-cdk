@@ -5,20 +5,17 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
 
 import requests
 from deprecated import deprecated
-from requests.auth import AuthBase
 
 from airbyte_cdk.models import AirbyteMessage, FailureType, SyncMode
 from airbyte_cdk.models import Type as MessageType
 from airbyte_cdk.sources.message.repository import InMemoryMessageRepository
 from airbyte_cdk.sources.streams.call_rate import APIBudget
-from airbyte_cdk.sources.streams.checkpoint.cursor import Cursor
 from airbyte_cdk.sources.streams.checkpoint.resumable_full_refresh_cursor import (
     ResumableFullRefreshCursor,
 )
@@ -37,14 +34,22 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
 )
 from airbyte_cdk.sources.streams.http.http_client import HttpClient
 from airbyte_cdk.sources.types import Record, StreamSlice
-from airbyte_cdk.sources.utils.types import JsonType
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping, MutableMapping
+
+    from requests.auth import AuthBase
+
+    from airbyte_cdk.sources.streams.checkpoint.cursor import Cursor
+    from airbyte_cdk.sources.utils.types import JsonType
 
 
 # list of all possible HTTP methods which can be used for sending of request bodies
 BODY_REQUEST_METHODS = ("GET", "POST", "PUT", "PATCH")
 
 
-class HttpStream(Stream, CheckpointMixin, ABC):
+class HttpStream(Stream, CheckpointMixin, ABC):  # noqa: PLR0904  # Too many public methods
     """Base abstract class for an Airbyte Stream using the HTTP protocol. Basic building block for users building an Airbyte source for a HTTP API."""
 
     source_defined_cursor = True  # Most HTTP streams use a source defined cursor (i.e: the user can't configure it like on a SQL table)
@@ -52,7 +57,9 @@ class HttpStream(Stream, CheckpointMixin, ABC):
         None  # Use this variable to define page size for API http requests with pagination support
     )
 
-    def __init__(self, authenticator: AuthBase | None = None, api_budget: APIBudget | None = None):
+    def __init__(
+        self, authenticator: AuthBase | None = None, api_budget: APIBudget | None = None
+    ) -> None:
         self._exit_on_rate_limit: bool = False
         self._http_client = HttpClient(
             name=self.name,
@@ -455,7 +462,7 @@ class HttpStream(Stream, CheckpointMixin, ABC):
         if isinstance(stream_slice, StreamSlice):
             partition = stream_slice.partition
             cursor_slice = stream_slice.cursor_slice
-            remaining = {k: v for k, v in stream_slice.items()}
+            remaining = dict(stream_slice.items())
         else:
             # RFR streams that implement stream_slices() to generate stream slices in the legacy mapping format are converted into a
             # structured stream slice mapping by the LegacyCursorBasedCheckpointReader. The structured mapping object has separate
@@ -465,7 +472,7 @@ class HttpStream(Stream, CheckpointMixin, ABC):
             remaining = {
                 key: val
                 for key, val in stream_slice.items()
-                if key != "partition" and key != "cursor_slice"
+                if key not in {"partition", "cursor_slice"}
             }
         return partition, cursor_slice, remaining
 
@@ -523,7 +530,7 @@ class HttpStream(Stream, CheckpointMixin, ABC):
 
 
 class HttpSubStream(HttpStream, ABC):
-    def __init__(self, parent: HttpStream, **kwargs: Any):
+    def __init__(self, parent: HttpStream, **kwargs: Any) -> None:
         """:param parent: should be the instance of HttpStream class"""
         super().__init__(**kwargs)
         self.parent = parent
@@ -568,7 +575,7 @@ class HttpSubStream(HttpStream, ABC):
     reason="You should set backoff_strategies explicitly in HttpStream.get_backoff_strategy() instead.",
 )
 class HttpStreamAdapterBackoffStrategy(BackoffStrategy):
-    def __init__(self, stream: HttpStream):
+    def __init__(self, stream: HttpStream) -> None:
         self.stream = stream
 
     def backoff_time(

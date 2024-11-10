@@ -5,9 +5,8 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dpath
 from langchain.text_splitter import Language, RecursiveCharacterTextSplitter
@@ -27,6 +26,10 @@ from airbyte_cdk.models import (
     DestinationSyncMode,
 )
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException, FailureType
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 METADATA_STREAM_FIELD = "_ab_stream"
@@ -116,8 +119,13 @@ class DocumentProcessor:
                 ),
                 disallowed_special=(),
             )
+        return None
 
-    def __init__(self, config: ProcessingConfigModel, catalog: ConfiguredAirbyteCatalog):
+    def __init__(
+        self,
+        config: ProcessingConfigModel,
+        catalog: ConfiguredAirbyteCatalog,
+    ) -> None:
         self.streams = {
             create_stream_identifier(stream.stream): stream for stream in catalog.streams
         }
@@ -154,9 +162,7 @@ class DocumentProcessor:
             for chunk_document in self._split_document(doc)
         ]
         id_to_delete = (
-            doc.metadata[METADATA_RECORD_ID_FIELD]
-            if METADATA_RECORD_ID_FIELD in doc.metadata
-            else None
+            doc.metadata.get(METADATA_RECORD_ID_FIELD, None)
         )
         return chunks, id_to_delete
 

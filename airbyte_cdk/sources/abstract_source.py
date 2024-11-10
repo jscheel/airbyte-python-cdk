@@ -3,10 +3,9 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 from typing import (
+    TYPE_CHECKING,
     Any,
 )
 
@@ -27,8 +26,6 @@ from airbyte_cdk.models import Type as MessageType
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.message import InMemoryMessageRepository, MessageRepository
 from airbyte_cdk.sources.source import Source
-from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.streams.http.http import HttpStream
 from airbyte_cdk.sources.utils.record_helper import stream_data_to_airbyte_message
 from airbyte_cdk.sources.utils.schema_helpers import InternalConfig, split_config
@@ -38,6 +35,14 @@ from airbyte_cdk.utils.stream_status_utils import (
     as_airbyte_message as stream_status_as_airbyte_message,
 )
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, Iterator, Mapping, MutableMapping
+
+    from airbyte_cdk.sources.streams import Stream
+    from airbyte_cdk.sources.streams.core import StreamData
 
 
 _default_message_repository = InMemoryMessageRepository()

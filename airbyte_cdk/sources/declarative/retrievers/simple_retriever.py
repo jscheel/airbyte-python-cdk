@@ -9,32 +9,36 @@ from dataclasses import InitVar, dataclass, field
 from functools import partial
 from itertools import islice
 from typing import (
+    TYPE_CHECKING,
     Any,
 )
 
-import requests
-
 from airbyte_cdk.models import AirbyteMessage
-from airbyte_cdk.sources.declarative.extractors.http_selector import HttpSelector
 from airbyte_cdk.sources.declarative.incremental import ResumableFullRefreshCursor
-from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
 from airbyte_cdk.sources.declarative.partition_routers.single_partition_router import (
     SinglePartitionRouter,
 )
 from airbyte_cdk.sources.declarative.requesters.paginators.no_pagination import NoPagination
-from airbyte_cdk.sources.declarative.requesters.paginators.paginator import Paginator
 from airbyte_cdk.sources.declarative.requesters.request_options import (
     DefaultRequestOptionsProvider,
     RequestOptionsProvider,
 )
-from airbyte_cdk.sources.declarative.requesters.requester import Requester
 from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
-from airbyte_cdk.sources.declarative.stream_slicers.stream_slicer import StreamSlicer
 from airbyte_cdk.sources.http_logger import format_http_message
-from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
 from airbyte_cdk.utils.mapping_helpers import combine_mappings
+
+
+if TYPE_CHECKING:
+    import requests
+
+    from airbyte_cdk.sources.declarative.extractors.http_selector import HttpSelector
+    from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
+    from airbyte_cdk.sources.declarative.requesters.paginators.paginator import Paginator
+    from airbyte_cdk.sources.declarative.requesters.requester import Requester
+    from airbyte_cdk.sources.declarative.stream_slicers.stream_slicer import StreamSlicer
+    from airbyte_cdk.sources.streams.core import StreamData
 
 
 FULL_REFRESH_SYNC_COMPLETE_KEY = "__ab_full_refresh_sync_complete"
@@ -95,7 +99,7 @@ class SimpleRetriever(Retriever):
 
         # This mapping is used during a resumable full refresh syncs to indicate whether a partition has started syncing
         # records. Partitions serve as the key and map to True if they already began processing records
-        self._partition_started: MutableMapping[Any, bool] = dict()
+        self._partition_started: MutableMapping[Any, bool] = {}
 
     @property  # type: ignore
     def name(self) -> str:
@@ -456,7 +460,7 @@ class SimpleRetriever(Retriever):
         if isinstance(stream_data, Record):
             # Record is not part of `StreamData` but is the most common implementation of `Mapping[str, Any]` which is part of `StreamData`
             return stream_data
-        if isinstance(stream_data, (dict, Mapping)):
+        if isinstance(stream_data, dict | Mapping):
             return Record(dict(stream_data), stream_slice)
         if isinstance(stream_data, AirbyteMessage) and stream_data.record:
             return Record(stream_data.record.data, stream_slice)

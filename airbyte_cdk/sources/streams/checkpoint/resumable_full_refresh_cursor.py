@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.streams.checkpoint import Cursor
-from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
 
 
 @dataclass

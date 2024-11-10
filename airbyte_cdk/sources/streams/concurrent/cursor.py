@@ -5,17 +5,21 @@ from __future__ import annotations
 
 import functools
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable, Mapping, MutableMapping
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
-from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.streams import NO_CURSOR_STATE_KEY
-from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
-from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
-    AbstractStreamStateConverter,
-)
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping, MutableMapping
+
+    from airbyte_cdk.sources.message import MessageRepository
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
+    from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
+    from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
+        AbstractStreamStateConverter,
+    )
 
 
 def _extract_value(mapping: Mapping[str, Any], path: list[str]) -> Any:

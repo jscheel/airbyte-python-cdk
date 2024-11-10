@@ -4,13 +4,18 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
-from airbyte_cdk.destinations.vector_db_based.config import ProcessingConfigModel
 from airbyte_cdk.destinations.vector_db_based.document_processor import Chunk, DocumentProcessor
 from airbyte_cdk.destinations.vector_db_based.embedder import Document, Embedder
-from airbyte_cdk.destinations.vector_db_based.indexer import Indexer
 from airbyte_cdk.models import AirbyteMessage, ConfiguredAirbyteCatalog, Type
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from airbyte_cdk.destinations.vector_db_based.config import ProcessingConfigModel
+    from airbyte_cdk.destinations.vector_db_based.indexer import Indexer
 
 
 class Writer:

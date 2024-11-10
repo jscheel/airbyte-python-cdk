@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
-from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 
 
 class PartitionGenerator(ABC):

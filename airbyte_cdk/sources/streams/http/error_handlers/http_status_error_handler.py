@@ -3,9 +3,8 @@
 #
 from __future__ import annotations
 
-import logging
-from collections.abc import Mapping
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 import requests
 
@@ -18,6 +17,11 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
     ErrorResolution,
     ResponseAction,
 )
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Mapping
 
 
 class HttpStatusErrorHandler(ErrorHandler):

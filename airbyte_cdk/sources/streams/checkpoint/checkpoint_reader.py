@@ -4,10 +4,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .cursor import Cursor
 from airbyte_cdk.sources.types import StreamSlice
+
+
+if TYPE_CHECKING:
+    from .cursor import Cursor
 
 
 class CheckpointMode(Enum):
@@ -50,7 +53,7 @@ class IncrementalCheckpointReader(CheckpointReader):
 
     def __init__(
         self, stream_state: Mapping[str, Any], stream_slices: Iterable[Mapping[str, Any] | None]
-    ):
+    ) -> None:
         self._state: Mapping[str, Any] | None = stream_state
         self._stream_slices = iter(stream_slices)
         self._has_slices = False
@@ -88,7 +91,7 @@ class CursorBasedCheckpointReader(CheckpointReader):
         cursor: Cursor,
         stream_slices: Iterable[Mapping[str, Any] | None],
         read_state_from_cursor: bool = False,
-    ):
+    ) -> None:
         self._cursor = cursor
         self._stream_slices = iter(stream_slices)
         # read_state_from_cursor is used to delineate that partitions should determine when to stop syncing dynamically according
@@ -224,7 +227,7 @@ class LegacyCursorBasedCheckpointReader(CursorBasedCheckpointReader):
         cursor: Cursor,
         stream_slices: Iterable[Mapping[str, Any] | None],
         read_state_from_cursor: bool = False,
-    ):
+    ) -> None:
         super().__init__(
             cursor=cursor,
             stream_slices=stream_slices,
@@ -274,7 +277,7 @@ class ResumableFullRefreshCheckpointReader(CheckpointReader):
     fetching more pages or stopping the sync.
     """
 
-    def __init__(self, stream_state: Mapping[str, Any]):
+    def __init__(self, stream_state: Mapping[str, Any]) -> None:
         # The first attempt of an RFR stream has an empty {} incoming state, but should still make a first attempt to read records
         # from the first page in next().
         self._first_page = bool(stream_state == {})
@@ -300,7 +303,10 @@ class FullRefreshCheckpointReader(CheckpointReader):
     is not capable of managing state. At the end of a sync, a final state message is emitted to signal completion.
     """
 
-    def __init__(self, stream_slices: Iterable[Mapping[str, Any] | None]):
+    def __init__(
+        self,
+        stream_slices: Iterable[Mapping[str, Any] | None],
+    ) -> None:
         self._stream_slices = iter(stream_slices)
         self._final_checkpoint = False
 

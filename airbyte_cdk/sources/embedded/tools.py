@@ -3,12 +3,15 @@
 #
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dpath
 
-from airbyte_cdk.models import AirbyteStream
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
+    from airbyte_cdk.models import AirbyteStream
 
 
 def get_first(

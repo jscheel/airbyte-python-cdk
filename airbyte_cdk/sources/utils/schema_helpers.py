@@ -25,13 +25,13 @@ class JsonFileLoader:
     pointing to shared_schema.json file instead of shared/shared_schema.json
     """
 
-    def __init__(self, uri_base: str, shared: str):
+    def __init__(self, uri_base: str, shared: str) -> None:
         self.shared = shared
         self.uri_base = uri_base
 
     def __call__(self, uri: str) -> dict[str, Any]:
         uri = uri.replace(self.uri_base, f"{self.uri_base}/{self.shared}/")
-        with open(uri) as f:
+        with open(uri, encoding="utf-8") as f:
             data = json.load(f)
             if isinstance(data, dict):
                 return data
@@ -76,7 +76,7 @@ def _expand_refs(schema: Any, ref_resolver: RefResolver | None = None) -> None:
             )  # expand refs in definitions as well
             schema.update(definition)
         else:
-            for key, value in schema.items():
+            for value in schema.values():
                 _expand_refs(value, ref_resolver=ref_resolver)
     elif isinstance(schema, list):
         for value in schema:
@@ -93,7 +93,9 @@ def expand_refs(schema: Any) -> None:
 
 
 def rename_key(schema: Any, old_key: str, new_key: str) -> None:
-    """Iterate over nested dictionary and replace one key with another. Used to replace anyOf with oneOf. Recursive."
+    """Iterate over nested dictionary and replace one key with another.
+
+    Used to replace anyOf with oneOf. Recursive.
 
     :param schema: schema that will be patched
     :param old_key: name of the key to replace
@@ -102,7 +104,7 @@ def rename_key(schema: Any, old_key: str, new_key: str) -> None:
     if not isinstance(schema, MutableMapping):
         return
 
-    for key, value in schema.items():
+    for value in schema.values():
         rename_key(value, old_key, new_key)
         if old_key in schema:
             schema[new_key] = schema.pop(old_key)
@@ -111,7 +113,7 @@ def rename_key(schema: Any, old_key: str, new_key: str) -> None:
 class ResourceSchemaLoader:
     """JSONSchema loader from package resources"""
 
-    def __init__(self, package_name: str):
+    def __init__(self, package_name: str) -> None:
         self.package_name = package_name
 
     def get_schema(self, name: str) -> dict[str, Any]:
@@ -190,10 +192,7 @@ class InternalConfig(BaseModel):
         :param records_counter - number of records already red
         :return True if limit reached, False otherwise
         """
-        if self.limit:
-            if records_counter >= self.limit:
-                return True
-        return False
+        return bool(self.limit and records_counter >= self.limit)
 
 
 def split_config(config: Mapping[str, Any]) -> tuple[dict[str, Any], InternalConfig]:

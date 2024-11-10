@@ -48,16 +48,15 @@ def default_backoff_handler(
 
     def should_give_up(exc: Exception) -> bool:
         # If a non-rate-limiting related 4XX error makes it this far, it means it was unexpected and probably consistent, so we shouldn't back off
-        if isinstance(exc, RequestException):
-            if exc.response is not None:
-                give_up: bool = (
-                    exc.response is not None
-                    and exc.response.status_code != codes.too_many_requests
-                    and 400 <= exc.response.status_code < 500
-                )
-                if give_up:
-                    logger.info(f"Giving up for returned HTTP status: {exc.response.status_code!r}")
-                return give_up
+        if isinstance(exc, RequestException) and exc.response is not None:
+            give_up: bool = (
+                exc.response is not None
+                and exc.response.status_code != codes.too_many_requests
+                and 400 <= exc.response.status_code < 500
+            )
+            if give_up:
+                logger.info(f"Giving up for returned HTTP status: {exc.response.status_code!r}")
+            return give_up
         # Only RequestExceptions are retryable, so if we get here, it's not retryable
         return False
 

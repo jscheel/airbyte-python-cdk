@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 import numbers
-from re import Pattern
+from typing import TYPE_CHECKING
 
-import requests
+
+if TYPE_CHECKING:
+    from re import Pattern
+
+    import requests
 
 
 def get_numeric_value_from_header(

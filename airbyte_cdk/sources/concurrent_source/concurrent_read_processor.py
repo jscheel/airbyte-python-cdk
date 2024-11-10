@@ -3,30 +3,35 @@
 #
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from airbyte_cdk.exception_handler import generate_failed_streams_error_message
 from airbyte_cdk.models import AirbyteMessage, AirbyteStreamStatus, FailureType, StreamDescriptor
 from airbyte_cdk.models import Type as MessageType
-from airbyte_cdk.sources.concurrent_source.partition_generation_completed_sentinel import (
-    PartitionGenerationCompletedSentinel,
-)
-from airbyte_cdk.sources.concurrent_source.stream_thread_exception import StreamThreadException
-from airbyte_cdk.sources.concurrent_source.thread_pool_manager import ThreadPoolManager
-from airbyte_cdk.sources.message import MessageRepository
-from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
-from airbyte_cdk.sources.streams.concurrent.partition_enqueuer import PartitionEnqueuer
-from airbyte_cdk.sources.streams.concurrent.partition_reader import PartitionReader
-from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
-from airbyte_cdk.sources.streams.concurrent.partitions.types import PartitionCompleteSentinel
 from airbyte_cdk.sources.utils.record_helper import stream_data_to_airbyte_message
-from airbyte_cdk.sources.utils.slice_logger import SliceLogger
 from airbyte_cdk.utils import AirbyteTracedException
 from airbyte_cdk.utils.stream_status_utils import (
     as_airbyte_message as stream_status_as_airbyte_message,
 )
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable
+
+    from airbyte_cdk.sources.concurrent_source.partition_generation_completed_sentinel import (
+        PartitionGenerationCompletedSentinel,
+    )
+    from airbyte_cdk.sources.concurrent_source.stream_thread_exception import StreamThreadException
+    from airbyte_cdk.sources.concurrent_source.thread_pool_manager import ThreadPoolManager
+    from airbyte_cdk.sources.message import MessageRepository
+    from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
+    from airbyte_cdk.sources.streams.concurrent.partition_enqueuer import PartitionEnqueuer
+    from airbyte_cdk.sources.streams.concurrent.partition_reader import PartitionReader
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
+    from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
+    from airbyte_cdk.sources.streams.concurrent.partitions.types import PartitionCompleteSentinel
+    from airbyte_cdk.sources.utils.slice_logger import SliceLogger
 
 
 class ConcurrentReadProcessor:
@@ -39,7 +44,7 @@ class ConcurrentReadProcessor:
         slice_logger: SliceLogger,
         message_repository: MessageRepository,
         partition_reader: PartitionReader,
-    ):
+    ) -> None:
         """This class is responsible for handling items from a concurrent stream read process.
         :param stream_instances_to_read_from: List of streams to read from
         :param partition_enqueuer: PartitionEnqueuer instance
@@ -208,10 +213,8 @@ class ConcurrentReadProcessor:
         3. All partitions for all streams are closed
         """
         is_done = all(
-            [
-                self._is_stream_done(stream_name)
-                for stream_name in self._stream_name_to_instance.keys()
-            ]
+            self._is_stream_done(stream_name)
+            for stream_name in self._stream_name_to_instance
         )
         if is_done and self._exceptions_per_stream_name:
             error_message = generate_failed_streams_error_message(self._exceptions_per_stream_name)

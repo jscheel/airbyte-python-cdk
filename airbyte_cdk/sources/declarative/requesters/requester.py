@@ -4,17 +4,23 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Callable, Mapping, MutableMapping
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import requests
-
-from airbyte_cdk.sources.declarative.auth.declarative_authenticator import DeclarativeAuthenticator
 from airbyte_cdk.sources.declarative.requesters.request_options.request_options_provider import (
     RequestOptionsProvider,
 )
-from airbyte_cdk.sources.types import StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping, MutableMapping
+
+    import requests
+
+    from airbyte_cdk.sources.declarative.auth.declarative_authenticator import (
+        DeclarativeAuthenticator,
+    )
+    from airbyte_cdk.sources.types import StreamSlice, StreamState
 
 
 class HttpMethod(Enum):

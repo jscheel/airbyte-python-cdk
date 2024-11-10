@@ -5,13 +5,19 @@ from __future__ import annotations
 
 import threading
 import time
-from collections.abc import Callable, Iterable, Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from airbyte_cdk.sources.declarative.incremental.datetime_based_cursor import DatetimeBasedCursor
 from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
-from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
 from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping
+
+    from airbyte_cdk.sources.declarative.incremental.datetime_based_cursor import (
+        DatetimeBasedCursor,
+    )
+    from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
 
 
 T = TypeVar("T")
@@ -76,7 +82,11 @@ class GlobalSubstreamCursor(DeclarativeCursor):
     - When using the `incremental_dependency` option, the sync will progress through parent records, preventing the sync from getting infinitely stuck. However, it is crucial to understand the requirements for both the `global_substream_cursor` and `incremental_dependency` options to avoid data loss.
     """
 
-    def __init__(self, stream_cursor: DatetimeBasedCursor, partition_router: PartitionRouter):
+    def __init__(
+        self,
+        stream_cursor: DatetimeBasedCursor,
+        partition_router: PartitionRouter,
+    ) -> None:
         self._stream_cursor = stream_cursor
         self._partition_router = partition_router
         self._timer = Timer()

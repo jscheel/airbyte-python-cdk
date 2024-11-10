@@ -282,7 +282,7 @@ class SubstreamPartitionRouter(PartitionRouter):
         # If `parent_state` doesn't exist and at least one parent stream has an incremental dependency,
         # copy the child state to parent streams with incremental dependencies.
         incremental_dependency = any(
-            [parent_config.incremental_dependency for parent_config in self.parent_stream_configs]
+            parent_config.incremental_dependency for parent_config in self.parent_stream_configs
         )
         if not parent_state and not incremental_dependency:
             return

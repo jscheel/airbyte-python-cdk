@@ -3,26 +3,27 @@
 #
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterable, MutableMapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 from airbyte_cdk.sources.file_based.stream.concurrent.cursor.abstract_concurrent_file_based_cursor import (
     AbstractConcurrentFileBasedCursor,
 )
-from airbyte_cdk.sources.file_based.types import StreamState
-from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.streams import NO_CURSOR_STATE_KEY
-from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 
 
 if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, MutableMapping
+
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
     from airbyte_cdk.sources.file_based.stream.concurrent.adapters import FileBasedStreamPartition
+    from airbyte_cdk.sources.file_based.types import StreamState
+    from airbyte_cdk.sources.message import MessageRepository
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
+    from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 
 
 class FileBasedFinalStateCursor(AbstractConcurrentFileBasedCursor):
@@ -34,7 +35,7 @@ class FileBasedFinalStateCursor(AbstractConcurrentFileBasedCursor):
         message_repository: MessageRepository,
         stream_namespace: str | None,
         **kwargs: Any,
-    ):
+    ) -> None:
         self._stream_name = stream_config.name
         self._stream_namespace = stream_namespace
         self._message_repository = message_repository

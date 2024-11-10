@@ -4,15 +4,18 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import requests
-
-from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
 from airbyte_cdk.sources.declarative.requesters.paginators.strategies.pagination_strategy import (
     PaginationStrategy,
 )
-from airbyte_cdk.sources.types import Record
+
+
+if TYPE_CHECKING:
+    import requests
+
+    from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
+    from airbyte_cdk.sources.types import Record
 
 
 class PaginationStopCondition(ABC):
@@ -26,7 +29,7 @@ class PaginationStopCondition(ABC):
 
 
 class CursorStopCondition(PaginationStopCondition):
-    def __init__(self, cursor: DeclarativeCursor):
+    def __init__(self, cursor: DeclarativeCursor) -> None:
         self._cursor = cursor
 
     def is_met(self, record: Record) -> bool:
@@ -34,7 +37,11 @@ class CursorStopCondition(PaginationStopCondition):
 
 
 class StopConditionPaginationStrategyDecorator(PaginationStrategy):
-    def __init__(self, _delegate: PaginationStrategy, stop_condition: PaginationStopCondition):
+    def __init__(
+        self,
+        _delegate: PaginationStrategy,
+        stop_condition: PaginationStopCondition,
+    ) -> None:
         self._delegate = _delegate
         self._stop_condition = stop_condition
 

@@ -3,10 +3,8 @@
 #
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, MutableMapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.declarative.incremental.datetime_based_cursor import DatetimeBasedCursor
 from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
 from airbyte_cdk.sources.declarative.incremental.global_substream_cursor import (
     GlobalSubstreamCursor,
@@ -16,8 +14,16 @@ from airbyte_cdk.sources.declarative.incremental.per_partition_cursor import (
     CursorFactory,
     PerPartitionCursor,
 )
-from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
-from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping, MutableMapping
+
+    from airbyte_cdk.sources.declarative.incremental.datetime_based_cursor import (
+        DatetimeBasedCursor,
+    )
+    from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
+    from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
 
 
 class PerPartitionWithGlobalCursor(DeclarativeCursor):
@@ -73,7 +79,7 @@ class PerPartitionWithGlobalCursor(DeclarativeCursor):
         cursor_factory: CursorFactory,
         partition_router: PartitionRouter,
         stream_cursor: DatetimeBasedCursor,
-    ):
+    ) -> None:
         self._partition_router = partition_router
         self._per_partition_cursor = PerPartitionCursor(cursor_factory, partition_router)
         self._global_cursor = GlobalSubstreamCursor(stream_cursor, partition_router)

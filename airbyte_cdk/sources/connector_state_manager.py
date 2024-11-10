@@ -4,9 +4,8 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import (
     AirbyteMessage,
@@ -17,6 +16,10 @@ from airbyte_cdk.models import (
     StreamDescriptor,
 )
 from airbyte_cdk.models import Type as MessageType
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, MutableMapping
 
 
 @dataclass(frozen=True)
@@ -34,7 +37,7 @@ class ConnectorStateManager:
     interface. It also provides methods to extract and update state
     """
 
-    def __init__(self, state: list[AirbyteStateMessage] | None = None):
+    def __init__(self, state: list[AirbyteStateMessage] | None = None) -> None:
         shared_state, per_stream_states = self._extract_from_state_message(state)
 
         # We explicitly throw an error if we receive a GLOBAL state message that contains a shared_state because API sources are
@@ -59,7 +62,7 @@ class ConnectorStateManager:
             HashableStreamDescriptor(name=stream_name, namespace=namespace)
         )
         if stream_state:
-            return copy.deepcopy({k: v for k, v in stream_state.__dict__.items()})
+            return copy.deepcopy(dict(stream_state.__dict__.items()))
         return {}
 
     def update_state_for_stream(

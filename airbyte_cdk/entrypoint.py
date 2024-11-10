@@ -12,16 +12,14 @@ import socket
 import sys
 import tempfile
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
 from functools import wraps
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import requests
 from orjson import orjson
 from requests import PreparedRequest, Response, Session
 
-from airbyte_cdk.connector import TConfig
 from airbyte_cdk.exception_handler import init_uncaught_exception_handler
 from airbyte_cdk.logger import init_logger
 from airbyte_cdk.models import (  # type: ignore [attr-defined]
@@ -45,6 +43,12 @@ from airbyte_cdk.utils.constants import ENV_REQUEST_CACHE_PATH
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    from airbyte_cdk.connector import TConfig
+
+
 logger = init_logger("airbyte")
 
 VALID_URL_SCHEMES = ["https"]
@@ -52,7 +56,7 @@ CLOUD_DEPLOYMENT_MODE = "cloud"
 
 
 class AirbyteEntrypoint:
-    def __init__(self, source: Source):
+    def __init__(self, source: Source) -> None:
         init_uncaught_exception_handler(logger)
 
         # Deployment mode is read when instantiating the entrypoint because it is the common path shared by syncs and connector builder test requests
@@ -188,7 +192,7 @@ class AirbyteEntrypoint:
             # The platform uses the exit code to surface unexpected failures so we raise the exception if the failure type not a config error
             # If the failure is not exceptional, we'll emit a failed connection status message and return
             if traced_exc.failure_type != FailureType.config_error:
-                raise traced_exc
+                raise
             if connection_status:
                 yield from self._emit_queued_messages(self.source)
                 yield connection_status
@@ -201,7 +205,7 @@ class AirbyteEntrypoint:
             # The platform uses the exit code to surface unexpected failures so we raise the exception if the failure type not a config error
             # If the failure is not exceptional, we'll emit a failed connection status message and return
             if traced_exc.failure_type != FailureType.config_error:
-                raise traced_exc
+                raise
             else:
                 yield AirbyteMessage(
                     type=Type.CONNECTION_STATUS,

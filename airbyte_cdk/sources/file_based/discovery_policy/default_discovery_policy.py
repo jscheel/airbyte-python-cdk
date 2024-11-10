@@ -3,10 +3,15 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from airbyte_cdk.sources.file_based.discovery_policy.abstract_discovery_policy import (
     AbstractDiscoveryPolicy,
 )
-from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
 
 
 DEFAULT_N_CONCURRENT_REQUESTS = 10

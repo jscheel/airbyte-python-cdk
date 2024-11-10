@@ -7,15 +7,18 @@ import logging
 import os
 import uuid
 import zlib
-from collections.abc import Iterable, Mapping
 from contextlib import closing
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 import requests
 from numpy import nan
 
 from airbyte_cdk.sources.declarative.extractors.record_extractor import RecordExtractor
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
 
 
 EMPTY_STR: str = ""
@@ -135,13 +138,15 @@ class ResponseToFileExtractor(RecordExtractor):
                 )
                 for chunk in chunks:
                     chunk = chunk.replace({nan: None}).to_dict(orient="records")
-                    for row in chunk:
-                        yield row
+                    yield from chunk  # Yield rows from chunks
         except pd.errors.EmptyDataError as e:
             self.logger.info(f"Empty data received. {e}")
             yield from []
         except OSError as ioe:
-            raise ValueError(f"The IO/Error occured while reading tmp data. Called: {path}", ioe)
+            raise ValueError(
+                f"The IO/Error occurred while reading tmp data. Called: {path}",
+                ioe,
+            ) from None
         finally:
             # remove binary tmp file, after data is read
             os.remove(path)

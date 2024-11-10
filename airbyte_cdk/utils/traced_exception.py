@@ -33,7 +33,7 @@ class AirbyteTracedException(Exception):
         failure_type: FailureType = FailureType.system_error,
         exception: BaseException | None = None,
         stream_descriptor: StreamDescriptor | None = None,
-    ):
+    ) -> None:
         """:param internal_message: the internal error that caused the failure
         :param message: a user-friendly message that indicates the cause of the error
         :param failure_type: the type of error

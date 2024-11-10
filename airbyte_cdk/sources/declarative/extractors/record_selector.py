@@ -3,19 +3,23 @@
 #
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
-
-import requests
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.extractors.http_selector import HttpSelector
-from airbyte_cdk.sources.declarative.extractors.record_extractor import RecordExtractor
-from airbyte_cdk.sources.declarative.extractors.record_filter import RecordFilter
 from airbyte_cdk.sources.declarative.models import SchemaNormalization
-from airbyte_cdk.sources.declarative.transformations import RecordTransformation
 from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    import requests
+
+    from airbyte_cdk.sources.declarative.extractors.record_extractor import RecordExtractor
+    from airbyte_cdk.sources.declarative.extractors.record_filter import RecordFilter
+    from airbyte_cdk.sources.declarative.transformations import RecordTransformation
 
 
 SCHEMA_TRANSFORMER_TYPE_MAPPING = {

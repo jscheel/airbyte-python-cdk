@@ -6,14 +6,12 @@ from __future__ import annotations
 import asyncio
 import itertools
 import traceback
-from collections.abc import Iterable, Mapping, MutableMapping
 from copy import deepcopy
 from functools import cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, FailureType, Level
 from airbyte_cdk.models import Type as MessageType
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import PrimaryKeyType
 from airbyte_cdk.sources.file_based.exceptions import (
     FileBasedSourceError,
     InvalidSchemaError,
@@ -23,7 +21,6 @@ from airbyte_cdk.sources.file_based.exceptions import (
     StopSyncPerValidationPolicy,
 )
 from airbyte_cdk.sources.file_based.file_types import FileTransfer
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 from airbyte_cdk.sources.file_based.schema_helpers import (
     SchemaType,
     file_transfer_schema,
@@ -31,12 +28,19 @@ from airbyte_cdk.sources.file_based.schema_helpers import (
     schemaless_schema,
 )
 from airbyte_cdk.sources.file_based.stream import AbstractFileBasedStream
-from airbyte_cdk.sources.file_based.stream.cursor import AbstractFileBasedCursor
-from airbyte_cdk.sources.file_based.types import StreamSlice
 from airbyte_cdk.sources.streams import IncrementalMixin
-from airbyte_cdk.sources.streams.core import JsonSchema
 from airbyte_cdk.sources.utils.record_helper import stream_data_to_airbyte_message
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping, MutableMapping
+
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import PrimaryKeyType
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
+    from airbyte_cdk.sources.file_based.stream.cursor import AbstractFileBasedCursor
+    from airbyte_cdk.sources.file_based.types import StreamSlice
+    from airbyte_cdk.sources.streams.core import JsonSchema
 
 
 class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
@@ -51,7 +55,7 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
     airbyte_columns = [ab_last_mod_col, ab_file_name_col]
     use_file_transfer = False
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         if self.FILE_TRANSFER_KW in kwargs:
             self.use_file_transfer = kwargs.pop(self.FILE_TRANSFER_KW, False)
         super().__init__(**kwargs)
@@ -102,11 +106,10 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
         all_files = self.list_files()
         files_to_read = self._cursor.get_files_to_sync(all_files, self.logger)
         sorted_files_to_read = sorted(files_to_read, key=lambda f: (f.last_modified, f.uri))
-        slices = [
+        return [
             {"files": list(group[1])}
             for group in itertools.groupby(sorted_files_to_read, lambda f: f.last_modified)
         ]
-        return slices
 
     def transform_record(
         self, record: dict[str, Any], file: RemoteFile, last_updated: str
@@ -195,9 +198,9 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
                     ),
                 )
 
-            except AirbyteTracedException as exc:
+            except AirbyteTracedException:
                 # Re-raise the exception to stop the whole sync immediately as this is a fatal error
-                raise exc
+                raise
 
             except Exception:
                 yield AirbyteMessage(
@@ -240,9 +243,9 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
                 message=FileBasedSourceError.SCHEMA_INFERENCE_ERROR.value,
                 exception=AirbyteTracedException(exception=config_exception),
                 failure_type=FailureType.config_error,
-            )
-        except AirbyteTracedException as ate:
-            raise ate
+            ) from None
+        except AirbyteTracedException:
+            raise
         except Exception as exc:
             raise SchemaInferenceError(
                 FileBasedSourceError.SCHEMA_INFERENCE_ERROR, stream=self.name
@@ -297,9 +300,7 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
                 stream=self.name,
             )
 
-        schema = {"type": "object", "properties": inferred_schema}
-
-        return schema
+        return {"type": "object", "properties": inferred_schema}
 
     def get_files(self) -> Iterable[RemoteFile]:
         """Return all files that belong to the stream as defined by the stream's globs."""
@@ -320,7 +321,7 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
                 if k == "type":
                     if isinstance(v, list):
                         if "null" not in v:
-                            schema[k] = ["null"] + v
+                            schema[k] = ["null", *v]
                     elif v != "null":
                         schema[k] = ["null", v]
                 else:
@@ -355,8 +356,8 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
             for task in done:
                 try:
                     base_schema = merge_schemas(base_schema, task.result())
-                except AirbyteTracedException as ate:
-                    raise ate
+                except AirbyteTracedException:
+                    raise
                 except Exception as exc:
                     self.logger.error(
                         f"An error occurred inferring the schema. \n {traceback.format_exc()}",
@@ -370,8 +371,8 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
             return await self.get_parser().infer_schema(
                 self.config, file, self.stream_reader, self.logger
             )
-        except AirbyteTracedException as ate:
-            raise ate
+        except AirbyteTracedException:
+            raise
         except Exception as exc:
             raise SchemaInferenceError(
                 FileBasedSourceError.SCHEMA_INFERENCE_ERROR,

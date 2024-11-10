@@ -4,12 +4,15 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.declarative.incremental.per_partition_cursor import StreamSlice
-from airbyte_cdk.sources.streams.core import StreamData
-from airbyte_cdk.sources.types import StreamState
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    from airbyte_cdk.sources.declarative.incremental.per_partition_cursor import StreamSlice
+    from airbyte_cdk.sources.streams.core import StreamData
+    from airbyte_cdk.sources.types import StreamState
 
 
 class Retriever:

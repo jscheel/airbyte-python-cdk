@@ -3,23 +3,17 @@
 #
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.declarative.incremental import (
     GlobalSubstreamCursor,
     PerPartitionCursor,
     PerPartitionWithGlobalCursor,
 )
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
-from airbyte_cdk.sources.declarative.migrations.state_migration import StateMigration
 from airbyte_cdk.sources.declarative.retrievers import SimpleRetriever
-from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
 from airbyte_cdk.sources.declarative.schema import DefaultSchemaLoader
-from airbyte_cdk.sources.declarative.schema.schema_loader import SchemaLoader
 from airbyte_cdk.sources.streams.checkpoint import (
     CheckpointMode,
     CheckpointReader,
@@ -28,6 +22,16 @@ from airbyte_cdk.sources.streams.checkpoint import (
 )
 from airbyte_cdk.sources.streams.core import Stream
 from airbyte_cdk.sources.types import Config, StreamSlice
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, Mapping, MutableMapping
+
+    from airbyte_cdk.models import SyncMode
+    from airbyte_cdk.sources.declarative.migrations.state_migration import StateMigration
+    from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
+    from airbyte_cdk.sources.declarative.schema.schema_loader import SchemaLoader
 
 
 @dataclass
@@ -211,7 +215,7 @@ class DeclarativeStream(Stream):
         checkpoint_mode = self._checkpoint_mode
 
         if isinstance(
-            cursor, (GlobalSubstreamCursor, PerPartitionCursor, PerPartitionWithGlobalCursor)
+            cursor, GlobalSubstreamCursor | PerPartitionCursor | PerPartitionWithGlobalCursor
         ):
             self.has_multiple_slices = True
             return CursorBasedCheckpointReader(

@@ -4,10 +4,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.transformations import RecordTransformation
-from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 
 
 @dataclass

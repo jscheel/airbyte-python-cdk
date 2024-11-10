@@ -5,28 +5,31 @@ from __future__ import annotations
 
 import logging
 from abc import abstractmethod
-from collections.abc import Mapping, MutableMapping
 from json import JSONDecodeError
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import backoff
 import pendulum
 import requests
 from requests.auth import AuthBase
 
-from ..exceptions import DefaultBackoffException
 from airbyte_cdk.models import FailureType, Level
 from airbyte_cdk.sources.http_logger import format_http_message
 from airbyte_cdk.sources.message import MessageRepository, NoopMessageRepository
+from airbyte_cdk.sources.streams.http.exceptions import DefaultBackoffException
 from airbyte_cdk.utils import AirbyteTracedException
 from airbyte_cdk.utils.airbyte_secrets_utils import add_to_secrets
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, MutableMapping
 
 
 logger = logging.getLogger("airbyte")
 _NOOP_MESSAGE_REPOSITORY = NoopMessageRepository()
 
 
-class AbstractOauth2Authenticator(AuthBase):
+class AbstractOauth2Authenticator(AuthBase):  # noqa: PLR0904  # Too complex
     """Abstract class for an OAuth authenticators that implements the OAuth token refresh flow. The authenticator
     is designed to generically perform the refresh flow without regard to how config fields are get/set by
     delegating that behavior to the classes implementing the interface.

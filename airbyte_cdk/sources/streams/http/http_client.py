@@ -6,9 +6,8 @@ from __future__ import annotations
 import logging
 import os
 import urllib
-from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import orjson
 import requests
@@ -24,7 +23,6 @@ from airbyte_cdk.models import (
     StreamDescriptor,
 )
 from airbyte_cdk.sources.http_config import MAX_CONNECTION_POOL_SIZE
-from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.streams.call_rate import APIBudget, CachedLimiterSession, LimiterSession
 from airbyte_cdk.sources.streams.http.error_handlers import (
     BackoffStrategy,
@@ -52,6 +50,12 @@ from airbyte_cdk.utils.stream_status_utils import (
     as_airbyte_message as stream_status_as_airbyte_message,
 )
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
+
+    from airbyte_cdk.sources.message import MessageRepository
 
 
 BODY_REQUEST_METHODS = ("GET", "POST", "PUT", "PATCH")
@@ -90,7 +94,7 @@ class HttpClient:
         error_message_parser: ErrorMessageParser | None = None,
         disable_retries: bool = False,
         message_repository: MessageRepository | None = None,
-    ):
+    ) -> None:
         self._name = name
         self._api_budget: APIBudget = api_budget or APIBudget(policies=[])
         if session:
@@ -199,10 +203,7 @@ class HttpClient:
     def _max_retries(self) -> int:
         """Determines the max retries based on the provided error handler."""
         max_retries = None
-        if self._disable_retries:
-            max_retries = 0
-        else:
-            max_retries = self._error_handler.max_retries
+        max_retries = 0 if self._disable_retries else self._error_handler.max_retries
         return max_retries if max_retries is not None else self._DEFAULT_MAX_RETRY
 
     @property
@@ -242,14 +243,12 @@ class HttpClient:
             max_tries=max_tries, max_time=max_time
         )
         # backoff handlers wrap _send, so it will always return a response
-        response = backoff_handler(rate_limit_backoff_handler(user_backoff_handler))(
+        return backoff_handler(rate_limit_backoff_handler(user_backoff_handler))(
             request,
             request_kwargs,
             log_formatter=log_formatter,
             exit_on_rate_limit=exit_on_rate_limit,
         )  # type: ignore # mypy can't infer that backoff_handler wraps _send
-
-        return response
 
     def _send(
         self,
@@ -371,10 +370,11 @@ class HttpClient:
             self._logger.info(error_resolution.error_message or log_message)
 
         # TODO: Consider dynamic retry count depending on subsequent error codes
-        elif (
-            error_resolution.response_action == ResponseAction.RETRY
-            or error_resolution.response_action == ResponseAction.RATE_LIMITED
-        ):
+
+        elif error_resolution.response_action in {
+            ResponseAction.RETRY,
+            ResponseAction.RATE_LIMITED,
+        }:
             user_defined_backoff_time = None
             for backoff_strategy in self._backoff_strategies:
                 backoff_time = backoff_strategy.backoff_time(
@@ -416,9 +416,9 @@ class HttpClient:
         elif response:
             try:
                 response.raise_for_status()
-            except requests.HTTPError as e:
+            except requests.HTTPError:
                 self._logger.error(response.text)
-                raise e
+                raise
 
     @property
     def name(self) -> str:

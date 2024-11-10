@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 PARAMETERS_STR = "$parameters"

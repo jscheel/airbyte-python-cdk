@@ -6,8 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import logging.config
-from collections.abc import Callable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from orjson import orjson
 
@@ -19,6 +18,10 @@ from airbyte_cdk.models import (
     Type,
 )
 from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
 
 
 LOGGING_CONFIG = {

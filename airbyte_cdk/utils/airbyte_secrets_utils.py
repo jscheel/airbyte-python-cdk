@@ -3,10 +3,13 @@
 #
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dpath
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 def get_secret_paths(spec: Mapping[str, Any]) -> list[list[str]]:
@@ -29,7 +32,7 @@ def get_secret_paths(spec: Mapping[str, Any]) -> list[list[str]]:
             for i in schema_item:
                 traverse_schema(i, path)
         elif path[-1] == "airbyte_secret" and schema_item is True:
-            filtered_path = [p for p in path[:-1] if p not in ["properties", "oneOf"]]
+            filtered_path = [p for p in path[:-1] if p not in {"properties", "oneOf"}]
             paths.append(filtered_path)
 
     traverse_schema(spec, [])

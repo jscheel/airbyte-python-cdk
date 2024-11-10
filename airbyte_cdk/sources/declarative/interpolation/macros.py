@@ -57,7 +57,7 @@ def timestamp(dt: float | str) -> int | float:
     :param dt: datetime to convert to timestamp
     :return: unix timestamp
     """
-    if isinstance(dt, (int, float)):
+    if isinstance(dt, int | float):
         return int(dt)
     return _str_to_datetime(dt).astimezone(pytz.utc).timestamp()
 

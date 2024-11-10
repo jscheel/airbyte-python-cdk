@@ -3,13 +3,16 @@
 #
 from __future__ import annotations
 
-import datetime as dt
-from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
+
+
+if TYPE_CHECKING:
+    import datetime as dt
+    from collections.abc import Mapping
 
 
 @dataclass
@@ -102,9 +105,7 @@ class MinMaxDatetime:
     ) -> MinMaxDatetime:
         if parameters is None:
             parameters = {}
-        if isinstance(interpolated_string_or_min_max_datetime, InterpolatedString) or isinstance(
-            interpolated_string_or_min_max_datetime, str
-        ):
+        if isinstance(interpolated_string_or_min_max_datetime, InterpolatedString | str):
             return MinMaxDatetime(
                 datetime=interpolated_string_or_min_max_datetime, parameters=parameters
             )

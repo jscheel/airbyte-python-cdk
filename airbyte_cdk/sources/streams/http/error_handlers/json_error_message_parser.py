@@ -3,10 +3,15 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import requests
 
 from airbyte_cdk.sources.streams.http.error_handlers import ErrorMessageParser
-from airbyte_cdk.sources.utils.types import JsonType
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.sources.utils.types import JsonType
 
 
 class JsonErrorMessageParser(ErrorMessageParser):

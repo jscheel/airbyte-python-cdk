@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from requests_mock import Mocker
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from requests_mock import Mocker
 
 
 def register_mock_responses(

@@ -190,18 +190,23 @@ ignore = [
     "COM812",  # Because it conflicts with ruff auto-format
     "DJ",      # Django linting
     "EM",      # flake8-errmsgs (may reconsider later)
+    "FURB189", # Subclassing safety at the cost if isinstance() instability
     "G",       # flake8-logging-format
     "INP001",  # Dir 'examples' is part of an implicit namespace package. Add an __init__.py.
     "ISC001",  # Conflicts with ruff auto-format
+    "N818",    # Custom exception names should use the suffix "Error"
     "NPY",     # NumPy-specific rules
     "PERF203", # exception handling in loop
     "PIE790",  # Allow unnecssary 'pass' (sometimes useful for readability)
+    "PLR6201", # Allow membership checks in lists (set-based check is unsafe when values are unhashable)
     "PLR6301", # Allow class methods that don't use 'self' (otherwise noisy)
+    "RET504",  # Ignore unnecessary assign before return
     "RUF022",  # Allow unsorted __all__ (sometimes useful for grouping by type with pdoc)
     "S",       # flake8-bandit (noisy, security related)
     "SIM910",  # Allow "None" as second argument to Dict.get(). "Explicit is better than implicit."
     "TD002",   # Require author for TODOs
     "TRY003",  # Allow string passing to exception constructor.
+    "TRY400",  # Ignore for now: prefer logging.exception over logging.error
 ]
 fixable = ["ALL"]
 unfixable = [

@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 
-class StreamThreadException(Exception):
-    def __init__(self, exception: Exception, stream_name: str):
+# TODO: (N818) Should implement __hash__()
+class StreamThreadException(Exception):  # noqa: PLW1641  # Should implement __hash__
+    def __init__(self, exception: Exception, stream_name: str) -> None:
         self._exception = exception
         self._stream_name = stream_name
 

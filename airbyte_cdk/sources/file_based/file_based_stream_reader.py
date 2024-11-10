@@ -3,19 +3,22 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from io import IOBase
 from os import makedirs, path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from wcmatch.glob import GLOBSTAR, globmatch
 
-from airbyte_cdk.sources.file_based.config.abstract_file_based_spec import AbstractFileBasedSpec
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable
+    from io import IOBase
+
+    from airbyte_cdk.sources.file_based.config.abstract_file_based_spec import AbstractFileBasedSpec
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 
 
 class FileReadMode(Enum):
@@ -122,11 +125,10 @@ class AbstractFileBasedStreamReader(ABC):
 
     def use_file_transfer(self) -> bool:
         if self.config:
-            use_file_transfer = (
+            return (
                 hasattr(self.config.delivery_method, "delivery_type")
                 and self.config.delivery_method.delivery_type == "use_file_transfer"
             )
-            return use_file_transfer
         return False
 
     @abstractmethod

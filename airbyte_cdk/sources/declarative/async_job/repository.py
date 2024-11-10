@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.declarative.async_job.job import AsyncJob
-from airbyte_cdk.sources.types import StreamSlice
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    from airbyte_cdk.sources.declarative.async_job.job import AsyncJob
+    from airbyte_cdk.sources.types import StreamSlice
 
 
 class AsyncJobRepository:

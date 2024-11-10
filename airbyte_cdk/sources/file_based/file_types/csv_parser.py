@@ -5,13 +5,10 @@ from __future__ import annotations
 
 import csv
 import json
-import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Callable, Generator, Iterable, Mapping
 from functools import partial
-from io import IOBase
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from orjson import orjson
@@ -23,16 +20,23 @@ from airbyte_cdk.sources.file_based.config.csv_format import (
     CsvHeaderUserProvided,
     InferenceType,
 )
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
 from airbyte_cdk.sources.file_based.exceptions import FileBasedSourceError, RecordParseError
 from airbyte_cdk.sources.file_based.file_based_stream_reader import (
     AbstractFileBasedStreamReader,
     FileReadMode,
 )
 from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 from airbyte_cdk.sources.file_based.schema_helpers import TYPE_PYTHON_MAPPING, SchemaType
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Callable, Generator, Iterable, Mapping
+    from io import IOBase
+
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 
 
 DIALECT_NAME = "_config_dialect"
@@ -152,7 +156,11 @@ class _CsvReader:
 class CsvParser(FileTypeParser):
     _MAX_BYTES_PER_FILE_FOR_SCHEMA_INFERENCE = 1_000_000
 
-    def __init__(self, csv_reader: _CsvReader | None = None, csv_field_max_bytes: int = 2**31):
+    def __init__(
+        self,
+        csv_reader: _CsvReader | None = None,
+        csv_field_max_bytes: int = 2**31,
+    ) -> None:
         # Increase the maximum length of data that can be parsed in a single CSV field. The default is 128k, which is typically sufficient
         # but given the use of Airbyte in loading a large variety of data it is best to allow for a larger maximum field size to avoid
         # skipping data on load. https://stackoverflow.com/questions/15063936/csv-error-field-larger-than-field-limit-131072
@@ -279,7 +287,7 @@ class CsvParser(FileTypeParser):
         null_values: set[str],
         strings_can_be_null: bool,
     ) -> dict[str, str | None]:
-        nullable = {
+        return {
             k: None
             if CsvParser._value_is_none(
                 v, deduped_property_types.get(k), null_values, strings_can_be_null
@@ -287,7 +295,6 @@ class CsvParser(FileTypeParser):
             else v
             for k, v in row.items()
         }
-        return nullable
 
     @staticmethod
     def _value_is_none(
@@ -387,7 +394,7 @@ class CsvParser(FileTypeParser):
 
         if warnings:
             logger.warning(
-                f"{FileBasedSourceError.ERROR_CASTING_VALUE.value}: {','.join([w for w in warnings])}",
+                f"{FileBasedSourceError.ERROR_CASTING_VALUE.value}: {','.join(list(warnings))}",
             )
         return result
 

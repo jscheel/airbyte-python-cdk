@@ -1,9 +1,13 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 from __future__ import annotations
 
-import requests
+from typing import TYPE_CHECKING
 
 from .backoff_strategy import BackoffStrategy
+
+
+if TYPE_CHECKING:
+    import requests
 
 
 class DefaultBackoffStrategy(BackoffStrategy):

@@ -19,7 +19,7 @@ from .airbyte_protocol import (  # type: ignore[attr-defined] # all classes are 
 class AirbyteStateBlobType(CustomType[AirbyteStateBlob, dict[str, Any]]):
     def serialize(self, value: AirbyteStateBlob) -> dict[str, Any]:
         # cant use orjson.dumps() directly because private attributes are excluded, e.g. "__ab_full_refresh_sync_complete"
-        return {k: v for k, v in value.__dict__.items()}
+        return dict(value.__dict__.items())
 
     def deserialize(self, value: dict[str, Any]) -> AirbyteStateBlob:
         return AirbyteStateBlob(value)

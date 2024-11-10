@@ -4,8 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from airbyte_cdk.connector import TConfig
 from airbyte_cdk.models import AirbyteRecordMessage, AirbyteStateMessage, SyncMode, Type
@@ -14,16 +13,21 @@ from airbyte_cdk.sources.embedded.catalog import (
     get_stream,
     get_stream_names,
 )
-from airbyte_cdk.sources.embedded.runner import SourceRunner
 from airbyte_cdk.sources.embedded.tools import get_defined_id
 from airbyte_cdk.sources.utils.schema_helpers import check_config_against_spec_or_exit
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from airbyte_cdk.sources.embedded.runner import SourceRunner
 
 
 TOutput = TypeVar("TOutput")
 
 
 class BaseEmbeddedIntegration(ABC, Generic[TConfig, TOutput]):
-    def __init__(self, runner: SourceRunner[TConfig], config: TConfig):
+    def __init__(self, runner: SourceRunner[TConfig], config: TConfig) -> None:
         check_config_against_spec_or_exit(config, runner.spec())
 
         self.source = runner

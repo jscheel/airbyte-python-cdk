@@ -4,10 +4,9 @@
 from __future__ import annotations
 
 import datetime
-from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from isodate import Duration, duration_isoformat, parse_duration
 
@@ -21,8 +20,13 @@ from airbyte_cdk.sources.declarative.requesters.request_option import (
     RequestOption,
     RequestOptionType,
 )
-from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping, MutableMapping
+
+    from airbyte_cdk.sources.message import MessageRepository
 
 
 @dataclass
@@ -168,16 +172,19 @@ class DatetimeBasedCursor(DeclarativeCursor):
             raise ValueError(
                 f"Stream slice {stream_slice} should not have a partition. Got {stream_slice.partition}."
             )
-        cursor_value_str_by_cursor_value_datetime = dict(
-            map(
-                # we need to ensure the cursor value is preserved as is in the state else the CATs might complain of something like
-                # 2023-01-04T17:30:19.000Z' <= '2023-01-04T17:30:19.000000Z'
-                lambda datetime_str: (self.parse_date(datetime_str), datetime_str),  # type: ignore # because of the filter on the next line, this will only be called with a str
-                filter(
-                    lambda item: item, [self._cursor, self._highest_observed_cursor_field_value]
-                ),
+        # we need to ensure the cursor value is preserved as is in the state else the CATs might
+        # complain of something like
+        # 2023-01-04T17:30:19.000Z' <= '2023-01-04T17:30:19.000000Z'
+        cursor_value_str_by_cursor_value_datetime = {
+            self.parse_date(datetime_str): datetime_str
+            for datetime_str in filter(
+                lambda item: item,
+                [
+                    self._cursor,
+                    self._highest_observed_cursor_field_value,
+                ],
             )
-        )
+        }
         self._cursor = (
             cursor_value_str_by_cursor_value_datetime[
                 max(cursor_value_str_by_cursor_value_datetime.keys())
@@ -297,7 +304,7 @@ class DatetimeBasedCursor(DeclarativeCursor):
         return comparator(cursor_date, default_date)
 
     def parse_date(self, date: str) -> datetime.datetime:
-        for datetime_format in self.cursor_datetime_formats + [self.datetime_format]:
+        for datetime_format in [*self.cursor_datetime_formats, self.datetime_format]:
             try:
                 return self._parser.parse(date, datetime_format)
             except ValueError:
@@ -421,9 +428,7 @@ class DatetimeBasedCursor(DeclarativeCursor):
         second_cursor_value = second.get(cursor_field)
         if first_cursor_value and second_cursor_value:
             return self.parse_date(first_cursor_value) >= self.parse_date(second_cursor_value)
-        if first_cursor_value:
-            return True
-        return False
+        return bool(first_cursor_value)
 
     def set_runtime_lookback_window(self, lookback_window_in_seconds: int) -> None:
         """Updates the lookback window based on a given number of seconds if the new duration

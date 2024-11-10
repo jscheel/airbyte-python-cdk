@@ -3,10 +3,13 @@
 #
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.models import AirbyteRecordMessage
 from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
+
+
+if TYPE_CHECKING:
+    from airbyte_cdk.models import AirbyteRecordMessage
 
 
 class DatetimeFormatInferrer:
@@ -39,7 +42,7 @@ class DatetimeFormatInferrer:
         or between 1_000_000_000_000 and 2_000_000_000_000 for milliseconds.
         This is separate from the format check for performance reasons
         """
-        if isinstance(value, (str, int)):
+        if isinstance(value, str | int):
             try:
                 value_as_int = int(value)
                 for timestamp_range in self._timestamp_heuristic_ranges:

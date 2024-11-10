@@ -4,12 +4,15 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
 from distutils.util import strtobool
 from enum import Flag, auto
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from jsonschema import Draft7Validator, ValidationError, validators
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
 
 
 json_to_python_simple = {
@@ -48,7 +51,7 @@ class TypeTransformer:
 
     _custom_normalizer: Callable[[Any, dict[str, Any]], Any] | None = None
 
-    def __init__(self, config: TransformConfig):
+    def __init__(self, config: TransformConfig) -> None:
         """Initialize TypeTransformer instance.
         :param config Transform config that would be applied to object
         """
@@ -59,7 +62,7 @@ class TypeTransformer:
             key: self.__get_normalizer(key, orig_validator)
             for key, orig_validator in Draft7Validator.VALIDATORS.items()
             # Do not validate field we do not transform for maximum performance.
-            if key in ["type", "array", "$ref", "properties", "items"]
+            if key in {"type", "array", "$ref", "properties", "items"}
         }
         self._normalizer = validators.create(
             meta_schema=Draft7Validator.META_SCHEMA, validators=all_validators
@@ -183,7 +186,7 @@ class TypeTransformer:
 
         return normalizator
 
-    def transform(self, record: dict[str, Any], schema: Mapping[str, Any]):
+    def transform(self, record: dict[str, Any], schema: Mapping[str, Any]) -> None:
         """Normalize and validate according to config.
         :param record: record instance for normalization/transformation. All modification are done by modifying existent object.
         :param schema: object's jsonschema for normalization.

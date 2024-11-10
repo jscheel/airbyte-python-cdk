@@ -3,12 +3,10 @@
 #
 from __future__ import annotations
 
-import logging
 import traceback
 from abc import ABC
 from collections import Counter
-from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic.v1.error_wrappers import ValidationError
 
@@ -30,7 +28,6 @@ from airbyte_cdk.sources.file_based.availability_strategy import (
     AbstractFileBasedAvailabilityStrategy,
     DefaultFileBasedAvailabilityStrategy,
 )
-from airbyte_cdk.sources.file_based.config.abstract_file_based_spec import AbstractFileBasedSpec
 from airbyte_cdk.sources.file_based.config.file_based_stream_config import (
     FileBasedStreamConfig,
     ValidationPolicy,
@@ -44,9 +41,7 @@ from airbyte_cdk.sources.file_based.exceptions import (
     FileBasedErrorsCollector,
     FileBasedSourceError,
 )
-from airbyte_cdk.sources.file_based.file_based_stream_reader import AbstractFileBasedStreamReader
 from airbyte_cdk.sources.file_based.file_types import default_parsers
-from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
 from airbyte_cdk.sources.file_based.schema_validation_policies import (
     DEFAULT_SCHEMA_VALIDATION_POLICIES,
     AbstractSchemaValidationPolicy,
@@ -58,12 +53,23 @@ from airbyte_cdk.sources.file_based.stream.concurrent.cursor import (
     FileBasedConcurrentCursor,
     FileBasedFinalStateCursor,
 )
-from airbyte_cdk.sources.file_based.stream.cursor import AbstractFileBasedCursor
 from airbyte_cdk.sources.message.repository import InMemoryMessageRepository, MessageRepository
-from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
 from airbyte_cdk.utils.analytics_message import create_analytics_message
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterator, Mapping
+
+    from airbyte_cdk.sources.file_based.config.abstract_file_based_spec import AbstractFileBasedSpec
+    from airbyte_cdk.sources.file_based.file_based_stream_reader import (
+        AbstractFileBasedStreamReader,
+    )
+    from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
+    from airbyte_cdk.sources.file_based.stream.cursor import AbstractFileBasedCursor
+    from airbyte_cdk.sources.streams import Stream
 
 
 DEFAULT_CONCURRENCY = 100
@@ -91,7 +97,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
         cursor_cls: type[
             AbstractConcurrentFileBasedCursor | AbstractFileBasedCursor
         ] = FileBasedConcurrentCursor,
-    ):
+    ) -> None:
         self.stream_reader = stream_reader
         self.spec_class = spec_class
         self.config = config
@@ -376,8 +382,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
 
     @staticmethod
     def _use_file_transfer(parsed_config: AbstractFileBasedSpec) -> bool:
-        use_file_transfer = (
+        return (
             hasattr(parsed_config.delivery_method, "delivery_type")
             and parsed_config.delivery_method.delivery_type == "use_file_transfer"
         )
-        return use_file_transfer

@@ -3,13 +3,17 @@ from __future__ import annotations
 
 import contextlib
 import functools
-from collections.abc import Callable
 from enum import Enum
-from types import TracebackType
+from typing import TYPE_CHECKING
 
 import requests_mock
 
 from airbyte_cdk.test.mock_http import HttpRequest, HttpRequestMatcher, HttpResponse
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import TracebackType
 
 
 class SupportedHttpMethods(str, Enum):
@@ -134,7 +138,7 @@ class HttpMocker(contextlib.ContextDecorator):
                     result = f(*args, **kwargs)
                 except requests_mock.NoMockAddress as no_mock_exception:
                     matchers_as_string = "\n\t".join(
-                        map(lambda matcher: str(matcher.request), self._matchers)
+                        str(matcher.request) for matcher in self._matchers
                     )
                     raise ValueError(
                         f"No matcher matches {no_mock_exception.args[0]} with headers `{no_mock_exception.request.headers}` "

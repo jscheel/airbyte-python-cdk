@@ -3,14 +3,19 @@
 #
 from __future__ import annotations
 
-from queue import Queue
+from typing import TYPE_CHECKING
 
 from airbyte_cdk.sources.concurrent_source.stream_thread_exception import StreamThreadException
-from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 from airbyte_cdk.sources.streams.concurrent.partitions.types import (
     PartitionCompleteSentinel,
     QueueItem,
 )
+
+
+if TYPE_CHECKING:
+    from queue import Queue
+
+    from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 
 
 class PartitionReader:

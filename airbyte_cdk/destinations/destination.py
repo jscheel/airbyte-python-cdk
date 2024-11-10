@@ -8,8 +8,7 @@ import io
 import logging
 import sys
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from orjson import orjson
 
@@ -24,6 +23,10 @@ from airbyte_cdk.models import (
 )
 from airbyte_cdk.sources.utils.schema_helpers import check_config_against_spec_or_exit
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
 
 
 logger = logging.getLogger("airbyte")
@@ -62,7 +65,7 @@ class Destination(Connector, ABC):
         input_stream: io.TextIOWrapper,
     ) -> Iterable[AirbyteMessage]:
         catalog = ConfiguredAirbyteCatalogSerializer.load(
-            orjson.loads(open(configured_catalog_path).read())
+            orjson.loads(open(configured_catalog_path, encoding="utf-8").read())
         )
         input_messages = self._parse_input_stream(input_stream)
         logger.info("Begin writing to the destination...")
@@ -109,7 +112,7 @@ class Destination(Connector, ABC):
         cmd = parsed_args.command
         if not cmd:
             raise Exception("No command entered. ")
-        if cmd not in ["spec", "check", "write"]:
+        if cmd not in {"spec", "check", "write"}:
             # This is technically dead code since parse_args() would fail if this was the case
             # But it's non-obvious enough to warrant placing it here anyways
             raise Exception(f"Unknown command entered: {cmd}")
@@ -134,7 +137,7 @@ class Destination(Connector, ABC):
                 if connection_status and cmd == "check":
                     yield connection_status
                     return
-                raise traced_exc
+                raise
 
         if cmd == "check":
             yield self._run_check(config=config)

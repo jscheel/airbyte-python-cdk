@@ -3,18 +3,21 @@
 #
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
-from airbyte_cdk.sources.file_based.file_based_stream_reader import (
-    AbstractFileBasedStreamReader,
-    FileReadMode,
-)
-from airbyte_cdk.sources.file_based.remote_file import RemoteFile
-from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable, Mapping
+
+    from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
+    from airbyte_cdk.sources.file_based.file_based_stream_reader import (
+        AbstractFileBasedStreamReader,
+        FileReadMode,
+    )
+    from airbyte_cdk.sources.file_based.remote_file import RemoteFile
+    from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
 
 
 Record = dict[str, Any]
