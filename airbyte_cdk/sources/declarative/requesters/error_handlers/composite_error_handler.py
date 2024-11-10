@@ -72,9 +72,10 @@ class CompositeErrorHandler(ErrorHandler):
             if matched_error_resolution.response_action == ResponseAction.SUCCESS:
                 return matched_error_resolution
 
-            if (
-                matched_error_resolution.response_action in {ResponseAction.RETRY, ResponseAction.IGNORE}
-            ):
+            if matched_error_resolution.response_action in {
+                ResponseAction.RETRY,
+                ResponseAction.IGNORE,
+            }:
                 return matched_error_resolution
         if matched_error_resolution:
             return matched_error_resolution

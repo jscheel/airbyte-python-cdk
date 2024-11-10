@@ -213,8 +213,7 @@ class ConcurrentReadProcessor:
         3. All partitions for all streams are closed
         """
         is_done = all(
-            self._is_stream_done(stream_name)
-            for stream_name in self._stream_name_to_instance
+            self._is_stream_done(stream_name) for stream_name in self._stream_name_to_instance
         )
         if is_done and self._exceptions_per_stream_name:
             error_message = generate_failed_streams_error_message(self._exceptions_per_stream_name)

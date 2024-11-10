@@ -23,6 +23,7 @@ from pyrate_limiter.exceptions import BucketFullException
 # prevents mypy from complaining about missing session attributes in LimiterMixin
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
     MIXIN_BASE = requests.Session
 else:
     MIXIN_BASE = object

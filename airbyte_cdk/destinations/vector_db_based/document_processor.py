@@ -161,9 +161,7 @@ class DocumentProcessor:
             )
             for chunk_document in self._split_document(doc)
         ]
-        id_to_delete = (
-            doc.metadata.get(METADATA_RECORD_ID_FIELD, None)
-        )
+        id_to_delete = doc.metadata.get(METADATA_RECORD_ID_FIELD, None)
         return chunks, id_to_delete
 
     def _generate_document(self, record: AirbyteRecordMessage) -> Document | None:
