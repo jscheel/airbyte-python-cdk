@@ -1,11 +1,15 @@
 #
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import copy
 import logging
-from functools import cache, lru_cache
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Optional, Union
+from collections.abc import Iterable, Mapping, MutableMapping
+from functools import cache
+from typing import TYPE_CHECKING, Any
+
+from deprecated.classic import deprecated
 
 from airbyte_cdk.models import (
     AirbyteLogMessage,
@@ -43,7 +47,7 @@ from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.utils.schema_helpers import InternalConfig
 from airbyte_cdk.sources.utils.slice_logger import SliceLogger
-from deprecated.classic import deprecated
+
 
 if TYPE_CHECKING:
     from airbyte_cdk.sources.file_based.stream.concurrent.cursor import (
@@ -63,12 +67,10 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
         stream: AbstractFileBasedStream,
         source: AbstractSource,
         logger: logging.Logger,
-        state: Optional[MutableMapping[str, Any]],
-        cursor: "AbstractConcurrentFileBasedCursor",
-    ) -> "FileBasedStreamFacade":
-        """
-        Create a ConcurrentStream from a FileBasedStream object.
-        """
+        state: MutableMapping[str, Any] | None,
+        cursor: AbstractConcurrentFileBasedCursor,
+    ) -> FileBasedStreamFacade:
+        """Create a ConcurrentStream from a FileBasedStream object."""
         pk = get_primary_key_from_stream(stream.primary_key)
         cursor_field = get_cursor_field_from_stream(stream)
         stream._cursor = cursor
@@ -114,9 +116,7 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
         slice_logger: SliceLogger,
         logger: logging.Logger,
     ):
-        """
-        :param stream: The underlying AbstractStream
-        """
+        """:param stream: The underlying AbstractStream"""
         self._abstract_stream = stream
         self._legacy_stream = legacy_stream
         self._cursor = cursor
@@ -127,11 +127,10 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
         self.validation_policy = legacy_stream.validation_policy
 
     @property
-    def cursor_field(self) -> Union[str, List[str]]:
+    def cursor_field(self) -> str | list[str]:
         if self._abstract_stream.cursor_field is None:
             return []
-        else:
-            return self._abstract_stream.cursor_field
+        return self._abstract_stream.cursor_field
 
     @property
     def name(self) -> str:
@@ -146,7 +145,7 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
     def availability_strategy(self) -> AbstractFileBasedAvailabilityStrategy:
         return self._legacy_stream.availability_strategy
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_json_schema(self) -> Mapping[str, Any]:
         return self._abstract_stream.get_json_schema()
 
@@ -166,10 +165,10 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
     def read_records_from_slice(self, stream_slice: StreamSlice) -> Iterable[Mapping[str, Any]]:
         yield from self._legacy_stream.read_records_from_slice(stream_slice)  # type: ignore[misc] # Only Mapping[str, Any] is expected for legacy streams, not AirbyteMessage
 
-    def compute_slices(self) -> Iterable[Optional[StreamSlice]]:
+    def compute_slices(self) -> Iterable[StreamSlice | None]:
         return self._legacy_stream.compute_slices()
 
-    def infer_schema(self, files: List[RemoteFile]) -> Mapping[str, Any]:
+    def infer_schema(self, files: list[RemoteFile]) -> Mapping[str, Any]:
         return self._legacy_stream.infer_schema(files)
 
     def get_underlying_stream(self) -> DefaultStream:
@@ -189,9 +188,9 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
     def read_records(
         self,
         sync_mode: SyncMode,
-        cursor_field: Optional[List[str]] = None,
-        stream_slice: Optional[Mapping[str, Any]] = None,
-        stream_state: Optional[Mapping[str, Any]] = None,
+        cursor_field: list[str] | None = None,
+        stream_slice: Mapping[str, Any] | None = None,
+        stream_state: Mapping[str, Any] | None = None,
     ) -> Iterable[StreamData]:
         try:
             yield from self._read_records()
@@ -221,12 +220,12 @@ class FileBasedStreamPartition(Partition):
     def __init__(
         self,
         stream: AbstractFileBasedStream,
-        _slice: Optional[Mapping[str, Any]],
+        _slice: Mapping[str, Any] | None,
         message_repository: MessageRepository,
         sync_mode: SyncMode,
-        cursor_field: Optional[List[str]],
-        state: Optional[MutableMapping[str, Any]],
-        cursor: "AbstractConcurrentFileBasedCursor",
+        cursor_field: list[str] | None,
+        state: MutableMapping[str, Any] | None,
+        cursor: AbstractConcurrentFileBasedCursor,
     ):
         self._stream = stream
         self._slice = _slice
@@ -280,7 +279,7 @@ class FileBasedStreamPartition(Partition):
             else:
                 raise e
 
-    def to_slice(self) -> Optional[Mapping[str, Any]]:
+    def to_slice(self) -> Mapping[str, Any] | None:
         if self._slice is None:
             return None
         assert (
@@ -303,11 +302,9 @@ class FileBasedStreamPartition(Partition):
                 raise ValueError(
                     f"Slices for file-based streams should be of length 1, but got {len(self._slice['files'])}. This is unexpected. Please contact Support."
                 )
-            else:
-                s = f"{self._slice['files'][0].last_modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}_{self._slice['files'][0].uri}"
+            s = f"{self._slice['files'][0].last_modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}_{self._slice['files'][0].uri}"
             return hash((self._stream.name, s))
-        else:
-            return hash(self._stream.name)
+        return hash(self._stream.name)
 
     def stream_name(self) -> str:
         return self._stream.name
@@ -326,9 +323,9 @@ class FileBasedStreamPartitionGenerator(PartitionGenerator):
         stream: AbstractFileBasedStream,
         message_repository: MessageRepository,
         sync_mode: SyncMode,
-        cursor_field: Optional[List[str]],
-        state: Optional[MutableMapping[str, Any]],
-        cursor: "AbstractConcurrentFileBasedCursor",
+        cursor_field: list[str] | None,
+        state: MutableMapping[str, Any] | None,
+        cursor: AbstractConcurrentFileBasedCursor,
     ):
         self._stream = stream
         self._message_repository = message_repository

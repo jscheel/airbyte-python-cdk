@@ -1,17 +1,20 @@
 #
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
-from typing import Mapping, Type, Union
+from collections.abc import Mapping
+
+from requests.exceptions import InvalidSchema, InvalidURL, RequestException
 
 from airbyte_cdk.models import FailureType
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
     ErrorResolution,
     ResponseAction,
 )
-from requests.exceptions import InvalidSchema, InvalidURL, RequestException
 
-DEFAULT_ERROR_MAPPING: Mapping[Union[int, str, Type[Exception]], ErrorResolution] = {
+
+DEFAULT_ERROR_MAPPING: Mapping[int | str | type[Exception], ErrorResolution] = {
     InvalidSchema: ErrorResolution(
         response_action=ResponseAction.FAIL,
         failure_type=FailureType.config_error,

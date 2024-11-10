@@ -1,9 +1,12 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import logging
 from unittest.mock import MagicMock, patch
+
+from orjson import orjson
 
 from airbyte_cdk.models import (
     AirbyteStateBlob,
@@ -24,7 +27,7 @@ from airbyte_cdk.sources.declarative.incremental.per_partition_cursor import (
 from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.declarative.retrievers.simple_retriever import SimpleRetriever
 from airbyte_cdk.sources.types import Record
-from orjson import orjson
+
 
 CURSOR_FIELD = "cursor_field"
 SYNC_MODE = SyncMode.incremental
@@ -325,8 +328,7 @@ def test_substream_without_input_state():
 
 
 def test_partition_limitation(caplog):
-    """
-    Test that when the number of partitions exceeds the maximum allowed limit in PerPartitionCursor,
+    """Test that when the number of partitions exceeds the maximum allowed limit in PerPartitionCursor,
     the oldest partitions are dropped, and the state is updated accordingly.
 
     In this test, we set the maximum number of partitions to 2 and provide 3 partitions.
@@ -454,8 +456,7 @@ def test_partition_limitation(caplog):
 
 
 def test_perpartition_with_fallback(caplog):
-    """
-    Test that when the number of partitions exceeds the limit in PerPartitionCursor,
+    """Test that when the number of partitions exceeds the limit in PerPartitionCursor,
     the cursor falls back to using the global cursor for state management.
 
     This test also checks that the appropriate warning logs are emitted when the partition limit is exceeded.
@@ -604,8 +605,7 @@ def test_perpartition_with_fallback(caplog):
 
 
 def test_per_partition_cursor_within_limit(caplog):
-    """
-    Test that the PerPartitionCursor correctly updates the state for each partition
+    """Test that the PerPartitionCursor correctly updates the state for each partition
     when the number of partitions is within the allowed limit.
 
     This test also checks that no warning logs are emitted when the partition limit is not exceeded.

@@ -1,10 +1,12 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
+
 import concurrent
 import logging
+from collections.abc import Iterable, Iterator
 from queue import Queue
-from typing import Iterable, Iterator, List
 
 from airbyte_cdk.models import AirbyteMessage
 from airbyte_cdk.sources.concurrent_source.concurrent_read_processor import ConcurrentReadProcessor
@@ -27,8 +29,7 @@ from airbyte_cdk.sources.utils.slice_logger import DebugSliceLogger, SliceLogger
 
 
 class ConcurrentSource:
-    """
-    A Source that reads data from multiple AbstractStreams concurrently.
+    """A Source that reads data from multiple AbstractStreams concurrently.
     It does so by submitting partition generation, and partition read tasks to a thread pool.
     The tasks asynchronously add their output to a shared queue.
     The read is done when all partitions for all streams w ere generated and read.
@@ -44,7 +45,7 @@ class ConcurrentSource:
         slice_logger: SliceLogger,
         message_repository: MessageRepository,
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
-    ) -> "ConcurrentSource":
+    ) -> ConcurrentSource:
         is_single_threaded = initial_number_of_partitions_to_generate == 1 and num_workers == 1
         too_many_generator = (
             not is_single_threaded and initial_number_of_partitions_to_generate >= num_workers
@@ -76,8 +77,7 @@ class ConcurrentSource:
         initial_number_partitions_to_generate: int = 1,
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
-        """
-        :param threadpool: The threadpool to submit tasks to
+        """:param threadpool: The threadpool to submit tasks to
         :param logger: The logger to log to
         :param slice_logger: The slice logger used to create messages on new slices
         :param message_repository: The repository to emit messages to
@@ -93,7 +93,7 @@ class ConcurrentSource:
 
     def read(
         self,
-        streams: List[AbstractStream],
+        streams: list[AbstractStream],
     ) -> Iterator[AirbyteMessage]:
         self._logger.info("Starting syncing")
 

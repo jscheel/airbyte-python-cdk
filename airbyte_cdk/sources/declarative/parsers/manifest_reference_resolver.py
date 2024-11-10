@@ -1,21 +1,23 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import re
-from typing import Any, Mapping, Set, Tuple, Union
+from collections.abc import Mapping
+from typing import Any
 
 from airbyte_cdk.sources.declarative.parsers.custom_exceptions import (
     CircularReferenceException,
     UndefinedReferenceException,
 )
 
+
 REF_TAG = "$ref"
 
 
 class ManifestReferenceResolver:
-    """
-    An incoming manifest can contain references to values previously defined.
+    """An incoming manifest can contain references to values previously defined.
     This parser will dereference these values to produce a complete ConnectionDefinition.
 
     References can be defined using a #/<arg> string.
@@ -100,13 +102,12 @@ class ManifestReferenceResolver:
     """
 
     def preprocess_manifest(self, manifest: Mapping[str, Any]) -> Mapping[str, Any]:
-        """
-        :param manifest: incoming manifest that could have references to previously defined components
+        """:param manifest: incoming manifest that could have references to previously defined components
         :return:
         """
         return self._evaluate_node(manifest, manifest, set())  # type: ignore[no-any-return]
 
-    def _evaluate_node(self, node: Any, manifest: Mapping[str, Any], visited: Set[Any]) -> Any:
+    def _evaluate_node(self, node: Any, manifest: Mapping[str, Any], visited: set[Any]) -> Any:
         if isinstance(node, dict):
             evaluated_dict = {
                 k: self._evaluate_node(v, manifest, visited)
@@ -118,22 +119,19 @@ class ManifestReferenceResolver:
                 evaluated_ref = self._evaluate_node(node[REF_TAG], manifest, visited)
                 if not isinstance(evaluated_ref, dict):
                     return evaluated_ref
-                else:
-                    # The values defined on the component take precedence over the reference values
-                    return evaluated_ref | evaluated_dict
-            else:
-                return evaluated_dict
-        elif isinstance(node, list):
+                # The values defined on the component take precedence over the reference values
+                return evaluated_ref | evaluated_dict
+            return evaluated_dict
+        if isinstance(node, list):
             return [self._evaluate_node(v, manifest, visited) for v in node]
-        elif self._is_ref(node):
+        if self._is_ref(node):
             if node in visited:
                 raise CircularReferenceException(node)
             visited.add(node)
             ret = self._evaluate_node(self._lookup_ref_value(node, manifest), manifest, visited)
             visited.remove(node)
             return ret
-        else:
-            return node
+        return node
 
     def _lookup_ref_value(self, ref: str, manifest: Mapping[str, Any]) -> Any:
         ref_match = re.match(r"#/(.*)", ref)
@@ -155,8 +153,7 @@ class ManifestReferenceResolver:
 
     @staticmethod
     def _read_ref_value(ref: str, manifest_node: Mapping[str, Any]) -> Any:
-        """
-        Read the value at the referenced location of the manifest.
+        """Read the value at the referenced location of the manifest.
 
         References are ambiguous because one could define a key containing `/`
         In this example, we want to refer to the `limit` key in the `dict` object:
@@ -185,9 +182,8 @@ class ManifestReferenceResolver:
         return manifest_node
 
 
-def _parse_path(ref: str) -> Tuple[Union[str, int], str]:
-    """
-    Return the next path component, together with the rest of the path.
+def _parse_path(ref: str) -> tuple[str | int, str]:
+    """Return the next path component, together with the rest of the path.
 
     A path component may be a string key, or an int index.
 

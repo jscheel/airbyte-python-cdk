@@ -1,10 +1,13 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import MutableMapping
 from enum import Enum
-from typing import TYPE_CHECKING, Any, List, MutableMapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any
+
 
 if TYPE_CHECKING:
     from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
@@ -31,10 +34,9 @@ class AbstractStreamStateConverter(ABC):
         self._is_sequential_state = is_sequential_state
 
     def convert_to_state_message(
-        self, cursor_field: "CursorField", stream_state: MutableMapping[str, Any]
+        self, cursor_field: CursorField, stream_state: MutableMapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        """
-        Convert the state message from the concurrency-compatible format to the stream's original format.
+        """Convert the state message from the concurrency-compatible format to the stream's original format.
 
         e.g.
         { "created": "2021-01-18T21:18:20.000Z" }
@@ -47,13 +49,10 @@ class AbstractStreamStateConverter(ABC):
                     {cursor_field.cursor_field_key: self._to_state_message(latest_complete_time)}
                 )
             return legacy_state or {}
-        else:
-            return self.serialize(stream_state, ConcurrencyCompatibleStateType.date_range)
+        return self.serialize(stream_state, ConcurrencyCompatibleStateType.date_range)
 
-    def _get_latest_complete_time(self, slices: List[MutableMapping[str, Any]]) -> Any:
-        """
-        Get the latest time before which all records have been processed.
-        """
+    def _get_latest_complete_time(self, slices: list[MutableMapping[str, Any]]) -> Any:
+        """Get the latest time before which all records have been processed."""
         if not slices:
             raise RuntimeError(
                 "Expected at least one slice but there were none. This is unexpected; please contact Support."
@@ -64,9 +63,7 @@ class AbstractStreamStateConverter(ABC):
         return first_interval.get("most_recent_cursor_value") or first_interval[self.START_KEY]
 
     def deserialize(self, state: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-        """
-        Perform any transformations needed for compatibility with the converter.
-        """
+        """Perform any transformations needed for compatibility with the converter."""
         for stream_slice in state.get("slices", []):
             stream_slice[self.START_KEY] = self._from_state_message(stream_slice[self.START_KEY])
             stream_slice[self.END_KEY] = self._from_state_message(stream_slice[self.END_KEY])
@@ -75,9 +72,7 @@ class AbstractStreamStateConverter(ABC):
     def serialize(
         self, state: MutableMapping[str, Any], state_type: ConcurrencyCompatibleStateType
     ) -> MutableMapping[str, Any]:
-        """
-        Perform any transformations needed for compatibility with the converter.
-        """
+        """Perform any transformations needed for compatibility with the converter."""
         serialized_slices = []
         for stream_slice in state.get("slices", []):
             serialized_slice = {
@@ -100,12 +95,11 @@ class AbstractStreamStateConverter(ABC):
     @abstractmethod
     def convert_from_sequential_state(
         self,
-        cursor_field: "CursorField",  # to deprecate as it is only needed for sequential state
+        cursor_field: CursorField,  # to deprecate as it is only needed for sequential state
         stream_state: MutableMapping[str, Any],
-        start: Optional[Any],
-    ) -> Tuple[Any, MutableMapping[str, Any]]:
-        """
-        Convert the state message to the format required by the ConcurrentCursor.
+        start: Any | None,
+    ) -> tuple[Any, MutableMapping[str, Any]]:
+        """Convert the state message to the format required by the ConcurrentCursor.
 
         e.g.
         {
@@ -119,16 +113,13 @@ class AbstractStreamStateConverter(ABC):
 
     @abstractmethod
     def increment(self, value: Any) -> Any:
-        """
-        Increment a timestamp by a single unit.
-        """
+        """Increment a timestamp by a single unit."""
         ...
 
     def merge_intervals(
-        self, intervals: List[MutableMapping[str, Any]]
-    ) -> List[MutableMapping[str, Any]]:
-        """
-        Compute and return a list of merged intervals.
+        self, intervals: list[MutableMapping[str, Any]]
+    ) -> list[MutableMapping[str, Any]]:
+        """Compute and return a list of merged intervals.
 
         Intervals may be merged if the start time of the second interval is 1 unit or less (as defined by the
         `increment` method) than the end time of the first interval.
@@ -164,9 +155,7 @@ class AbstractStreamStateConverter(ABC):
 
     @abstractmethod
     def parse_value(self, value: Any) -> Any:
-        """
-        Parse the value of the cursor field into a comparable value.
-        """
+        """Parse the value of the cursor field into a comparable value."""
         ...
 
     @property

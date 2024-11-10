@@ -4,18 +4,20 @@
 
 from __future__ import annotations
 
-from typing import Any, ItemsView, Iterator, KeysView, List, Mapping, Optional, ValuesView
+from collections.abc import ItemsView, Iterator, KeysView, Mapping, ValuesView
+from typing import Any
+
 
 # A FieldPointer designates a path to a field inside a mapping. For example, retrieving ["k1", "k1.2"] in the object {"k1" :{"k1.2":
 # "hello"}] returns "hello"
-FieldPointer = List[str]
+FieldPointer = list[str]
 Config = Mapping[str, Any]
 ConnectionDefinition = Mapping[str, Any]
 StreamState = Mapping[str, Any]
 
 
 class Record(Mapping[str, Any]):
-    def __init__(self, data: Mapping[str, Any], associated_slice: Optional[StreamSlice]):
+    def __init__(self, data: Mapping[str, Any], associated_slice: StreamSlice | None):
         self._data = data
         self._associated_slice = associated_slice
 
@@ -24,7 +26,7 @@ class Record(Mapping[str, Any]):
         return self._data
 
     @property
-    def associated_slice(self) -> Optional[StreamSlice]:
+    def associated_slice(self) -> StreamSlice | None:
         return self._associated_slice
 
     def __repr__(self) -> str:
@@ -58,10 +60,9 @@ class StreamSlice(Mapping[str, Any]):
         *,
         partition: Mapping[str, Any],
         cursor_slice: Mapping[str, Any],
-        extra_fields: Optional[Mapping[str, Any]] = None,
+        extra_fields: Mapping[str, Any] | None = None,
     ) -> None:
-        """
-        :param partition: The partition keys representing a unique partition in the stream.
+        """:param partition: The partition keys representing a unique partition in the stream.
         :param cursor_slice: The incremental cursor slice keys, such as dates or pagination tokens.
         :param extra_fields: Additional fields that should not be part of the partition but passed along, such as metadata from the parent stream.
         """
@@ -123,10 +124,10 @@ class StreamSlice(Mapping[str, Any]):
     def values(self) -> ValuesView[Any]:
         return self._stream_slice.values()
 
-    def get(self, key: str, default: Any = None) -> Optional[Any]:
+    def get(self, key: str, default: Any = None) -> Any | None:
         return self._stream_slice.get(key, default)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, dict):
             return self._stream_slice == other
         if isinstance(other, StreamSlice):
@@ -134,7 +135,7 @@ class StreamSlice(Mapping[str, Any]):
             return self._partition == other._partition and self._cursor_slice == other._cursor_slice
         return False
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
     def __json_serializable__(self) -> Any:

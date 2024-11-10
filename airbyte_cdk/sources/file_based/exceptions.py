@@ -1,9 +1,10 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 from enum import Enum
-from typing import Any, List, Union
+from typing import Any, Union
 
 from airbyte_cdk.models import AirbyteMessage, FailureType
 from airbyte_cdk.utils import AirbyteTracedException
@@ -39,11 +40,9 @@ class FileBasedSourceError(Enum):
 
 
 class FileBasedErrorsCollector:
-    """
-    The placeholder for all errors collected.
-    """
+    """The placeholder for all errors collected."""
 
-    errors: List[AirbyteMessage] = []
+    errors: list[AirbyteMessage] = []
 
     def yield_and_raise_collected(self) -> Any:
         if self.errors:
@@ -112,8 +111,7 @@ class ErrorListingFiles(BaseFileBasedSourceError):
 
 
 class CustomFileBasedException(AirbyteTracedException):
-    """
-    A specialized exception for file-based connectors.
+    """A specialized exception for file-based connectors.
 
     This exception is designed to bypass the default error handling in the file-based CDK, allowing the use of custom error messages.
     """

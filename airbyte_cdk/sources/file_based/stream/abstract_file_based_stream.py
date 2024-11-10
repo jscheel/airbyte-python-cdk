@@ -1,10 +1,14 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 from abc import abstractmethod
-from functools import cache, cached_property, lru_cache
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Type
+from collections.abc import Iterable, Mapping
+from functools import cache, cached_property
+from typing import Any
+
+from deprecated import deprecated
 
 from airbyte_cdk import AirbyteMessage
 from airbyte_cdk.models import SyncMode
@@ -30,12 +34,10 @@ from airbyte_cdk.sources.file_based.stream.cursor import AbstractFileBasedCursor
 from airbyte_cdk.sources.file_based.types import StreamSlice
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.checkpoint import Cursor
-from deprecated import deprecated
 
 
 class AbstractFileBasedStream(Stream):
-    """
-    A file-based stream in an Airbyte source.
+    """A file-based stream in an Airbyte source.
 
     In addition to the base Stream attributes, a file-based stream has
     - A config object (derived from the corresponding stream section in source config).
@@ -52,11 +54,11 @@ class AbstractFileBasedStream(Stream):
     def __init__(
         self,
         config: FileBasedStreamConfig,
-        catalog_schema: Optional[Mapping[str, Any]],
+        catalog_schema: Mapping[str, Any] | None,
         stream_reader: AbstractFileBasedStreamReader,
         availability_strategy: AbstractFileBasedAvailabilityStrategy,
         discovery_policy: AbstractDiscoveryPolicy,
-        parsers: Dict[Type[Any], FileTypeParser],
+        parsers: dict[type[Any], FileTypeParser],
         validation_policy: AbstractSchemaValidationPolicy,
         errors_collector: FileBasedErrorsCollector,
         cursor: AbstractFileBasedCursor,
@@ -77,9 +79,8 @@ class AbstractFileBasedStream(Stream):
     def primary_key(self) -> PrimaryKeyType: ...
 
     @cache
-    def list_files(self) -> List[RemoteFile]:
-        """
-        List all files that belong to the stream.
+    def list_files(self) -> list[RemoteFile]:
+        """List all files that belong to the stream.
 
         The output of this method is cached so we don't need to list the files more than once.
         This means we won't pick up changes to the files during a sync. This method uses the
@@ -89,20 +90,17 @@ class AbstractFileBasedStream(Stream):
 
     @abstractmethod
     def get_files(self) -> Iterable[RemoteFile]:
-        """
-        List all files that belong to the stream as defined by the stream's globs.
-        """
+        """List all files that belong to the stream as defined by the stream's globs."""
         ...
 
     def read_records(
         self,
         sync_mode: SyncMode,
-        cursor_field: Optional[List[str]] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        stream_state: Optional[Mapping[str, Any]] = None,
+        cursor_field: list[str] | None = None,
+        stream_slice: StreamSlice | None = None,
+        stream_state: Mapping[str, Any] | None = None,
     ) -> Iterable[Mapping[str, Any] | AirbyteMessage]:
-        """
-        Yield all records from all remote files in `list_files_for_this_sync`.
+        """Yield all records from all remote files in `list_files_for_this_sync`.
         This method acts as an adapter between the generic Stream interface and the file-based's
         stream since file-based streams manage their own states.
         """
@@ -114,45 +112,37 @@ class AbstractFileBasedStream(Stream):
     def read_records_from_slice(
         self, stream_slice: StreamSlice
     ) -> Iterable[Mapping[str, Any] | AirbyteMessage]:
-        """
-        Yield all records from all remote files in `list_files_for_this_sync`.
-        """
+        """Yield all records from all remote files in `list_files_for_this_sync`."""
         ...
 
     def stream_slices(
         self,
         *,
         sync_mode: SyncMode,
-        cursor_field: Optional[List[str]] = None,
-        stream_state: Optional[Mapping[str, Any]] = None,
-    ) -> Iterable[Optional[Mapping[str, Any]]]:
-        """
-        This method acts as an adapter between the generic Stream interface and the file-based's
+        cursor_field: list[str] | None = None,
+        stream_state: Mapping[str, Any] | None = None,
+    ) -> Iterable[Mapping[str, Any] | None]:
+        """This method acts as an adapter between the generic Stream interface and the file-based's
         stream since file-based streams manage their own states.
         """
         return self.compute_slices()
 
     @abstractmethod
-    def compute_slices(self) -> Iterable[Optional[StreamSlice]]:
-        """
-        Return a list of slices that will be used to read files in the current sync.
+    def compute_slices(self) -> Iterable[StreamSlice | None]:
+        """Return a list of slices that will be used to read files in the current sync.
         :return: The slices to use for the current sync.
         """
         ...
 
     @abstractmethod
-    @lru_cache(maxsize=None)
+    @cache
     def get_json_schema(self) -> Mapping[str, Any]:
-        """
-        Return the JSON Schema for a stream.
-        """
+        """Return the JSON Schema for a stream."""
         ...
 
     @abstractmethod
-    def infer_schema(self, files: List[RemoteFile]) -> Mapping[str, Any]:
-        """
-        Infer the schema for files in the stream.
-        """
+    def infer_schema(self, files: list[RemoteFile]) -> Mapping[str, Any]:
+        """Infer the schema for files in the stream."""
         ...
 
     def get_parser(self) -> FileTypeParser:
@@ -170,12 +160,11 @@ class AbstractFileBasedStream(Stream):
             return self.validation_policy.record_passes_validation_policy(
                 record=record, schema=self.catalog_schema
             )
-        else:
-            raise RecordParseError(
-                FileBasedSourceError.UNDEFINED_VALIDATION_POLICY,
-                stream=self.name,
-                validation_policy=self.config.validation_policy,
-            )
+        raise RecordParseError(
+            FileBasedSourceError.UNDEFINED_VALIDATION_POLICY,
+            stream=self.name,
+            validation_policy=self.config.validation_policy,
+        )
 
     @cached_property
     @deprecated(version="3.7.0")
@@ -186,9 +175,8 @@ class AbstractFileBasedStream(Stream):
     def name(self) -> str:
         return self.config.name
 
-    def get_cursor(self) -> Optional[Cursor]:
-        """
-        This is a temporary hack. Because file-based, declarative, and concurrent have _slightly_ different cursor implementations
+    def get_cursor(self) -> Cursor | None:
+        """This is a temporary hack. Because file-based, declarative, and concurrent have _slightly_ different cursor implementations
         the file-based cursor isn't compatible with the cursor-based iteration flow in core.py top-level CDK. By setting this to
         None, we defer to the regular incremental checkpoint flow. Once all cursors are consolidated under a common interface
         then this override can be removed.

@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import copy
 import dataclasses
@@ -12,6 +13,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+from orjson import orjson
+
+from unit_tests.connector_builder.utils import create_configured_catalog
+
 from airbyte_cdk import connector_builder
 from airbyte_cdk.connector_builder.connector_builder_handler import (
     DEFAULT_MAXIMUM_NUMBER_OF_PAGES_PER_SLICE,
@@ -49,16 +54,15 @@ from airbyte_cdk.models import (
     Level,
     StreamDescriptor,
     SyncMode,
+    Type,
 )
-from airbyte_cdk.models import Type
 from airbyte_cdk.models import Type as MessageType
 from airbyte_cdk.sources.declarative.declarative_stream import DeclarativeStream
 from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.declarative.retrievers import SimpleRetrieverTestReadDecorator
 from airbyte_cdk.sources.declarative.retrievers.simple_retriever import SimpleRetriever
 from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets, update_secrets
-from orjson import orjson
-from unit_tests.connector_builder.utils import create_configured_catalog
+
 
 _stream_name = "stream_with_custom_requester"
 _stream_primary_key = "id"
@@ -292,9 +296,7 @@ def invalid_config_file(tmp_path):
 
 
 def _mocked_send(self, request, **kwargs) -> requests.Response:
-    """
-    Mocks the outbound send operation to provide faster and more reliable responses compared to actual API requests
-    """
+    """Mocks the outbound send operation to provide faster and more reliable responses compared to actual API requests"""
     response = requests.Response()
     response.request = request
     response.status_code = 200
@@ -866,8 +868,7 @@ def _create_429_page_response(response_body):
     * 10,
 )
 def test_read_source(mock_http_stream):
-    """
-    This test sort of acts as an integration test for the connector builder.
+    """This test sort of acts as an integration test for the connector builder.
 
     Each slice has two pages
     The first page has two records
@@ -1002,13 +1003,11 @@ def test_read_source_single_page_single_slice(mock_http_stream):
 )
 @patch.object(requests.Session, "send", _mocked_send)
 def test_handle_read_external_requests(deployment_mode, url_base, expected_error):
-    """
-    This test acts like an integration test for the connector builder when it receives Test Read requests.
+    """This test acts like an integration test for the connector builder when it receives Test Read requests.
 
     The scenario being tested is whether requests should be denied if they are done on an unsecure channel or are made to internal
     endpoints when running on Cloud or OSS deployments
     """
-
     limits = TestReadLimits(max_records=100, max_pages_per_slice=1, max_slices=1)
 
     catalog = ConfiguredAirbyteCatalog(
@@ -1088,13 +1087,11 @@ def test_handle_read_external_requests(deployment_mode, url_base, expected_error
 )
 @patch.object(requests.Session, "send", _mocked_send)
 def test_handle_read_external_oauth_request(deployment_mode, token_url, expected_error):
-    """
-    This test acts like an integration test for the connector builder when it receives Test Read requests.
+    """This test acts like an integration test for the connector builder when it receives Test Read requests.
 
     The scenario being tested is whether requests should be denied if they are done on an unsecure channel or are made to internal
     endpoints when running on Cloud or OSS deployments
     """
-
     limits = TestReadLimits(max_records=100, max_pages_per_slice=1, max_slices=1)
 
     catalog = ConfiguredAirbyteCatalog(

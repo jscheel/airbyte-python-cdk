@@ -1,16 +1,18 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import json
 import logging
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Callable, Deque, Iterable, List, Optional
+from collections.abc import Callable, Iterable
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, Type
 from airbyte_cdk.sources.utils.types import JsonType
 from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets
+
 
 _LOGGER = logging.getLogger("MessageRepository")
 _SUPPORTED_MESSAGE_TYPES = {Type.CONTROL, Type.LOG}
@@ -45,19 +47,18 @@ def _is_severe_enough(threshold: Level, level: Level) -> bool:
 class MessageRepository(ABC):
     @abstractmethod
     def emit_message(self, message: AirbyteMessage) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def log_message(self, level: Level, message_provider: Callable[[], LogMessage]) -> None:
-        """
-        Computing messages can be resource consuming. This method is specialized for logging because we want to allow for lazy evaluation if
+        """Computing messages can be resource consuming. This method is specialized for logging because we want to allow for lazy evaluation if
         the log level is less severe than what is configured
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def consume_queue(self) -> Iterable[AirbyteMessage]:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class NoopMessageRepository(MessageRepository):
@@ -73,7 +74,7 @@ class NoopMessageRepository(MessageRepository):
 
 class InMemoryMessageRepository(MessageRepository):
     def __init__(self, log_level: Level = Level.INFO) -> None:
-        self._message_queue: Deque[AirbyteMessage] = deque()
+        self._message_queue: deque[AirbyteMessage] = deque()
         self._log_level = log_level
 
     def emit_message(self, message: AirbyteMessage) -> None:
@@ -119,7 +120,7 @@ class LogAppenderMessageRepositoryDecorator(MessageRepository):
         return self._decorated.consume_queue()
 
     def _append_second_to_first(
-        self, first: LogMessage, second: LogMessage, path: Optional[List[str]] = None
+        self, first: LogMessage, second: LogMessage, path: list[str] | None = None
     ) -> LogMessage:
         if path is None:
             path = []

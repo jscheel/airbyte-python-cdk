@@ -1,16 +1,21 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import json
 import logging
 import pkgutil
 import re
+from collections.abc import Iterator, Mapping
 from copy import deepcopy
 from importlib import metadata
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple, Union
+from typing import Any
 
 import yaml
+from jsonschema.exceptions import ValidationError
+from jsonschema.validators import validate
+
 from airbyte_cdk.models import (
     AirbyteConnectionStatus,
     AirbyteMessage,
@@ -44,8 +49,6 @@ from airbyte_cdk.sources.utils.slice_logger import (
     DebugSliceLogger,
     SliceLogger,
 )
-from jsonschema.exceptions import ValidationError
-from jsonschema.validators import validate
 
 
 class ManifestDeclarativeSource(DeclarativeSource):
@@ -56,10 +59,9 @@ class ManifestDeclarativeSource(DeclarativeSource):
         source_config: ConnectionDefinition,
         debug: bool = False,
         emit_connector_builder_messages: bool = False,
-        component_factory: Optional[ModelToComponentFactory] = None,
+        component_factory: ModelToComponentFactory | None = None,
     ):
-        """
-        :param source_config(Mapping[str, Any]): The manifest of low-code components that describe the source connector
+        """:param source_config(Mapping[str, Any]): The manifest of low-code components that describe the source connector
         :param debug(bool): True if debug mode is enabled
         :param component_factory(ModelToComponentFactory): optional factory if ModelToComponentFactory's default behaviour needs to be tweaked
         """
@@ -77,10 +79,8 @@ class ManifestDeclarativeSource(DeclarativeSource):
         self._source_config = propagated_source_config
         self._debug = debug
         self._emit_connector_builder_messages = emit_connector_builder_messages
-        self._constructor = (
-            component_factory
-            if component_factory
-            else ModelToComponentFactory(emit_connector_builder_messages)
+        self._constructor = component_factory or ModelToComponentFactory(
+            emit_connector_builder_messages
         )
         self._message_repository = self._constructor.get_message_repository()
         self._slice_logger: SliceLogger = (
@@ -94,7 +94,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
         return self._source_config
 
     @property
-    def message_repository(self) -> Union[None, MessageRepository]:
+    def message_repository(self) -> None | MessageRepository:
         return self._message_repository
 
     @property
@@ -110,12 +110,11 @@ class ManifestDeclarativeSource(DeclarativeSource):
         )
         if isinstance(check_stream, ConnectionChecker):
             return check_stream
-        else:
-            raise ValueError(
-                f"Expected to generate a ConnectionChecker component, but received {check_stream.__class__}"
-            )
+        raise ValueError(
+            f"Expected to generate a ConnectionChecker component, but received {check_stream.__class__}"
+        )
 
-    def streams(self, config: Mapping[str, Any]) -> List[Stream]:
+    def streams(self, config: Mapping[str, Any]) -> list[Stream]:
         self._emit_manifest_debug_message(
             extra_args={"source_name": self.name, "parsed_config": json.dumps(self._source_config)}
         )
@@ -135,8 +134,8 @@ class ManifestDeclarativeSource(DeclarativeSource):
 
     @staticmethod
     def _initialize_cache_for_parent_streams(
-        stream_configs: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        stream_configs: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         parent_streams = set()
 
         def update_with_cache_parent_configs(parent_configs: list[dict[str, Any]]) -> None:
@@ -170,8 +169,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
         return stream_configs
 
     def spec(self, logger: logging.Logger) -> ConnectorSpecification:
-        """
-        Returns the connector specification (spec) as defined in the Airbyte Protocol. The spec is an object describing the possible
+        """Returns the connector specification (spec) as defined in the Airbyte Protocol. The spec is an object describing the possible
         configurations (e.g: username and password) which can be configured when running this connector. For low-code connectors, this
         will first attempt to load the spec from the manifest's spec block, otherwise it will load it from "spec.yaml" or "spec.json"
         in the project root.
@@ -187,8 +185,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
                 spec["type"] = "Spec"
             spec_component = self._constructor.create_component(SpecModel, spec, dict())
             return spec_component.generate_spec()
-        else:
-            return super().spec(logger)
+        return super().spec(logger)
 
     def check(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteConnectionStatus:
         self._configure_logger_level(logger)
@@ -199,22 +196,18 @@ class ManifestDeclarativeSource(DeclarativeSource):
         logger: logging.Logger,
         config: Mapping[str, Any],
         catalog: ConfiguredAirbyteCatalog,
-        state: Optional[List[AirbyteStateMessage]] = None,
+        state: list[AirbyteStateMessage] | None = None,
     ) -> Iterator[AirbyteMessage]:
         self._configure_logger_level(logger)
         yield from super().read(logger, config, catalog, state)
 
     def _configure_logger_level(self, logger: logging.Logger) -> None:
-        """
-        Set the log level to logging.DEBUG if debug mode is enabled
-        """
+        """Set the log level to logging.DEBUG if debug mode is enabled"""
         if self._debug:
             logger.setLevel(logging.DEBUG)
 
     def _validate_source(self) -> None:
-        """
-        Validates the connector manifest against the declarative component schema
-        """
+        """Validates the connector manifest against the declarative component schema"""
         try:
             raw_component_schema = pkgutil.get_data(
                 "airbyte_cdk", "sources/declarative/declarative_component_schema.yaml"
@@ -263,7 +256,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
                 f"The manifest version {manifest_version} is greater than the airbyte-cdk package version ({cdk_version}). Your "
                 f"manifest may contain features that are not in the current CDK version."
             )
-        elif manifest_major == 0 and manifest_minor < 29:
+        if manifest_major == 0 and manifest_minor < 29:
             raise ValidationError(
                 f"The low-code framework was promoted to Beta in airbyte-cdk version 0.29.0 and contains many breaking changes to the "
                 f"language. The manifest version {manifest_version} is incompatible with the airbyte-cdk package version "
@@ -271,10 +264,8 @@ class ManifestDeclarativeSource(DeclarativeSource):
             )
 
     @staticmethod
-    def _get_version_parts(version: str, version_type: str) -> Tuple[int, int, int]:
-        """
-        Takes a semantic version represented as a string and splits it into a tuple of its major, minor, and patch versions.
-        """
+    def _get_version_parts(version: str, version_type: str) -> tuple[int, int, int]:
+        """Takes a semantic version represented as a string and splits it into a tuple of its major, minor, and patch versions."""
         version_parts = re.split(r"\.", version)
         if len(version_parts) != 3 or not all([part.isdigit() for part in version_parts]):
             raise ValidationError(
@@ -282,9 +273,9 @@ class ManifestDeclarativeSource(DeclarativeSource):
             )
         return tuple(int(part) for part in version_parts)  # type: ignore # We already verified there were 3 parts and they are all digits
 
-    def _stream_configs(self, manifest: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    def _stream_configs(self, manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
         # This has a warning flag for static, but after we finish part 4 we'll replace manifest with self._source_config
-        stream_configs: List[Dict[str, Any]] = manifest.get("streams", [])
+        stream_configs: list[dict[str, Any]] = manifest.get("streams", [])
         for s in stream_configs:
             if "type" not in s:
                 s["type"] = "DeclarativeStream"

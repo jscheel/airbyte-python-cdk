@@ -1,10 +1,13 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import pytest
 import requests
+
 from airbyte_cdk.sources.http_logger import format_http_message
+
 
 A_TITLE = "a title"
 A_DESCRIPTION = "a description"
@@ -21,19 +24,19 @@ class ResponseBuilder:
         self._request = ANY_REQUEST
         self._status_code = 100
 
-    def body_content(self, body_content: bytes) -> "ResponseBuilder":
+    def body_content(self, body_content: bytes) -> ResponseBuilder:
         self._body_content = body_content
         return self
 
-    def headers(self, headers: dict) -> "ResponseBuilder":
+    def headers(self, headers: dict) -> ResponseBuilder:
         self._headers = headers
         return self
 
-    def request(self, request: requests.PreparedRequest) -> "ResponseBuilder":
+    def request(self, request: requests.PreparedRequest) -> ResponseBuilder:
         self._request = request
         return self
 
-    def status_code(self, status_code: int) -> "ResponseBuilder":
+    def status_code(self, status_code: int) -> ResponseBuilder:
         self._status_code = status_code
         return self
 

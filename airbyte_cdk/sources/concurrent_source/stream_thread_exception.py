@@ -1,6 +1,5 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
-
-from typing import Any
+from __future__ import annotations
 
 
 class StreamThreadException(Exception):
@@ -19,7 +18,7 @@ class StreamThreadException(Exception):
     def __str__(self) -> str:
         return f"Exception while syncing stream {self._stream_name}: {self._exception}"
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, StreamThreadException):
             return self._exception == other._exception and self._stream_name == other._stream_name
         return False

@@ -1,37 +1,38 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import ast
+from collections.abc import Mapping
 from functools import cache
-from typing import Any, Mapping, Optional, Tuple, Type
+from typing import Any
 
-from airbyte_cdk.sources.declarative.interpolation.filters import filters
-from airbyte_cdk.sources.declarative.interpolation.interpolation import Interpolation
-from airbyte_cdk.sources.declarative.interpolation.macros import macros
-from airbyte_cdk.sources.types import Config
 from jinja2 import meta
 from jinja2.environment import Template
 from jinja2.exceptions import UndefinedError
 from jinja2.sandbox import SandboxedEnvironment
 
+from airbyte_cdk.sources.declarative.interpolation.filters import filters
+from airbyte_cdk.sources.declarative.interpolation.interpolation import Interpolation
+from airbyte_cdk.sources.declarative.interpolation.macros import macros
+from airbyte_cdk.sources.types import Config
+
 
 class StreamPartitionAccessEnvironment(SandboxedEnvironment):
-    """
-    Currently, source-jira is setting an attribute to StreamSlice specific to its use case which because of the PerPartitionCursor is set to
+    """Currently, source-jira is setting an attribute to StreamSlice specific to its use case which because of the PerPartitionCursor is set to
     StreamSlice._partition but not exposed through StreamSlice.partition. This is a patch to still allow source-jira to have access to this
     parameter
     """
 
     def is_safe_attribute(self, obj: Any, attr: str, value: Any) -> bool:
-        if attr in ["_partition"]:
+        if attr == "_partition":
             return True
         return super().is_safe_attribute(obj, attr, value)  # type: ignore  # for some reason, mypy says 'Returning Any from function declared to return "bool"'
 
 
 class JinjaInterpolation(Interpolation):
-    """
-    Interpolation strategy using the Jinja2 template engine.
+    """Interpolation strategy using the Jinja2 template engine.
 
     If the input string is a raw string, the interpolated string will be the same.
     `eval("hello world") -> "hello world"`
@@ -79,8 +80,8 @@ class JinjaInterpolation(Interpolation):
         self,
         input_str: str,
         config: Config,
-        default: Optional[str] = None,
-        valid_types: Optional[Tuple[Type[Any]]] = None,
+        default: str | None = None,
+        valid_types: tuple[type[Any]] | None = None,
         **additional_parameters: Any,
     ) -> Any:
         context = {"config": config, **additional_parameters}
@@ -91,7 +92,7 @@ class JinjaInterpolation(Interpolation):
                 raise ValueError(
                     f"Found reserved keyword {alias} in interpolation context. This is unexpected and indicative of a bug in the CDK."
                 )
-            elif equivalent in context:
+            if equivalent in context:
                 context[alias] = context[equivalent]
 
         try:
@@ -107,7 +108,7 @@ class JinjaInterpolation(Interpolation):
         # If result is empty or resulted in an undefined error, evaluate and return the default string
         return self._literal_eval(self._eval(default, context), valid_types)
 
-    def _literal_eval(self, result: Optional[str], valid_types: Optional[Tuple[Type[Any]]]) -> Any:
+    def _literal_eval(self, result: str | None, valid_types: tuple[type[Any]] | None) -> Any:
         try:
             evaluated = ast.literal_eval(result)  # type: ignore # literal_eval is able to handle None
         except (ValueError, SyntaxError):
@@ -116,7 +117,7 @@ class JinjaInterpolation(Interpolation):
             return evaluated
         return result
 
-    def _eval(self, s: Optional[str], context: Mapping[str, Any]) -> Optional[str]:
+    def _eval(self, s: str | None, context: Mapping[str, Any]) -> str | None:
         try:
             undeclared = self._find_undeclared_variables(s)
             undeclared_not_in_context = {var for var in undeclared if var not in context}
@@ -131,16 +132,12 @@ class JinjaInterpolation(Interpolation):
             return s
 
     @cache
-    def _find_undeclared_variables(self, s: Optional[str]) -> Template:
-        """
-        Find undeclared variables and cache them
-        """
+    def _find_undeclared_variables(self, s: str | None) -> Template:
+        """Find undeclared variables and cache them"""
         ast = self._environment.parse(s)  # type: ignore # parse is able to handle None
         return meta.find_undeclared_variables(ast)
 
     @cache
-    def _compile(self, s: Optional[str]) -> Template:
-        """
-        We must cache the Jinja Template ourselves because we're using `from_string` instead of a template loader
-        """
+    def _compile(self, s: str | None) -> Template:
+        """We must cache the Jinja Template ourselves because we're using `from_string` instead of a template loader"""
         return self._environment.from_string(s)

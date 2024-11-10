@@ -1,4 +1,4 @@
-# noqa: A005  # Allow shadowing the built-in 'types' module
+# Allow shadowing the built-in 'types' module
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 
 """Type conversion methods for SQL Caches."""
@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 import sqlalchemy
+
 
 # Compare to documentation here: https://docs.airbyte.com/understanding-airbyte/supported-data-types
 CONVERSION_MAP = {

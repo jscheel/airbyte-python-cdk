@@ -1,21 +1,20 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from airbyte_cdk.models import AirbyteRecordMessage
 from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
 
 
 class DatetimeFormatInferrer:
-    """
-    This class is used to detect toplevel fields in records that might be datetime values, along with the used format.
-    """
+    """This class is used to detect toplevel fields in records that might be datetime values, along with the used format."""
 
     def __init__(self) -> None:
         self._parser = DatetimeParser()
-        self._datetime_candidates: Optional[Dict[str, str]] = None
+        self._datetime_candidates: dict[str, str] | None = None
         self._formats = [
             "%Y-%m-%d",
             "%Y-%m-%d %H:%M:%S",
@@ -38,7 +37,8 @@ class DatetimeFormatInferrer:
         """Checks if the value can be a datetime.
         This is the case if the value is a string or an integer between 1_000_000_000 and 2_000_000_000 for seconds
         or between 1_000_000_000_000 and 2_000_000_000_000 for milliseconds.
-        This is separate from the format check for performance reasons"""
+        This is separate from the format check for performance reasons
+        """
         if isinstance(value, (str, int)):
             try:
                 value_as_int = int(value)
@@ -86,9 +86,8 @@ class DatetimeFormatInferrer:
         """Analyzes the record and updates the internal state of candidate datetime fields"""
         self._initialize(record) if self._datetime_candidates is None else self._validate(record)
 
-    def get_inferred_datetime_formats(self) -> Dict[str, str]:
-        """
-        Returns the list of candidate datetime fields - the keys are the field names and the values are the inferred datetime formats.
+    def get_inferred_datetime_formats(self) -> dict[str, str]:
+        """Returns the list of candidate datetime fields - the keys are the field names and the values are the inferred datetime formats.
         For these fields the format was consistent across all visited records.
         """
         return self._datetime_candidates or {}

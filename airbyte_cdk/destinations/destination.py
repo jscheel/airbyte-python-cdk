@@ -1,13 +1,17 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import argparse
 import io
 import logging
 import sys
 from abc import ABC, abstractmethod
-from typing import Any, Iterable, List, Mapping
+from collections.abc import Iterable, Mapping
+from typing import Any
+
+from orjson import orjson
 
 from airbyte_cdk.connector import Connector
 from airbyte_cdk.exception_handler import init_uncaught_exception_handler
@@ -20,7 +24,7 @@ from airbyte_cdk.models import (
 )
 from airbyte_cdk.sources.utils.schema_helpers import check_config_against_spec_or_exit
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
-from orjson import orjson
+
 
 logger = logging.getLogger("airbyte")
 
@@ -67,12 +71,10 @@ class Destination(Connector, ABC):
         )
         logger.info("Writing complete.")
 
-    def parse_args(self, args: List[str]) -> argparse.Namespace:
-        """
-        :param args: commandline arguments
+    def parse_args(self, args: list[str]) -> argparse.Namespace:
+        """:param args: commandline arguments
         :return:
         """
-
         parent_parser = argparse.ArgumentParser(add_help=False)
         main_parser = argparse.ArgumentParser()
         subparsers = main_parser.add_subparsers(title="commands", dest="command")
@@ -107,7 +109,7 @@ class Destination(Connector, ABC):
         cmd = parsed_args.command
         if not cmd:
             raise Exception("No command entered. ")
-        elif cmd not in ["spec", "check", "write"]:
+        if cmd not in ["spec", "check", "write"]:
             # This is technically dead code since parse_args() would fail if this was the case
             # But it's non-obvious enough to warrant placing it here anyways
             raise Exception(f"Unknown command entered: {cmd}")
@@ -145,7 +147,7 @@ class Destination(Connector, ABC):
                 input_stream=wrapped_stdin,
             )
 
-    def run(self, args: List[str]) -> None:
+    def run(self, args: list[str]) -> None:
         init_uncaught_exception_handler(logger)
         parsed_args = self.parse_args(args)
         output_messages = self.run_cmd(parsed_args)

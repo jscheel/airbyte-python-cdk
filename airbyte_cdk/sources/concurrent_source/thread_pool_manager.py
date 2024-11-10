@@ -1,16 +1,17 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
+
 import logging
 import threading
+from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Callable, List, Optional
+from typing import Any
 
 
 class ThreadPoolManager:
-    """
-    Wrapper to abstract away the threadpool and the logic to wait for pending tasks to be completed.
-    """
+    """Wrapper to abstract away the threadpool and the logic to wait for pending tasks to be completed."""
 
     DEFAULT_MAX_QUEUE_SIZE = 10_000
 
@@ -20,17 +21,16 @@ class ThreadPoolManager:
         logger: logging.Logger,
         max_concurrent_tasks: int = DEFAULT_MAX_QUEUE_SIZE,
     ):
-        """
-        :param threadpool: The threadpool to use
+        """:param threadpool: The threadpool to use
         :param logger: The logger to use
         :param max_concurrent_tasks: The maximum number of tasks that can be pending at the same time
         """
         self._threadpool = threadpool
         self._logger = logger
         self._max_concurrent_tasks = max_concurrent_tasks
-        self._futures: List[Future[Any]] = []
+        self._futures: list[Future[Any]] = []
         self._lock = threading.Lock()
-        self._most_recently_seen_exception: Optional[Exception] = None
+        self._most_recently_seen_exception: Exception | None = None
 
         self._logging_threshold = max_concurrent_tasks * 2
 
@@ -45,9 +45,8 @@ class ThreadPoolManager:
     def submit(self, function: Callable[..., Any], *args: Any) -> None:
         self._futures.append(self._threadpool.submit(function, *args))
 
-    def _prune_futures(self, futures: List[Future[Any]]) -> None:
-        """
-        Take a list in input and remove the futures that are completed. If a future has an exception, it'll raise and kill the stream
+    def _prune_futures(self, futures: list[Future[Any]]) -> None:
+        """Take a list in input and remove the futures that are completed. If a future has an exception, it'll raise and kill the stream
         operation.
 
         We are using a lock here as without it, the algorithm would not be thread safe
@@ -82,8 +81,7 @@ class ThreadPoolManager:
         return all([f.done() for f in self._futures])
 
     def check_for_errors_and_shutdown(self) -> None:
-        """
-        Check if any of the futures have an exception, and raise it if so. If all futures are done, shutdown the threadpool.
+        """Check if any of the futures have an exception, and raise it if so. If all futures are done, shutdown the threadpool.
         If the futures are not done, raise an exception.
         :return:
         """

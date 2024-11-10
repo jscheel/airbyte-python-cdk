@@ -14,6 +14,7 @@ from airbyte_cdk.models import ConfiguredAirbyteCatalog
 from airbyte_cdk.sql import exceptions as exc
 from airbyte_cdk.sql._util.name_normalizers import LowerCaseNormalizer
 
+
 if TYPE_CHECKING:
     from airbyte_cdk.models import ConfiguredAirbyteStream
 

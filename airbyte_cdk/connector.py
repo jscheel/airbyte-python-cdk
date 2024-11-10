@@ -1,16 +1,18 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
-
+from __future__ import annotations
 
 import json
 import logging
 import os
 import pkgutil
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Mapping, Optional, Protocol, TypeVar
+from collections.abc import Mapping
+from typing import Any, Generic, Protocol, TypeVar
 
 import yaml
+
 from airbyte_cdk.models import (
     AirbyteConnectionStatus,
     ConnectorSpecification,
@@ -18,7 +20,7 @@ from airbyte_cdk.models import (
 )
 
 
-def load_optional_package_file(package: str, filename: str) -> Optional[bytes]:
+def load_optional_package_file(package: str, filename: str) -> bytes | None:
     """Gets a resource from a package, returning None if it does not exist"""
     try:
         return pkgutil.get_data(package, filename)
@@ -35,23 +37,20 @@ class BaseConnector(ABC, Generic[TConfig]):
 
     @abstractmethod
     def configure(self, config: Mapping[str, Any], temp_dir: str) -> TConfig:
-        """
-        Persist config in temporary directory to run the Source job
-        """
+        """Persist config in temporary directory to run the Source job"""
 
     @staticmethod
     def read_config(config_path: str) -> Mapping[str, Any]:
         config = BaseConnector._read_json_file(config_path)
         if isinstance(config, Mapping):
             return config
-        else:
-            raise ValueError(
-                f"The content of {config_path} is not an object and therefore is not a valid config. Please ensure the file represent a config."
-            )
+        raise ValueError(
+            f"The content of {config_path} is not an object and therefore is not a valid config. Please ensure the file represent a config."
+        )
 
     @staticmethod
     def _read_json_file(file_path: str) -> Any:
-        with open(file_path, "r") as file:
+        with open(file_path) as file:
             contents = file.read()
 
         try:
@@ -67,11 +66,9 @@ class BaseConnector(ABC, Generic[TConfig]):
             fh.write(json.dumps(config))
 
     def spec(self, logger: logging.Logger) -> ConnectorSpecification:
-        """
-        Returns the spec for this integration. The spec is a JSON-Schema object describing the required configurations (e.g: username and password)
+        """Returns the spec for this integration. The spec is a JSON-Schema object describing the required configurations (e.g: username and password)
         required to run this integration. By default, this will be loaded from a "spec.yaml" or a "spec.json" in the package root.
         """
-
         package = self.__class__.__module__.split(".")[0]
 
         yaml_spec = load_optional_package_file(package, "spec.yaml")
@@ -98,8 +95,7 @@ class BaseConnector(ABC, Generic[TConfig]):
 
     @abstractmethod
     def check(self, logger: logging.Logger, config: TConfig) -> AirbyteConnectionStatus:
-        """
-        Tests if the input configuration can be used to successfully connect to the integration e.g: if a provided Stripe API token can be used to connect
+        """Tests if the input configuration can be used to successfully connect to the integration e.g: if a provided Stripe API token can be used to connect
         to the Stripe API.
         """
 

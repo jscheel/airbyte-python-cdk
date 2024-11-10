@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import argparse
 import importlib
@@ -11,11 +12,15 @@ import socket
 import sys
 import tempfile
 from collections import defaultdict
+from collections.abc import Iterable, Mapping
 from functools import wraps
-from typing import Any, DefaultDict, Iterable, List, Mapping, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
+from orjson import orjson
+from requests import PreparedRequest, Response, Session
+
 from airbyte_cdk.connector import TConfig
 from airbyte_cdk.exception_handler import init_uncaught_exception_handler
 from airbyte_cdk.logger import init_logger
@@ -38,8 +43,7 @@ from airbyte_cdk.utils import is_cloud_environment, message_utils
 from airbyte_cdk.utils.airbyte_secrets_utils import get_secrets, update_secrets
 from airbyte_cdk.utils.constants import ENV_REQUEST_CACHE_PATH
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
-from orjson import orjson
-from requests import PreparedRequest, Response, Session
+
 
 logger = init_logger("airbyte")
 
@@ -47,7 +51,7 @@ VALID_URL_SCHEMES = ["https"]
 CLOUD_DEPLOYMENT_MODE = "cloud"
 
 
-class AirbyteEntrypoint(object):
+class AirbyteEntrypoint:
     def __init__(self, source: Source):
         init_uncaught_exception_handler(logger)
 
@@ -59,7 +63,7 @@ class AirbyteEntrypoint(object):
         self.logger = logging.getLogger(f"airbyte.{getattr(source, 'name', '')}")
 
     @staticmethod
-    def parse_args(args: List[str]) -> argparse.Namespace:
+    def parse_args(args: list[str]) -> argparse.Namespace:
         # set up parent parsers
         parent_parser = argparse.ArgumentParser(add_help=False)
         parent_parser.add_argument(
@@ -233,7 +237,7 @@ class AirbyteEntrypoint(object):
             self.validate_connection(source_spec, config)
 
         # The Airbyte protocol dictates that counts be expressed as float/double to better protect against integer overflows
-        stream_message_counter: DefaultDict[HashableStreamDescriptor, float] = defaultdict(float)
+        stream_message_counter: defaultdict[HashableStreamDescriptor, float] = defaultdict(float)
         for message in self.source.read(self.logger, config, catalog, state):
             yield self.handle_record_counts(message, stream_message_counter)
         for message in self._emit_queued_messages(self.source):
@@ -241,7 +245,7 @@ class AirbyteEntrypoint(object):
 
     @staticmethod
     def handle_record_counts(
-        message: AirbyteMessage, stream_message_count: DefaultDict[HashableStreamDescriptor, float]
+        message: AirbyteMessage, stream_message_count: defaultdict[HashableStreamDescriptor, float]
     ) -> AirbyteMessage:
         match message.type:
             case Type.RECORD:
@@ -282,21 +286,21 @@ class AirbyteEntrypoint(object):
         return orjson.dumps(AirbyteMessageSerializer.dump(airbyte_message)).decode()  # type: ignore[no-any-return] # orjson.dumps(message).decode() always returns string
 
     @classmethod
-    def extract_state(cls, args: List[str]) -> Optional[Any]:
+    def extract_state(cls, args: list[str]) -> Any | None:
         parsed_args = cls.parse_args(args)
         if hasattr(parsed_args, "state"):
             return parsed_args.state
         return None
 
     @classmethod
-    def extract_catalog(cls, args: List[str]) -> Optional[Any]:
+    def extract_catalog(cls, args: list[str]) -> Any | None:
         parsed_args = cls.parse_args(args)
         if hasattr(parsed_args, "catalog"):
             return parsed_args.catalog
         return None
 
     @classmethod
-    def extract_config(cls, args: List[str]) -> Optional[Any]:
+    def extract_config(cls, args: list[str]) -> Any | None:
         parsed_args = cls.parse_args(args)
         if hasattr(parsed_args, "config"):
             return parsed_args.config
@@ -308,7 +312,7 @@ class AirbyteEntrypoint(object):
         return
 
 
-def launch(source: Source, args: List[str]) -> None:
+def launch(source: Source, args: list[str]) -> None:
     source_entrypoint = AirbyteEntrypoint(source)
     parsed_args = source_entrypoint.parse_args(args)
     # temporarily removes the PrintBuffer because we're seeing weird print behavior for concurrent syncs
@@ -321,9 +325,7 @@ def launch(source: Source, args: List[str]) -> None:
 
 
 def _init_internal_request_filter() -> None:
-    """
-    Wraps the Python requests library to prevent sending requests to internal URL endpoints.
-    """
+    """Wraps the Python requests library to prevent sending requests to internal URL endpoints."""
     wrapped_fn = Session.send
 
     @wraps(wrapped_fn)
@@ -361,9 +363,7 @@ def _init_internal_request_filter() -> None:
 
 
 def _is_private_url(hostname: str, port: int) -> bool:
-    """
-    Helper method that checks if any of the IP addresses associated with a hostname belong to a private network.
-    """
+    """Helper method that checks if any of the IP addresses associated with a hostname belong to a private network."""
     address_info_entries = socket.getaddrinfo(hostname, port)
     for entry in address_info_entries:
         # getaddrinfo() returns entries in the form of a 5-tuple where the IP is stored as the sockaddr. For IPv4 this

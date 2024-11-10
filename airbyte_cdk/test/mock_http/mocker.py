@@ -1,12 +1,14 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
+from __future__ import annotations
 
 import contextlib
 import functools
+from collections.abc import Callable
 from enum import Enum
 from types import TracebackType
-from typing import Callable, List, Optional, Union
 
 import requests_mock
+
 from airbyte_cdk.test.mock_http import HttpRequest, HttpRequestMatcher, HttpResponse
 
 
@@ -18,8 +20,7 @@ class SupportedHttpMethods(str, Enum):
 
 
 class HttpMocker(contextlib.ContextDecorator):
-    """
-    WARNING 1: This implementation only works if the lib used to perform HTTP requests is `requests`.
+    """WARNING 1: This implementation only works if the lib used to perform HTTP requests is `requests`.
 
     WARNING 2: Given multiple requests that are not mutually exclusive, the request will match the first one. This can happen in scenarios
     where the same request is added twice (in which case there will always be an exception because we will never match the second
@@ -36,17 +37,17 @@ class HttpMocker(contextlib.ContextDecorator):
 
     def __init__(self) -> None:
         self._mocker = requests_mock.Mocker()
-        self._matchers: List[HttpRequestMatcher] = []
+        self._matchers: list[HttpRequestMatcher] = []
 
-    def __enter__(self) -> "HttpMocker":
+    def __enter__(self) -> HttpMocker:
         self._mocker.__enter__()
         return self
 
     def __exit__(
         self,
-        exc_type: Optional[BaseException],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: BaseException | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         self._mocker.__exit__(exc_type, exc_val, exc_tb)
 
@@ -59,7 +60,7 @@ class HttpMocker(contextlib.ContextDecorator):
         self,
         method: SupportedHttpMethods,
         request: HttpRequest,
-        responses: Union[HttpResponse, List[HttpResponse]],
+        responses: HttpResponse | list[HttpResponse],
     ) -> None:
         if isinstance(responses, HttpResponse):
             responses = [responses]
@@ -82,22 +83,16 @@ class HttpMocker(contextlib.ContextDecorator):
             ],
         )
 
-    def get(self, request: HttpRequest, responses: Union[HttpResponse, List[HttpResponse]]) -> None:
+    def get(self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]) -> None:
         self._mock_request_method(SupportedHttpMethods.GET, request, responses)
 
-    def patch(
-        self, request: HttpRequest, responses: Union[HttpResponse, List[HttpResponse]]
-    ) -> None:
+    def patch(self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]) -> None:
         self._mock_request_method(SupportedHttpMethods.PATCH, request, responses)
 
-    def post(
-        self, request: HttpRequest, responses: Union[HttpResponse, List[HttpResponse]]
-    ) -> None:
+    def post(self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]) -> None:
         self._mock_request_method(SupportedHttpMethods.POST, request, responses)
 
-    def delete(
-        self, request: HttpRequest, responses: Union[HttpResponse, List[HttpResponse]]
-    ) -> None:
+    def delete(self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]) -> None:
         self._mock_request_method(SupportedHttpMethods.DELETE, request, responses)
 
     @staticmethod

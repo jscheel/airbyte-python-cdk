@@ -13,6 +13,7 @@ from airbyte_cdk.sources.types import (
     StreamState,
 )
 
+
 # Note: This package originally contained class definitions for low-code CDK types, but we promoted them into the Python CDK.
 # We've migrated connectors in the repository to reference the new location, but these assignments are used to retain backwards
 # compatibility for sources created by OSS customers or on forks. This can be removed when we start bumping major versions.

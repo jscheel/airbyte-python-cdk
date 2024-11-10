@@ -1,6 +1,8 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 from airbyte_cdk.sources.declarative.migrations.state_migration import StateMigration
@@ -13,8 +15,7 @@ def _is_already_migrated(stream_state: Mapping[str, Any]) -> bool:
 
 
 class LegacyToPerPartitionStateMigration(StateMigration):
-    """
-    Transforms the input state for per-partitioned streams from the legacy format to the low-code format.
+    """Transforms the input state for per-partitioned streams from the legacy format to the low-code format.
     The cursor field and partition ID fields are automatically extracted from the stream's DatetimebasedCursor and SubstreamPartitionRouter.
 
     Example input state:

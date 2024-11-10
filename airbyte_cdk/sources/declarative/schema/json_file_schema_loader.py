@@ -1,12 +1,14 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import json
 import pkgutil
 import sys
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Mapping, Tuple, Union
+from typing import Any
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 from airbyte_cdk.sources.declarative.schema.schema_loader import SchemaLoader
@@ -31,8 +33,7 @@ def _default_file_path() -> str:
 
 @dataclass
 class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
-    """
-    Loads the schema from a json file
+    """Loads the schema from a json file
 
     Attributes:
         file_path (Union[InterpolatedString, str]): The path to the json file describing the schema
@@ -43,7 +44,7 @@ class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
 
     config: Config
     parameters: InitVar[Mapping[str, Any]]
-    file_path: Union[InterpolatedString, str] = field(default="")
+    file_path: InterpolatedString | str = field(default="")
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
         if not self.file_path:
@@ -51,14 +52,14 @@ class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
         self.file_path = InterpolatedString.create(self.file_path, parameters=parameters)
 
     def get_json_schema(self) -> Mapping[str, Any]:
-        # todo: It is worth revisiting if we can replace file_path with just file_name if every schema is in the /schemas directory
+        # TODO: It is worth revisiting if we can replace file_path with just file_name if every schema is in the /schemas directory
         # this would require that we find a creative solution to store or retrieve source_name in here since the files are mounted there
         json_schema_path = self._get_json_filepath()
         resource, schema_path = self.extract_resource_and_schema_path(json_schema_path)
         raw_json_file = pkgutil.get_data(resource, schema_path)
 
         if not raw_json_file:
-            raise IOError(f"Cannot find file {json_schema_path}")
+            raise OSError(f"Cannot find file {json_schema_path}")
         try:
             raw_schema = json.loads(raw_json_file)
         except ValueError as err:
@@ -70,9 +71,8 @@ class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
         return self.file_path.eval(self.config)  # type: ignore # file_path is always cast to an interpolated string
 
     @staticmethod
-    def extract_resource_and_schema_path(json_schema_path: str) -> Tuple[str, str]:
-        """
-        When the connector is running on a docker container, package_data is accessible from the resource (source_<name>), so we extract
+    def extract_resource_and_schema_path(json_schema_path: str) -> tuple[str, str]:
+        """When the connector is running on a docker container, package_data is accessible from the resource (source_<name>), so we extract
         the resource from the first part of the schema path and the remaining path is used to find the schema file. This is a slight
         hack to identify the source name while we are in the airbyte_cdk module.
         :param json_schema_path: The path to the schema JSON file

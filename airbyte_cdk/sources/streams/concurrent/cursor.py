@@ -1,10 +1,12 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import functools
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Protocol, Tuple
+from collections.abc import Callable, Iterable, Mapping, MutableMapping
+from typing import Any, Protocol
 
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.message import MessageRepository
@@ -16,13 +18,12 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_sta
 )
 
 
-def _extract_value(mapping: Mapping[str, Any], path: List[str]) -> Any:
+def _extract_value(mapping: Mapping[str, Any], path: list[str]) -> Any:
     return functools.reduce(lambda a, b: a[b], path, mapping)
 
 
 class GapType(Protocol):
-    """
-    This is the representation of gaps between two cursor values. Examples:
+    """This is the representation of gaps between two cursor values. Examples:
     * if cursor values are datetimes, GapType is timedelta
     * if cursor values are integer, GapType will also be integer
     """
@@ -34,19 +35,19 @@ class CursorValueType(Protocol):
     """Protocol for annotating comparable types."""
 
     @abstractmethod
-    def __lt__(self: "CursorValueType", other: "CursorValueType") -> bool:
+    def __lt__(self: CursorValueType, other: CursorValueType) -> bool:
         pass
 
     @abstractmethod
-    def __ge__(self: "CursorValueType", other: "CursorValueType") -> bool:
+    def __ge__(self: CursorValueType, other: CursorValueType) -> bool:
         pass
 
     @abstractmethod
-    def __add__(self: "CursorValueType", other: GapType) -> "CursorValueType":
+    def __add__(self: CursorValueType, other: GapType) -> CursorValueType:
         pass
 
     @abstractmethod
-    def __sub__(self: "CursorValueType", other: GapType) -> "CursorValueType":
+    def __sub__(self: CursorValueType, other: GapType) -> CursorValueType:
         pass
 
 
@@ -68,29 +69,23 @@ class Cursor(ABC):
 
     @abstractmethod
     def observe(self, record: Record) -> None:
-        """
-        Indicate to the cursor that the record has been emitted
-        """
-        raise NotImplementedError()
+        """Indicate to the cursor that the record has been emitted"""
+        raise NotImplementedError
 
     @abstractmethod
     def close_partition(self, partition: Partition) -> None:
-        """
-        Indicate to the cursor that the partition has been successfully processed
-        """
-        raise NotImplementedError()
+        """Indicate to the cursor that the partition has been successfully processed"""
+        raise NotImplementedError
 
     @abstractmethod
     def ensure_at_least_one_state_emitted(self) -> None:
-        """
-        State messages are emitted when a partition is closed. However, the platform expects at least one state to be emitted per sync per
+        """State messages are emitted when a partition is closed. However, the platform expects at least one state to be emitted per sync per
         stream. Hence, if no partitions are generated, this method needs to be called.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
-    def generate_slices(self) -> Iterable[Tuple[Any, Any]]:
-        """
-        Default placeholder implementation of generate_slices.
+    def generate_slices(self) -> Iterable[tuple[Any, Any]]:
+        """Default placeholder implementation of generate_slices.
         Subclasses can override this method to provide actual behavior.
         """
         yield from ()
@@ -102,7 +97,7 @@ class FinalStateCursor(Cursor):
     def __init__(
         self,
         stream_name: str,
-        stream_namespace: Optional[str],
+        stream_namespace: str | None,
         message_repository: MessageRepository,
     ) -> None:
         self._stream_name = stream_name
@@ -125,10 +120,7 @@ class FinalStateCursor(Cursor):
         pass
 
     def ensure_at_least_one_state_emitted(self) -> None:
-        """
-        Used primarily for full refresh syncs that do not have a valid cursor value to emit at the end of a sync
-        """
-
+        """Used primarily for full refresh syncs that do not have a valid cursor value to emit at the end of a sync"""
         self._connector_state_manager.update_state_for_stream(
             self._stream_name, self._stream_namespace, self.state
         )
@@ -145,18 +137,18 @@ class ConcurrentCursor(Cursor):
     def __init__(
         self,
         stream_name: str,
-        stream_namespace: Optional[str],
+        stream_namespace: str | None,
         stream_state: Any,
         message_repository: MessageRepository,
         connector_state_manager: ConnectorStateManager,
         connector_state_converter: AbstractStreamStateConverter,
         cursor_field: CursorField,
-        slice_boundary_fields: Optional[Tuple[str, str]],
-        start: Optional[CursorValueType],
+        slice_boundary_fields: tuple[str, str] | None,
+        start: CursorValueType | None,
         end_provider: Callable[[], CursorValueType],
-        lookback_window: Optional[GapType] = None,
-        slice_range: Optional[GapType] = None,
-        cursor_granularity: Optional[GapType] = None,
+        lookback_window: GapType | None = None,
+        slice_range: GapType | None = None,
+        cursor_granularity: GapType | None = None,
     ) -> None:
         self._stream_name = stream_name
         self._stream_namespace = stream_namespace
@@ -184,12 +176,12 @@ class ConcurrentCursor(Cursor):
         return self._cursor_field
 
     @property
-    def slice_boundary_fields(self) -> Optional[Tuple[str, str]]:
+    def slice_boundary_fields(self) -> tuple[str, str] | None:
         return self._slice_boundary_fields
 
     def _get_concurrent_state(
         self, state: MutableMapping[str, Any]
-    ) -> Tuple[CursorValueType, MutableMapping[str, Any]]:
+    ) -> tuple[CursorValueType, MutableMapping[str, Any]]:
         if self._connector_state_converter.is_state_message_compatible(state):
             return (
                 self._start or self._connector_state_converter.zero_value,
@@ -293,15 +285,13 @@ class ConcurrentCursor(Cursor):
             ) from exception
 
     def ensure_at_least_one_state_emitted(self) -> None:
-        """
-        The platform expect to have at least one state message on successful syncs. Hence, whatever happens, we expect this method to be
+        """The platform expect to have at least one state message on successful syncs. Hence, whatever happens, we expect this method to be
         called.
         """
         self._emit_state_message()
 
-    def generate_slices(self) -> Iterable[Tuple[CursorValueType, CursorValueType]]:
-        """
-        Generating slices based on a few parameters:
+    def generate_slices(self) -> Iterable[tuple[CursorValueType, CursorValueType]]:
+        """Generating slices based on a few parameters:
         * lookback_window: Buffer to remove from END_KEY of the highest slice
         * slice_range: Max difference between two slices. If the difference between two slices is greater, multiple slices will be created
         * start: `_split_per_slice_range` will clip any value to `self._start which means that:
@@ -368,7 +358,7 @@ class ConcurrentCursor(Cursor):
 
     def _split_per_slice_range(
         self, lower: CursorValueType, upper: CursorValueType, upper_is_end: bool
-    ) -> Iterable[Tuple[CursorValueType, CursorValueType]]:
+    ) -> Iterable[tuple[CursorValueType, CursorValueType]]:
         if lower >= upper:
             return
 
@@ -400,8 +390,7 @@ class ConcurrentCursor(Cursor):
                     stop_processing = True
 
     def _evaluate_upper_safely(self, lower: CursorValueType, step: GapType) -> CursorValueType:
-        """
-        Given that we set the default step at datetime.timedelta.max, we will generate an OverflowError when evaluating the next start_date
+        """Given that we set the default step at datetime.timedelta.max, we will generate an OverflowError when evaluating the next start_date
         This method assumes that users would never enter a step that would generate an overflow. Given that would be the case, the code
         would have broken anyway.
         """

@@ -1,12 +1,14 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterable, Iterator, Mapping
 from copy import deepcopy
 from json import JSONDecodeError
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Union
+from typing import Any
 
 from airbyte_cdk.connector_builder.models import (
     AuxiliaryRequest,
@@ -46,8 +48,8 @@ class MessageGrouper:
         self._max_record_limit = max_record_limit
 
     def _pk_to_nested_and_composite_field(
-        self, field: Optional[Union[str, List[str], List[List[str]]]]
-    ) -> List[List[str]]:
+        self, field: str | list[str] | list[list[str]] | None
+    ) -> list[list[str]]:
         if not field:
             return [[]]
 
@@ -61,8 +63,8 @@ class MessageGrouper:
         return field  # type: ignore  # the type of field is expected to be List[List[str]] here
 
     def _cursor_field_to_nested_and_composite_field(
-        self, field: Union[str, List[str]]
-    ) -> List[List[str]]:
+        self, field: str | list[str]
+    ) -> list[list[str]]:
         if not field:
             return [[]]
 
@@ -80,8 +82,8 @@ class MessageGrouper:
         source: DeclarativeSource,
         config: Mapping[str, Any],
         configured_catalog: ConfiguredAirbyteCatalog,
-        state: List[AirbyteStateMessage],
-        record_limit: Optional[int] = None,
+        state: list[AirbyteStateMessage],
+        record_limit: int | None = None,
     ) -> StreamRead:
         if record_limit is not None and not (1 <= record_limit <= self._max_record_limit):
             raise ValueError(
@@ -113,20 +115,16 @@ class MessageGrouper:
         ):
             if isinstance(message_group, AirbyteLogMessage):
                 log_messages.append(
-                    LogMessage(
-                        **{"message": message_group.message, "level": message_group.level.value}
-                    )
+                    LogMessage(message=message_group.message, level=message_group.level.value)
                 )
             elif isinstance(message_group, AirbyteTraceMessage):
                 if message_group.type == TraceType.ERROR:
                     log_messages.append(
                         LogMessage(
-                            **{
-                                "message": message_group.error.message,
-                                "level": "ERROR",
-                                "internal_message": message_group.error.internal_message,
-                                "stacktrace": message_group.error.stack_trace,
-                            }
+                            message=message_group.error.message,
+                            level="ERROR",
+                            internal_message=message_group.error.internal_message,
+                            stacktrace=message_group.error.stack_trace,
                         )
                     )
             elif isinstance(message_group, AirbyteControlMessage):
@@ -170,16 +168,13 @@ class MessageGrouper:
         datetime_format_inferrer: DatetimeFormatInferrer,
         limit: int,
     ) -> Iterable[
-        Union[
-            StreamReadPages,
-            AirbyteControlMessage,
-            AirbyteLogMessage,
-            AirbyteTraceMessage,
-            AuxiliaryRequest,
-        ]
+        StreamReadPages
+        | AirbyteControlMessage
+        | AirbyteLogMessage
+        | AirbyteTraceMessage
+        | AuxiliaryRequest
     ]:
-        """
-        Message groups are partitioned according to when request log messages are received. Subsequent response log messages
+        """Message groups are partitioned according to when request log messages are received. Subsequent response log messages
         and record messages belong to the prior request log message and when we encounter another request, append the latest
         message group, until <limit> records have been read.
 
@@ -195,12 +190,12 @@ class MessageGrouper:
         """
         records_count = 0
         at_least_one_page_in_group = False
-        current_page_records: List[Mapping[str, Any]] = []
-        current_slice_descriptor: Optional[Dict[str, Any]] = None
-        current_slice_pages: List[StreamReadPages] = []
-        current_page_request: Optional[HttpRequest] = None
-        current_page_response: Optional[HttpResponse] = None
-        latest_state_message: Optional[Dict[str, Any]] = None
+        current_page_records: list[Mapping[str, Any]] = []
+        current_slice_descriptor: dict[str, Any] | None = None
+        current_slice_pages: list[StreamReadPages] = []
+        current_page_request: HttpRequest | None = None
+        current_page_response: HttpResponse | None = None
+        latest_state_message: dict[str, Any] | None = None
 
         while records_count < limit and (message := next(messages, None)):
             json_object = self._parse_json(message.log) if message.type == MessageType.LOG else None
@@ -208,7 +203,7 @@ class MessageGrouper:
                 raise ValueError(
                     f"Expected log message to be a dict, got {json_object} of type {type(json_object)}"
                 )
-            json_message: Optional[Dict[str, JsonType]] = json_object
+            json_message: dict[str, JsonType] | None = json_object
             if self._need_to_close_page(at_least_one_page_in_group, message, json_message):
                 self._close_page(
                     current_page_request,
@@ -285,25 +280,24 @@ class MessageGrouper:
                 yield message.control
             elif message.type == MessageType.STATE:
                 latest_state_message = message.state  # type: ignore[assignment]
-        else:
-            if current_page_request or current_page_response or current_page_records:
-                self._close_page(
-                    current_page_request,
-                    current_page_response,
-                    current_slice_pages,
-                    current_page_records,
-                )
-                yield StreamReadSlices(
-                    pages=current_slice_pages,
-                    slice_descriptor=current_slice_descriptor,
-                    state=[latest_state_message] if latest_state_message else [],
-                )
+        if current_page_request or current_page_response or current_page_records:
+            self._close_page(
+                current_page_request,
+                current_page_response,
+                current_slice_pages,
+                current_page_records,
+            )
+            yield StreamReadSlices(
+                pages=current_slice_pages,
+                slice_descriptor=current_slice_descriptor,
+                state=[latest_state_message] if latest_state_message else [],
+            )
 
     @staticmethod
     def _need_to_close_page(
         at_least_one_page_in_group: bool,
         message: AirbyteMessage,
-        json_message: Optional[Dict[str, Any]],
+        json_message: dict[str, Any] | None,
     ) -> bool:
         return (
             at_least_one_page_in_group
@@ -315,22 +309,20 @@ class MessageGrouper:
         )
 
     @staticmethod
-    def _is_page_http_request(json_message: Optional[Dict[str, Any]]) -> bool:
+    def _is_page_http_request(json_message: dict[str, Any] | None) -> bool:
         if not json_message:
             return False
-        else:
-            return MessageGrouper._is_http_log(
-                json_message
-            ) and not MessageGrouper._is_auxiliary_http_request(json_message)
+        return MessageGrouper._is_http_log(
+            json_message
+        ) and not MessageGrouper._is_auxiliary_http_request(json_message)
 
     @staticmethod
-    def _is_http_log(message: Dict[str, JsonType]) -> bool:
+    def _is_http_log(message: dict[str, JsonType]) -> bool:
         return bool(message.get("http", False))
 
     @staticmethod
-    def _is_auxiliary_http_request(message: Optional[Dict[str, Any]]) -> bool:
-        """
-        A auxiliary request is a request that is performed and will not directly lead to record for the specific stream it is being queried.
+    def _is_auxiliary_http_request(message: dict[str, Any] | None) -> bool:
+        """A auxiliary request is a request that is performed and will not directly lead to record for the specific stream it is being queried.
         A couple of examples are:
         * OAuth authentication
         * Substream slice generation
@@ -343,14 +335,12 @@ class MessageGrouper:
 
     @staticmethod
     def _close_page(
-        current_page_request: Optional[HttpRequest],
-        current_page_response: Optional[HttpResponse],
-        current_slice_pages: List[StreamReadPages],
-        current_page_records: List[Mapping[str, Any]],
+        current_page_request: HttpRequest | None,
+        current_page_response: HttpResponse | None,
+        current_slice_pages: list[StreamReadPages],
+        current_page_records: list[Mapping[str, Any]],
     ) -> None:
-        """
-        Close a page when parsing message groups
-        """
+        """Close a page when parsing message groups"""
         current_slice_pages.append(
             StreamReadPages(
                 request=current_page_request,
@@ -365,7 +355,7 @@ class MessageGrouper:
         source: DeclarativeSource,
         config: Mapping[str, Any],
         configured_catalog: ConfiguredAirbyteCatalog,
-        state: List[AirbyteStateMessage],
+        state: list[AirbyteStateMessage],
     ) -> Iterator[AirbyteMessage]:
         # the generator can raise an exception
         # iterate over the generated messages. if next raise an exception, catch it and yield it as an AirbyteLogMessage
@@ -403,7 +393,7 @@ class MessageGrouper:
             return None
 
     @staticmethod
-    def _create_request_from_log_message(json_http_message: Dict[str, Any]) -> HttpRequest:
+    def _create_request_from_log_message(json_http_message: dict[str, Any]) -> HttpRequest:
         url = json_http_message.get("url", {}).get("full", "")
         request = json_http_message.get("http", {}).get("request", {})
         return HttpRequest(
@@ -414,14 +404,14 @@ class MessageGrouper:
         )
 
     @staticmethod
-    def _create_response_from_log_message(json_http_message: Dict[str, Any]) -> HttpResponse:
+    def _create_response_from_log_message(json_http_message: dict[str, Any]) -> HttpResponse:
         response = json_http_message.get("http", {}).get("response", {})
         body = response.get("body", {}).get("content", "")
         return HttpResponse(
             status=response.get("status_code"), body=body, headers=response.get("headers")
         )
 
-    def _has_reached_limit(self, slices: List[StreamReadSlices]) -> bool:
+    def _has_reached_limit(self, slices: list[StreamReadSlices]) -> bool:
         if len(slices) >= self._max_slices:
             return True
 
@@ -436,13 +426,13 @@ class MessageGrouper:
                     return True
         return False
 
-    def _parse_slice_description(self, log_message: str) -> Dict[str, Any]:
+    def _parse_slice_description(self, log_message: str) -> dict[str, Any]:
         return json.loads(log_message.replace(SliceLogger.SLICE_LOG_PREFIX, "", 1))  # type: ignore
 
     @staticmethod
-    def _clean_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    def _clean_config(config: dict[str, Any]) -> dict[str, Any]:
         cleaned_config = deepcopy(config)
-        for key in config.keys():
+        for key in config:
             if key.startswith("__"):
                 del cleaned_config[key]
         return cleaned_config

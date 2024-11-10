@@ -1,11 +1,13 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import logging
+from collections.abc import Iterable, MutableMapping
 from datetime import datetime, timedelta
 from threading import RLock
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, Type
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
@@ -20,6 +22,7 @@ from airbyte_cdk.sources.message.repository import MessageRepository
 from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
+
 
 if TYPE_CHECKING:
     from airbyte_cdk.sources.file_based.stream.concurrent.adapters import FileBasedStreamPartition
@@ -41,7 +44,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
         self,
         stream_config: FileBasedStreamConfig,
         stream_name: str,
-        stream_namespace: Optional[str],
+        stream_namespace: str | None,
         stream_state: MutableMapping[str, Any],
         message_repository: MessageRepository,
         connector_state_manager: ConnectorStateManager,
@@ -60,7 +63,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
         )
         self._state_lock = RLock()
         self._pending_files_lock = RLock()
-        self._pending_files: Optional[Dict[str, RemoteFile]] = None
+        self._pending_files: dict[str, RemoteFile] | None = None
         self._file_to_datetime_history = stream_state.get("history", {}) if stream_state else {}
         self._prev_cursor_value = self._compute_prev_sync_cursor(stream_state)
         self._sync_start = self._compute_start_time()
@@ -79,7 +82,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                     "Expected pending partitions to be set but it was not. This is unexpected. Please contact Support."
                 )
 
-    def set_pending_partitions(self, partitions: List["FileBasedStreamPartition"]) -> None:
+    def set_pending_partitions(self, partitions: list[FileBasedStreamPartition]) -> None:
         with self._pending_files_lock:
             self._pending_files = {}
             for partition in partitions:
@@ -93,7 +96,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                         )
                 self._pending_files.update({file.uri: file})
 
-    def _compute_prev_sync_cursor(self, value: Optional[StreamState]) -> Tuple[datetime, str]:
+    def _compute_prev_sync_cursor(self, value: StreamState | None) -> tuple[datetime, str]:
         if not value:
             return self.zero_value, ""
         prev_cursor_str = value.get(self._cursor_field.cursor_field_key) or self.zero_cursor_value
@@ -112,12 +115,12 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
         cursor_dt, cursor_uri = cursor_str.split("_", 1)
         return datetime.strptime(cursor_dt, self.DATE_TIME_FORMAT), cursor_uri
 
-    def _get_cursor_key_from_file(self, file: Optional[RemoteFile]) -> str:
+    def _get_cursor_key_from_file(self, file: RemoteFile | None) -> str:
         if file:
             return f"{datetime.strftime(file.last_modified, self.DATE_TIME_FORMAT)}_{file.uri}"
         return self.zero_cursor_value
 
-    def _compute_earliest_file_in_history(self) -> Optional[RemoteFile]:
+    def _compute_earliest_file_in_history(self) -> RemoteFile | None:
         with self._state_lock:
             if self._file_to_datetime_history:
                 filename, last_modified = min(
@@ -127,12 +130,10 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                     uri=filename,
                     last_modified=datetime.strptime(last_modified, self.DATE_TIME_FORMAT),
                 )
-            else:
-                return None
+            return None
 
     def add_file(self, file: RemoteFile) -> None:
-        """
-        Add a file to the cursor. This method is called when a file is processed by the stream.
+        """Add a file to the cursor. This method is called when a file is processed by the stream.
         :param file: The file to add
         """
         if self._pending_files is None:
@@ -189,20 +190,18 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                     # To avoid missing files, we only increment the cursor up to the oldest pending file, because we know
                     # that all older files have been synced.
                     return self._get_cursor_key_from_file(self._compute_earliest_pending_file())
-                elif self._file_to_datetime_history:
+                if self._file_to_datetime_history:
                     # If all partitions have been synced, we know that the sync is up-to-date and so can advance
                     # the cursor to the newest file in history.
                     return self._get_cursor_key_from_file(self._compute_latest_file_in_history())
-                else:
-                    return f"{self.zero_value.strftime(self.DATE_TIME_FORMAT)}_"
+                return f"{self.zero_value.strftime(self.DATE_TIME_FORMAT)}_"
 
-    def _compute_earliest_pending_file(self) -> Optional[RemoteFile]:
+    def _compute_earliest_pending_file(self) -> RemoteFile | None:
         if self._pending_files:
             return min(self._pending_files.values(), key=lambda x: x.last_modified)
-        else:
-            return None
+        return None
 
-    def _compute_latest_file_in_history(self) -> Optional[RemoteFile]:
+    def _compute_latest_file_in_history(self) -> RemoteFile | None:
         with self._state_lock:
             if self._file_to_datetime_history:
                 filename, last_modified = max(
@@ -212,14 +211,12 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                     uri=filename,
                     last_modified=datetime.strptime(last_modified, self.DATE_TIME_FORMAT),
                 )
-            else:
-                return None
+            return None
 
     def get_files_to_sync(
         self, all_files: Iterable[RemoteFile], logger: logging.Logger
     ) -> Iterable[RemoteFile]:
-        """
-        Given the list of files in the source, return the files that should be synced.
+        """Given the list of files in the source, return the files that should be synced.
         :param all_files: All files in the source
         :param logger:
         :return: The files that should be synced
@@ -253,28 +250,23 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                         )
                     )
                     return False
-                else:
-                    return file.last_modified > updated_at_from_history
+                return file.last_modified > updated_at_from_history
 
             prev_cursor_timestamp, prev_cursor_uri = self._prev_cursor_value
             if self._is_history_full():
                 if file.last_modified > prev_cursor_timestamp:
                     # If the history is partial and the file's datetime is strictly greater than the cursor, we should sync it
                     return True
-                elif file.last_modified == prev_cursor_timestamp:
+                if file.last_modified == prev_cursor_timestamp:
                     # If the history is partial and the file's datetime is equal to the earliest file in the history,
                     # we should sync it if its uri is greater than or equal to the cursor value.
                     return file.uri > prev_cursor_uri
-                else:
-                    return file.last_modified >= self._sync_start
-            else:
-                # The file is not in the history and the history is complete. We know we need to sync the file
-                return True
+                return file.last_modified >= self._sync_start
+            # The file is not in the history and the history is complete. We know we need to sync the file
+            return True
 
     def _is_history_full(self) -> bool:
-        """
-        Returns true if the state's history is full, meaning new entries will start to replace old entries.
-        """
+        """Returns true if the state's history is full, meaning new entries will start to replace old entries."""
         with self._state_lock:
             if self._file_to_datetime_history is None:
                 raise RuntimeError(
@@ -285,21 +277,18 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
     def _compute_start_time(self) -> datetime:
         if not self._file_to_datetime_history:
             return datetime.min
-        else:
-            earliest = min(self._file_to_datetime_history.values())
-            earliest_dt = datetime.strptime(earliest, self.DATE_TIME_FORMAT)
-            if self._is_history_full():
-                time_window = datetime.now() - self._time_window_if_history_is_full
-                earliest_dt = min(earliest_dt, time_window)
-            return earliest_dt
+        earliest = min(self._file_to_datetime_history.values())
+        earliest_dt = datetime.strptime(earliest, self.DATE_TIME_FORMAT)
+        if self._is_history_full():
+            time_window = datetime.now() - self._time_window_if_history_is_full
+            earliest_dt = min(earliest_dt, time_window)
+        return earliest_dt
 
     def get_start_time(self) -> datetime:
         return self._sync_start
 
     def get_state(self) -> MutableMapping[str, Any]:
-        """
-        Get the state of the cursor.
-        """
+        """Get the state of the cursor."""
         with self._state_lock:
             return {
                 "history": self._file_to_datetime_history,

@@ -8,22 +8,17 @@ import datetime
 import importlib
 import inspect
 import re
+from collections.abc import Callable, Mapping, MutableMapping
 from functools import partial
 from typing import (
     Any,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
     get_args,
     get_origin,
     get_type_hints,
 )
+
+from isodate import parse_duration
+from pydantic.v1 import BaseModel
 
 from airbyte_cdk.models import FailureType, Level
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
@@ -360,8 +355,7 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_sta
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction
 from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
-from isodate import parse_duration
-from pydantic.v1 import BaseModel
+
 
 ComponentDefinition = Mapping[str, Any]
 
@@ -371,12 +365,12 @@ class ModelToComponentFactory:
 
     def __init__(
         self,
-        limit_pages_fetched_per_slice: Optional[int] = None,
-        limit_slices_fetched: Optional[int] = None,
+        limit_pages_fetched_per_slice: int | None = None,
+        limit_slices_fetched: int | None = None,
         emit_connector_builder_messages: bool = False,
         disable_retries: bool = False,
         disable_cache: bool = False,
-        message_repository: Optional[MessageRepository] = None,
+        message_repository: MessageRepository | None = None,
     ):
         self._init_mappings()
         self._limit_pages_fetched_per_slice = limit_pages_fetched_per_slice
@@ -389,7 +383,7 @@ class ModelToComponentFactory:
         )
 
     def _init_mappings(self) -> None:
-        self.PYDANTIC_MODEL_TO_CONSTRUCTOR: Mapping[Type[BaseModel], Callable[..., Any]] = {
+        self.PYDANTIC_MODEL_TO_CONSTRUCTOR: Mapping[type[BaseModel], Callable[..., Any]] = {
             AddedFieldDefinitionModel: self.create_added_field_definition,
             AddFieldsModel: self.create_add_fields,
             ApiKeyAuthenticatorModel: self.create_api_key_authenticator,
@@ -459,13 +453,12 @@ class ModelToComponentFactory:
 
     def create_component(
         self,
-        model_type: Type[BaseModel],
+        model_type: type[BaseModel],
         component_definition: ComponentDefinition,
         config: Config,
         **kwargs: Any,
     ) -> Any:
-        """
-        Takes a given Pydantic model type and Mapping representing a component definition and creates a declarative component and
+        """Takes a given Pydantic model type and Mapping representing a component definition and creates a declarative component and
         subcomponents which will be used at runtime. This is done by first parsing the mapping into a Pydantic model and then creating
         creating declarative components from that model.
 
@@ -474,7 +467,6 @@ class ModelToComponentFactory:
         :param config: The connector config that is provided by the customer
         :return: The declarative component to be used at runtime
         """
-
         component_type = component_definition.get("type")
         if component_definition.get("type") != model_type.__name__:
             raise ValueError(
@@ -535,7 +527,7 @@ class ModelToComponentFactory:
         return KeysToLowerTransformation()
 
     @staticmethod
-    def _json_schema_type_name_to_type(value_type: Optional[ValueType]) -> Optional[Type[Any]]:
+    def _json_schema_type_name_to_type(value_type: ValueType | None) -> type[Any] | None:
         if not value_type:
             return None
         names_to_types = {
@@ -550,7 +542,7 @@ class ModelToComponentFactory:
     def create_api_key_authenticator(
         model: ApiKeyAuthenticatorModel,
         config: Config,
-        token_provider: Optional[TokenProvider] = None,
+        token_provider: TokenProvider | None = None,
         **kwargs: Any,
     ) -> ApiKeyAuthenticator:
         if model.inject_into is None and model.header is None:
@@ -628,7 +620,7 @@ class ModelToComponentFactory:
 
     def create_session_token_authenticator(
         self, model: SessionTokenAuthenticatorModel, config: Config, name: str, **kwargs: Any
-    ) -> Union[ApiKeyAuthenticator, BearerAuthenticator]:
+    ) -> ApiKeyAuthenticator | BearerAuthenticator:
         decoder = (
             self._create_component_from_model(model=model.decoder, config=config)
             if model.decoder
@@ -656,16 +648,15 @@ class ModelToComponentFactory:
                 config,
                 token_provider=token_provider,  # type: ignore # $parameters defaults to None
             )
-        else:
-            return ModelToComponentFactory.create_api_key_authenticator(
-                ApiKeyAuthenticatorModel(
-                    type="ApiKeyAuthenticator",
-                    api_token="",
-                    inject_into=model.request_authentication.inject_into,
-                ),  # type: ignore # $parameters and headers default to None
-                config=config,
-                token_provider=token_provider,
-            )
+        return ModelToComponentFactory.create_api_key_authenticator(
+            ApiKeyAuthenticatorModel(
+                type="ApiKeyAuthenticator",
+                api_token="",
+                inject_into=model.request_authentication.inject_into,
+            ),  # type: ignore # $parameters and headers default to None
+            config=config,
+            token_provider=token_provider,
+        )
 
     @staticmethod
     def create_basic_http_authenticator(
@@ -682,7 +673,7 @@ class ModelToComponentFactory:
     def create_bearer_authenticator(
         model: BearerAuthenticatorModel,
         config: Config,
-        token_provider: Optional[TokenProvider] = None,
+        token_provider: TokenProvider | None = None,
         **kwargs: Any,
     ) -> BearerAuthenticator:
         if token_provider is not None and model.api_token != "":
@@ -732,14 +723,14 @@ class ModelToComponentFactory:
     def create_concurrent_cursor_from_datetime_based_cursor(
         self,
         state_manager: ConnectorStateManager,
-        model_type: Type[BaseModel],
+        model_type: type[BaseModel],
         component_definition: ComponentDefinition,
         stream_name: str,
-        stream_namespace: Optional[str],
+        stream_namespace: str | None,
         config: Config,
         stream_state: MutableMapping[str, Any],
         **kwargs: Any,
-    ) -> Tuple[ConcurrentCursor, DateTimeStreamStateConverter]:
+    ) -> tuple[ConcurrentCursor, DateTimeStreamStateConverter]:
         component_type = component_definition.get("type")
         if component_definition.get("type") != model_type.__name__:
             raise ValueError(
@@ -804,7 +795,7 @@ class ModelToComponentFactory:
             # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
         )
 
-        start_date_runtime_value: Union[InterpolatedString, str, MinMaxDatetime]
+        start_date_runtime_value: InterpolatedString | str | MinMaxDatetime
         if isinstance(datetime_based_cursor_model.start_datetime, MinMaxDatetimeModel):
             start_date_runtime_value = self.create_min_max_datetime(
                 model=datetime_based_cursor_model.start_datetime, config=config
@@ -812,7 +803,7 @@ class ModelToComponentFactory:
         else:
             start_date_runtime_value = datetime_based_cursor_model.start_datetime
 
-        end_date_runtime_value: Optional[Union[InterpolatedString, str, MinMaxDatetime]]
+        end_date_runtime_value: InterpolatedString | str | MinMaxDatetime | None
         if isinstance(datetime_based_cursor_model.end_datetime, MinMaxDatetimeModel):
             end_date_runtime_value = self.create_min_max_datetime(
                 model=datetime_based_cursor_model.end_datetime, config=config
@@ -925,14 +916,12 @@ class ModelToComponentFactory:
         )
 
     def create_custom_component(self, model: Any, config: Config, **kwargs: Any) -> Any:
-        """
-        Generically creates a custom component based on the model type and a class_name reference to the custom Python class being
+        """Generically creates a custom component based on the model type and a class_name reference to the custom Python class being
         instantiated. Only the model's additional properties that match the custom class definition are passed to the constructor
         :param model: The Pydantic model of the custom component being created
         :param config: The custom defined connector config
         :return: The declarative component built from the Pydantic model to be used at runtime
         """
-
         custom_component_class = self._get_class_from_fully_qualified_class_name(model.class_name)
         component_fields = get_type_hints(custom_component_class)
         model_args = model.dict()
@@ -996,7 +985,7 @@ class ModelToComponentFactory:
             raise ValueError(f"Could not load class {full_qualified_class_name}.")
 
     @staticmethod
-    def _derive_component_type_from_type_hints(field_type: Any) -> Optional[str]:
+    def _derive_component_type_from_type_hints(field_type: Any) -> str | None:
         interface = field_type
         while True:
             origin = get_origin(interface)
@@ -1013,18 +1002,17 @@ class ModelToComponentFactory:
         return None
 
     @staticmethod
-    def is_builtin_type(cls: Optional[Type[Any]]) -> bool:
+    def is_builtin_type(cls: type[Any] | None) -> bool:
         if not cls:
             return False
         return cls.__module__ == "builtins"
 
     @staticmethod
-    def _extract_missing_parameters(error: TypeError) -> List[str]:
+    def _extract_missing_parameters(error: TypeError) -> list[str]:
         parameter_search = re.search(r"keyword-only.*:\s(.*)", str(error))
         if parameter_search:
             return re.findall(r"\'(.+?)\'", parameter_search.group(1))
-        else:
-            return []
+        return []
 
     def _create_nested_component(
         self, model: Any, model_field: str, model_value: Any, config: Config
@@ -1061,10 +1049,8 @@ class ModelToComponentFactory:
                     raise ValueError(
                         f"Error creating component '{type_name}' with parent custom component {model.class_name}: Please provide "
                         + ", ".join(
-                            (
-                                f"{type_name}.$parameters.{parameter}"
-                                for parameter in missing_parameters
-                            )
+                            f"{type_name}.$parameters.{parameter}"
+                            for parameter in missing_parameters
                         )
                     )
                 raise TypeError(
@@ -1082,12 +1068,12 @@ class ModelToComponentFactory:
     def create_datetime_based_cursor(
         self, model: DatetimeBasedCursorModel, config: Config, **kwargs: Any
     ) -> DatetimeBasedCursor:
-        start_datetime: Union[str, MinMaxDatetime] = (
+        start_datetime: str | MinMaxDatetime = (
             model.start_datetime
             if isinstance(model.start_datetime, str)
             else self.create_min_max_datetime(model.start_datetime, config)
         )
-        end_datetime: Union[str, MinMaxDatetime, None] = None
+        end_datetime: str | MinMaxDatetime | None = None
         if model.is_data_feed and model.end_datetime:
             raise ValueError("Data feed does not support end_datetime")
         if model.is_data_feed and model.is_client_side_incremental:
@@ -1122,9 +1108,7 @@ class ModelToComponentFactory:
 
         return DatetimeBasedCursor(
             cursor_field=model.cursor_field,
-            cursor_datetime_formats=model.cursor_datetime_formats
-            if model.cursor_datetime_formats
-            else [],
+            cursor_datetime_formats=model.cursor_datetime_formats or [],
             cursor_granularity=model.cursor_granularity,
             datetime_format=model.datetime_format,
             end_datetime=end_datetime,
@@ -1267,7 +1251,7 @@ class ModelToComponentFactory:
 
     def _merge_stream_slicers(
         self, model: DeclarativeStreamModel, config: Config
-    ) -> Optional[StreamSlicer]:
+    ) -> StreamSlicer | None:
         stream_slicer = None
         if (
             hasattr(model.retriever, "partition_router")
@@ -1301,26 +1285,25 @@ class ModelToComponentFactory:
                 return GlobalSubstreamCursor(
                     stream_cursor=cursor_component, partition_router=stream_slicer
                 )
-            else:
-                cursor_component = self._create_component_from_model(
-                    model=incremental_sync_model, config=config
-                )
-                return PerPartitionWithGlobalCursor(
-                    cursor_factory=CursorFactory(
-                        lambda: self._create_component_from_model(
-                            model=incremental_sync_model, config=config
-                        ),
+            cursor_component = self._create_component_from_model(
+                model=incremental_sync_model, config=config
+            )
+            return PerPartitionWithGlobalCursor(
+                cursor_factory=CursorFactory(
+                    lambda: self._create_component_from_model(
+                        model=incremental_sync_model, config=config
                     ),
-                    partition_router=stream_slicer,
-                    stream_cursor=cursor_component,
-                )
-        elif model.incremental_sync:
+                ),
+                partition_router=stream_slicer,
+                stream_cursor=cursor_component,
+            )
+        if model.incremental_sync:
             return (
                 self._create_component_from_model(model=model.incremental_sync, config=config)
                 if model.incremental_sync
                 else None
             )
-        elif stream_slicer:
+        if stream_slicer:
             # For the Full-Refresh sub-streams, we use the nested `ChildPartitionResumableFullRefreshCursor`
             return PerPartitionCursor(
                 cursor_factory=CursorFactory(
@@ -1328,15 +1311,14 @@ class ModelToComponentFactory:
                 ),
                 partition_router=stream_slicer,
             )
-        elif (
+        if (
             hasattr(model.retriever, "paginator")
             and model.retriever.paginator
             and not stream_slicer
         ):
             # For the regular Full-Refresh streams, we use the high level `ResumableFullRefreshCursor`
             return ResumableFullRefreshCursor(parameters={})
-        else:
-            return None
+        return None
 
     def create_default_error_handler(
         self, model: DefaultErrorHandlerModel, config: Config, **kwargs: Any
@@ -1372,9 +1354,9 @@ class ModelToComponentFactory:
         config: Config,
         *,
         url_base: str,
-        decoder: Optional[Decoder] = None,
-        cursor_used_for_stop_condition: Optional[DeclarativeCursor] = None,
-    ) -> Union[DefaultPaginator, PaginatorTestReadDecorator]:
+        decoder: Decoder | None = None,
+        cursor_used_for_stop_condition: DeclarativeCursor | None = None,
+    ) -> DefaultPaginator | PaginatorTestReadDecorator:
         if decoder:
             if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
                 raise ValueError(
@@ -1417,14 +1399,14 @@ class ModelToComponentFactory:
         self,
         model: DpathExtractorModel,
         config: Config,
-        decoder: Optional[Decoder] = None,
+        decoder: Decoder | None = None,
         **kwargs: Any,
     ) -> DpathExtractor:
         if decoder:
             decoder_to_use = decoder
         else:
             decoder_to_use = JsonDecoder(parameters={})
-        model_field_path: List[Union[InterpolatedString, str]] = [x for x in model.field_path]
+        model_field_path: list[InterpolatedString | str] = [x for x in model.field_path]
         return DpathExtractor(
             decoder=decoder_to_use,
             field_path=model_field_path,
@@ -1761,9 +1743,9 @@ class ModelToComponentFactory:
         model: RecordSelectorModel,
         config: Config,
         *,
-        transformations: List[RecordTransformation],
-        decoder: Optional[Decoder] = None,
-        client_side_incremental_sync: Optional[Dict[str, Any]] = None,
+        transformations: list[RecordTransformation],
+        decoder: Decoder | None = None,
+        client_side_incremental_sync: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> RecordSelector:
         assert model.schema_normalization is not None  # for mypy
@@ -1843,12 +1825,12 @@ class ModelToComponentFactory:
         config: Config,
         *,
         name: str,
-        primary_key: Optional[Union[str, List[str], List[List[str]]]],
-        stream_slicer: Optional[StreamSlicer],
-        request_options_provider: Optional[RequestOptionsProvider] = None,
+        primary_key: str | list[str] | list[list[str]] | None,
+        stream_slicer: StreamSlicer | None,
+        request_options_provider: RequestOptionsProvider | None = None,
         stop_condition_on_cursor: bool = False,
-        client_side_incremental_sync: Optional[Dict[str, Any]] = None,
-        transformations: List[RecordTransformation],
+        client_side_incremental_sync: dict[str, Any] | None = None,
+        transformations: list[RecordTransformation],
     ) -> SimpleRetriever:
         decoder = (
             self._create_component_from_model(model=model.decoder, config=config)
@@ -1970,12 +1952,13 @@ class ModelToComponentFactory:
         config: Config,
         *,
         name: str,
-        primary_key: Optional[
-            Union[str, List[str], List[List[str]]]
-        ],  # this seems to be needed to match create_simple_retriever
-        stream_slicer: Optional[StreamSlicer],
-        client_side_incremental_sync: Optional[Dict[str, Any]] = None,
-        transformations: List[RecordTransformation],
+        primary_key: str
+        | list[str]
+        | list[list[str]]
+        | None,  # this seems to be needed to match create_simple_retriever
+        stream_slicer: StreamSlicer | None,
+        client_side_incremental_sync: dict[str, Any] | None = None,
+        transformations: list[RecordTransformation],
         **kwargs: Any,
     ) -> AsyncRetriever:
         decoder = (

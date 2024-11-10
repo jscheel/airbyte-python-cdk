@@ -1,7 +1,9 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass
-from typing import Any, Iterable, Mapping, Optional
+from typing import Any
 
 from airbyte_cdk.sources.declarative.incremental import DeclarativeCursor
 from airbyte_cdk.sources.declarative.types import Record, StreamSlice, StreamState
@@ -22,9 +24,7 @@ class ResumableFullRefreshCursor(DeclarativeCursor):
         self._cursor = stream_state
 
     def observe(self, stream_slice: StreamSlice, record: Record) -> None:
-        """
-        Resumable full refresh manages state using a page number so it does not need to update state by observing incoming records.
-        """
+        """Resumable full refresh manages state using a page number so it does not need to update state by observing incoming records."""
         pass
 
     def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
@@ -36,25 +36,21 @@ class ResumableFullRefreshCursor(DeclarativeCursor):
         self._cursor = stream_slice.cursor_slice
 
     def should_be_synced(self, record: Record) -> bool:
-        """
-        Unlike date-based cursors which filter out records outside slice boundaries, resumable full refresh records exist within pages
+        """Unlike date-based cursors which filter out records outside slice boundaries, resumable full refresh records exist within pages
         that don't have filterable bounds. We should always return them.
         """
         return True
 
     def is_greater_than_or_equal(self, first: Record, second: Record) -> bool:
-        """
-        RFR record don't have ordering to be compared between one another.
-        """
+        """RFR record don't have ordering to be compared between one another."""
         return False
 
-    def select_state(self, stream_slice: Optional[StreamSlice] = None) -> Optional[StreamState]:
+    def select_state(self, stream_slice: StreamSlice | None = None) -> StreamState | None:
         # A top-level RFR cursor only manages the state of a single partition
         return self._cursor
 
     def stream_slices(self) -> Iterable[StreamSlice]:
-        """
-        Resumable full refresh cursors only return a single slice and can't perform partitioning because iteration is done per-page
+        """Resumable full refresh cursors only return a single slice and can't perform partitioning because iteration is done per-page
         along an unbounded set.
         """
         yield from [StreamSlice(cursor_slice=self._cursor, partition={})]
@@ -65,44 +61,43 @@ class ResumableFullRefreshCursor(DeclarativeCursor):
     def get_request_params(
         self,
         *,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         return {}
 
     def get_request_headers(
         self,
         *,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         return {}
 
     def get_request_body_data(
         self,
         *,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         return {}
 
     def get_request_body_json(
         self,
         *,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         return {}
 
 
 @dataclass
 class ChildPartitionResumableFullRefreshCursor(ResumableFullRefreshCursor):
-    """
-    The Sub-stream Resumable Cursor for Full-Refresh substreams.
+    """The Sub-stream Resumable Cursor for Full-Refresh substreams.
     Follows the parent type `ResumableFullRefreshCursor` with a small override,
     to provide the ability to close the substream's slice once it has finished processing.
 
@@ -110,8 +105,7 @@ class ChildPartitionResumableFullRefreshCursor(ResumableFullRefreshCursor):
     """
 
     def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
-        """
-        Once the current slice has finished syncing:
+        """Once the current slice has finished syncing:
          - paginator returns None
          - no more slices to process
 

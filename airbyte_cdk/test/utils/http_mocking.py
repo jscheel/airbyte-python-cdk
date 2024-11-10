@@ -1,7 +1,9 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+from __future__ import annotations
 
 import re
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from requests_mock import Mocker
 

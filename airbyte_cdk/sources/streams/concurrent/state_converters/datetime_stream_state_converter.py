@@ -1,12 +1,15 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 from abc import abstractmethod
+from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, List, MutableMapping, Optional, Tuple
+from typing import Any
 
 import pendulum
+from pendulum.datetime import DateTime
 
 # FIXME We would eventually like the Concurrent package do be agnostic of the declarative package. However, this is a breaking change and
 #  the goal in the short term is only to fix the issue we are seeing for source-declarative-manifest.
@@ -16,7 +19,6 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_sta
     AbstractStreamStateConverter,
     ConcurrencyCompatibleStateType,
 )
-from pendulum.datetime import DateTime
 
 
 class DateTimeStreamStateConverter(AbstractStreamStateConverter):
@@ -48,9 +50,7 @@ class DateTimeStreamStateConverter(AbstractStreamStateConverter):
     def output_format(self, timestamp: datetime) -> Any: ...
 
     def parse_value(self, value: Any) -> Any:
-        """
-        Parse the value of the cursor field into a comparable value.
-        """
+        """Parse the value of the cursor field into a comparable value."""
         return self.parse_timestamp(value)
 
     def _compare_intervals(self, end_time: Any, start_time: Any) -> bool:
@@ -60,10 +60,9 @@ class DateTimeStreamStateConverter(AbstractStreamStateConverter):
         self,
         cursor_field: CursorField,
         stream_state: MutableMapping[str, Any],
-        start: Optional[datetime],
-    ) -> Tuple[datetime, MutableMapping[str, Any]]:
-        """
-        Convert the state message to the format required by the ConcurrentCursor.
+        start: datetime | None,
+    ) -> tuple[datetime, MutableMapping[str, Any]]:
+        """Convert the state message to the format required by the ConcurrentCursor.
 
         e.g.
         {
@@ -95,7 +94,7 @@ class DateTimeStreamStateConverter(AbstractStreamStateConverter):
         self,
         cursor_field: CursorField,
         stream_state: MutableMapping[str, Any],
-        start: Optional[datetime],
+        start: datetime | None,
     ) -> datetime:
         sync_start = start if start is not None else self.zero_value
         prev_sync_low_water_mark = (
@@ -105,13 +104,11 @@ class DateTimeStreamStateConverter(AbstractStreamStateConverter):
         )
         if prev_sync_low_water_mark and prev_sync_low_water_mark >= sync_start:
             return prev_sync_low_water_mark
-        else:
-            return sync_start
+        return sync_start
 
 
 class EpochValueConcurrentStreamStateConverter(DateTimeStreamStateConverter):
-    """
-    e.g.
+    """e.g.
     { "created": 1617030403 }
     =>
     {
@@ -141,8 +138,7 @@ class EpochValueConcurrentStreamStateConverter(DateTimeStreamStateConverter):
 
 
 class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
-    """
-    e.g.
+    """e.g.
     { "created": "2021-01-18T21:18:20.000Z" }
     =>
     {
@@ -157,7 +153,7 @@ class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
     _zero_value = "0001-01-01T00:00:00.000Z"
 
     def __init__(
-        self, is_sequential_state: bool = True, cursor_granularity: Optional[timedelta] = None
+        self, is_sequential_state: bool = True, cursor_granularity: timedelta | None = None
     ):
         super().__init__(is_sequential_state=is_sequential_state)
         self._cursor_granularity = cursor_granularity or timedelta(milliseconds=1)
@@ -178,23 +174,22 @@ class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
 
 
 class CustomFormatConcurrentStreamStateConverter(IsoMillisConcurrentStreamStateConverter):
-    """
-    Datetime State converter that emits state according to the supplied datetime format. The converter supports reading
+    """Datetime State converter that emits state according to the supplied datetime format. The converter supports reading
     incoming state in any valid datetime format via Pendulum.
     """
 
     def __init__(
         self,
         datetime_format: str,
-        input_datetime_formats: Optional[List[str]] = None,
+        input_datetime_formats: list[str] | None = None,
         is_sequential_state: bool = True,
-        cursor_granularity: Optional[timedelta] = None,
+        cursor_granularity: timedelta | None = None,
     ):
         super().__init__(
             is_sequential_state=is_sequential_state, cursor_granularity=cursor_granularity
         )
         self._datetime_format = datetime_format
-        self._input_datetime_formats = input_datetime_formats if input_datetime_formats else []
+        self._input_datetime_formats = input_datetime_formats or []
         self._input_datetime_formats += [self._datetime_format]
         self._parser = DatetimeParser()
 

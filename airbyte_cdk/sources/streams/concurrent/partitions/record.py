@@ -1,29 +1,30 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
+
 
 if TYPE_CHECKING:
     from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 
 
 class Record:
-    """
-    Represents a record read from a stream.
-    """
+    """Represents a record read from a stream."""
 
     def __init__(
         self,
         data: Mapping[str, Any],
-        partition: "Partition",
+        partition: Partition,
         is_file_transfer_message: bool = False,
     ):
         self.data = data
         self.partition = partition
         self.is_file_transfer_message = is_file_transfer_message
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Record):
             return False
         return (

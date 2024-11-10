@@ -1,8 +1,11 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
+from __future__ import annotations
 
 import json
-from typing import Any, List, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
+
 
 ANY_QUERY_PARAMS = "any query_parameters"
 
@@ -15,9 +18,9 @@ class HttpRequest:
     def __init__(
         self,
         url: str,
-        query_params: Optional[Union[str, Mapping[str, Union[str, List[str]]]]] = None,
-        headers: Optional[Mapping[str, str]] = None,
-        body: Optional[Union[str, bytes, Mapping[str, Any]]] = None,
+        query_params: str | Mapping[str, str | list[str]] | None = None,
+        headers: Mapping[str, str] | None = None,
+        body: str | bytes | Mapping[str, Any] | None = None,
     ) -> None:
         self._parsed_url = urlparse(url)
         self._query_params = query_params
@@ -32,14 +35,13 @@ class HttpRequest:
         self._body = body
 
     @staticmethod
-    def _encode_qs(query_params: Union[str, Mapping[str, Union[str, List[str]]]]) -> str:
+    def _encode_qs(query_params: str | Mapping[str, str | list[str]]) -> str:
         if isinstance(query_params, str):
             return query_params
         return urlencode(query_params, doseq=True)
 
     def matches(self, other: Any) -> bool:
-        """
-        If the body of any request is a Mapping, we compare as Mappings which means that the order is not important.
+        """If the body of any request is a Mapping, we compare as Mappings which means that the order is not important.
         If the body is a string, encoding ISO-8859-1 will be assumed
         Headers only need to be a subset of `other` in order to match
         """
@@ -65,21 +67,21 @@ class HttpRequest:
 
     @staticmethod
     def _to_mapping(
-        body: Optional[Union[str, bytes, Mapping[str, Any]]],
-    ) -> Optional[Mapping[str, Any]]:
+        body: str | bytes | Mapping[str, Any] | None,
+    ) -> Mapping[str, Any] | None:
         if isinstance(body, Mapping):
             return body
-        elif isinstance(body, bytes):
+        if isinstance(body, bytes):
             return json.loads(body.decode())  # type: ignore  # assumes return type of Mapping[str, Any]
-        elif isinstance(body, str):
+        if isinstance(body, str):
             return json.loads(body)  # type: ignore  # assumes return type of Mapping[str, Any]
         return None
 
     @staticmethod
-    def _to_bytes(body: Optional[Union[str, bytes]]) -> bytes:
+    def _to_bytes(body: str | bytes | None) -> bytes:
         if isinstance(body, bytes):
             return body
-        elif isinstance(body, str):
+        if isinstance(body, str):
             # `ISO-8859-1` is the default encoding used by requests
             return body.encode("ISO-8859-1")
         return b""
@@ -92,7 +94,7 @@ class HttpRequest:
             f"HttpRequest(request={self._parsed_url}, headers={self._headers}, body={self._body!r})"
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, HttpRequest):
             return (
                 self._parsed_url == other._parsed_url

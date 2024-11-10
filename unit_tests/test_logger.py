@@ -1,12 +1,13 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import json
 import logging
-from typing import Dict
 
 import pytest
+
 from airbyte_cdk.logger import AirbyteLogFormatter
 
 
@@ -24,7 +25,7 @@ def test_formatter(logger, caplog):
     formatted_record_data = json.loads(formatted_record)
     assert formatted_record_data.get("type") == "LOG"
     log = formatted_record_data.get("log")
-    assert isinstance(log, Dict)
+    assert isinstance(log, dict)
     level = log.get("level")
     message = log.get("message")
     assert level == "INFO"

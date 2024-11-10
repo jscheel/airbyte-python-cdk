@@ -1,14 +1,15 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 
 import logging
 import typing
-from typing import Optional, Tuple
 
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+
 
 if typing.TYPE_CHECKING:
     from airbyte_cdk.sources import Source
@@ -16,10 +17,9 @@ if typing.TYPE_CHECKING:
 
 class HttpAvailabilityStrategy(AvailabilityStrategy):
     def check_availability(
-        self, stream: Stream, logger: logging.Logger, source: Optional["Source"] = None
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Check stream availability by attempting to read the first record of the
+        self, stream: Stream, logger: logging.Logger, source: Source | None = None
+    ) -> tuple[bool, str | None]:
+        """Check stream availability by attempting to read the first record of the
         stream.
 
         :param stream: stream
@@ -30,7 +30,7 @@ class HttpAvailabilityStrategy(AvailabilityStrategy):
           for some reason and the str should describe what went wrong and how to
           resolve the unavailability, if possible.
         """
-        reason: Optional[str]
+        reason: str | None
         try:
             # Some streams need a stream slice to read records (e.g. if they have a SubstreamPartitionRouter)
             # Streams that don't need a stream slice will return `None` as their first stream slice.

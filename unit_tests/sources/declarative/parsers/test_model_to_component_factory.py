@@ -3,12 +3,21 @@
 #
 
 # mypy: ignore-errors
+from __future__ import annotations
+
 import datetime
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import freezegun
 import pendulum
 import pytest
+
+from unit_tests.sources.declarative.parsers.testing_components import (
+    TestingCustomSubstreamPartitionRouter,
+    TestingSomeComponent,
+)
+
 from airbyte_cdk import AirbyteTracedException
 from airbyte_cdk.models import FailureType, Level
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
@@ -132,10 +141,7 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import Resp
 from airbyte_cdk.sources.streams.http.requests_native_auth.oauth import (
     SingleUseRefreshTokenOauth2Authenticator,
 )
-from unit_tests.sources.declarative.parsers.testing_components import (
-    TestingCustomSubstreamPartitionRouter,
-    TestingSomeComponent,
-)
+
 
 factory = ModelToComponentFactory()
 
@@ -2148,7 +2154,7 @@ class TestCreateTransformations:
         )
 
         assert isinstance(stream, DeclarativeStream)
-        assert [] == stream.retriever.record_selector.transformations
+        assert stream.retriever.record_selector.transformations == []
 
     def test_remove_fields(self):
         content = f"""
@@ -3201,8 +3207,7 @@ def test_create_concurrent_cursor_from_datetime_based_cursor(
 
 
 def test_create_concurrent_cursor_uses_min_max_datetime_format_if_defined():
-    """
-    Validates a special case for when the start_time.datetime_format and end_time.datetime_format are defined, the date to
+    """Validates a special case for when the start_time.datetime_format and end_time.datetime_format are defined, the date to
     string parser should not inherit from the parent DatetimeBasedCursor.datetime_format. The parent which uses an incorrect
     precision would fail if it were used by the dependent children.
     """

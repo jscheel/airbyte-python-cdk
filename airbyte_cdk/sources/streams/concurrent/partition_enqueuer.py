@@ -1,6 +1,8 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
+
 import time
 from queue import Queue
 
@@ -14,9 +16,7 @@ from airbyte_cdk.sources.streams.concurrent.partitions.types import QueueItem
 
 
 class PartitionEnqueuer:
-    """
-    Generates partitions from a partition generator and puts them in a queue.
-    """
+    """Generates partitions from a partition generator and puts them in a queue."""
 
     def __init__(
         self,
@@ -24,8 +24,7 @@ class PartitionEnqueuer:
         thread_pool_manager: ThreadPoolManager,
         sleep_time_in_seconds: float = 0.1,
     ) -> None:
-        """
-        :param queue:  The queue to put the partitions in.
+        """:param queue:  The queue to put the partitions in.
         :param throttler: The throttler to use to throttle the partition generation.
         """
         self._queue = queue
@@ -33,8 +32,7 @@ class PartitionEnqueuer:
         self._sleep_time_in_seconds = sleep_time_in_seconds
 
     def generate_partitions(self, stream: AbstractStream) -> None:
-        """
-        Generate partitions from a partition generator and put them in a queue.
+        """Generate partitions from a partition generator and put them in a queue.
         When all the partitions are added to the queue, a sentinel is added to the queue to indicate that all the partitions have been generated.
 
         If an exception is encountered, the exception will be caught and put in the queue. This is very important because if we don't, the

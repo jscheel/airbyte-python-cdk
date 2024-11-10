@@ -1,12 +1,16 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
+
 import copy
 import logging
+from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import dpath
+
 from airbyte_cdk.models import AirbyteMessage
 from airbyte_cdk.models import Type as MessageType
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
@@ -18,14 +22,14 @@ from airbyte_cdk.sources.declarative.requesters.request_option import (
 from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
 from airbyte_cdk.utils import AirbyteTracedException
 
+
 if TYPE_CHECKING:
     from airbyte_cdk.sources.declarative.declarative_stream import DeclarativeStream
 
 
 @dataclass
 class ParentStreamConfig:
-    """
-    Describes how to create a stream slice from a parent stream
+    """Describes how to create a stream slice from a parent stream
 
     stream: The stream to read records from
     parent_key: The key of the parent stream's records that will be the stream slice key
@@ -35,15 +39,15 @@ class ParentStreamConfig:
     incremental_dependency (bool): Indicates if the parent stream should be read incrementally.
     """
 
-    stream: "DeclarativeStream"  # Parent streams must be DeclarativeStream because we can't know which part of the stream slice is a partition for regular Stream
-    parent_key: Union[InterpolatedString, str]
-    partition_field: Union[InterpolatedString, str]
+    stream: DeclarativeStream  # Parent streams must be DeclarativeStream because we can't know which part of the stream slice is a partition for regular Stream
+    parent_key: InterpolatedString | str
+    partition_field: InterpolatedString | str
     config: Config
     parameters: InitVar[Mapping[str, Any]]
-    extra_fields: Optional[Union[List[List[str]], List[List[InterpolatedString]]]] = (
+    extra_fields: list[list[str]] | list[list[InterpolatedString]] | None = (
         None  # List of field paths (arrays of strings)
     )
-    request_option: Optional[RequestOption] = None
+    request_option: RequestOption | None = None
     incremental_dependency: bool = False
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
@@ -61,15 +65,14 @@ class ParentStreamConfig:
 
 @dataclass
 class SubstreamPartitionRouter(PartitionRouter):
-    """
-    Partition router that iterates over the parent's stream records and emits slices
+    """Partition router that iterates over the parent's stream records and emits slices
     Will populate the state with `partition_field` and `parent_slice` so they can be accessed by other components
 
     Attributes:
         parent_stream_configs (List[ParentStreamConfig]): parent streams to iterate over and their config
     """
 
-    parent_stream_configs: List[ParentStreamConfig]
+    parent_stream_configs: list[ParentStreamConfig]
     config: Config
     parameters: InitVar[Mapping[str, Any]]
 
@@ -80,42 +83,42 @@ class SubstreamPartitionRouter(PartitionRouter):
 
     def get_request_params(
         self,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.request_parameter, stream_slice)
 
     def get_request_headers(
         self,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.header, stream_slice)
 
     def get_request_body_data(
         self,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.body_data, stream_slice)
 
     def get_request_body_json(
         self,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.body_json, stream_slice)
 
     def _get_request_option(
-        self, option_type: RequestOptionType, stream_slice: Optional[StreamSlice]
+        self, option_type: RequestOptionType, stream_slice: StreamSlice | None
     ) -> Mapping[str, Any]:
         params = {}
         if stream_slice:
@@ -137,8 +140,7 @@ class SubstreamPartitionRouter(PartitionRouter):
         return params
 
     def stream_slices(self) -> Iterable[StreamSlice]:
-        """
-        Iterate over each parent stream's record and create a StreamSlice for each record.
+        """Iterate over each parent stream's record and create a StreamSlice for each record.
 
         For each stream, iterate over its stream_slices.
         For each stream slice, iterate over each record.
@@ -210,10 +212,9 @@ class SubstreamPartitionRouter(PartitionRouter):
     def _extract_extra_fields(
         self,
         parent_record: Mapping[str, Any] | AirbyteMessage,
-        extra_fields: Optional[List[List[str]]] = None,
+        extra_fields: list[list[str]] | None = None,
     ) -> Mapping[str, Any]:
-        """
-        Extracts additional fields specified by their paths from the parent record.
+        """Extracts additional fields specified by their paths from the parent record.
 
         Args:
             parent_record (Mapping[str, Any]): The record from the parent stream to extract fields from.
@@ -238,8 +239,7 @@ class SubstreamPartitionRouter(PartitionRouter):
         return extracted_extra_fields
 
     def set_initial_state(self, stream_state: StreamState) -> None:
-        """
-        Set the state of the parent streams.
+        """Set the state of the parent streams.
 
         If the `parent_state` key is missing from `stream_state`, migrate the child stream state to the parent stream's state format.
         This migration applies only to parent streams with incremental dependencies.
@@ -306,9 +306,8 @@ class SubstreamPartitionRouter(PartitionRouter):
             if parent_config.incremental_dependency:
                 parent_config.stream.state = parent_state.get(parent_config.stream.name, {})
 
-    def get_stream_state(self) -> Optional[Mapping[str, StreamState]]:
-        """
-        Get the state of the parent streams.
+    def get_stream_state(self) -> Mapping[str, StreamState] | None:
+        """Get the state of the parent streams.
 
         Returns:
             StreamState: The current state of the parent streams.
