@@ -106,7 +106,7 @@ exclude = ["__init__.py"]  # TODO: Remove after this is fixed: https://github.co
 
 target-version = "py310"
 line-length = 100
-
+preview = true
 
 [tool.ruff.lint]
 select = [
@@ -162,7 +162,6 @@ select = [
     "TID",    # flake8-tidy-imports
     "TRY",    # tryceratops
     "TRY002", # Disallow raising vanilla Exception. Create or use a custom exception instead.
-    "TRY003", # Disallow vanilla string passing. Prefer kwargs to the exception constructur.
     "UP",     # pyupgrade
     "W",      # pycodestyle (warnings)
     "YTT",    # flake8-2020
@@ -174,23 +173,24 @@ ignore = [
     "ANN003",  # kwargs missing type annotations
     "ANN101",  # Type annotations for 'self' args
     "ANN102",  # Type annotations for 'cls' args
+    "ASYNC1",  # flake8-trio (opinionated, noisy)
     "COM812",  # Because it conflicts with ruff auto-format
-    "EM",      # flake8-errmsgs (may reconsider later)
     "DJ",      # Django linting
+    "EM",      # flake8-errmsgs (may reconsider later)
     "G",       # flake8-logging-format
+    "INP001",  # Dir 'examples' is part of an implicit namespace package. Add an __init__.py.
     "ISC001",  # Conflicts with ruff auto-format
     "NPY",     # NumPy-specific rules
-    "PIE790",  # Allow unnecssary 'pass' (sometimes useful for readability)
     "PERF203", # exception handling in loop
+    "PIE790",  # Allow unnecssary 'pass' (sometimes useful for readability)
     "PLR6301", # Allow class methods that don't use 'self' (otherwise noisy)
     "RUF022",  # Allow unsorted __all__ (sometimes useful for grouping by type with pdoc)
     "S",       # flake8-bandit (noisy, security related)
     "SIM910",  # Allow "None" as second argument to Dict.get(). "Explicit is better than implicit."
     "TD002",   # Require author for TODOs
-    "ASYNC1",  # flake8-trio (opinionated, noisy)
-    "INP001",  # Dir 'examples' is part of an implicit namespace package. Add an __init__.py.
+    "TRY003",  # Allow string passing to exception constructor.
 
-    # TODO: Consider re-enabling these before release:
+    # TODO: Consider re-enabling these when we have time to address them:
     "A003",    # Class attribute 'type' is shadowing a Python builtin
     "BLE001",  # Do not catch blind exception: Exception
     "ERA001",  # Remove commented-out code
