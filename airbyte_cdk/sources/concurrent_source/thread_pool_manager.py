@@ -45,7 +45,7 @@ class ThreadPoolManager:
             )
         return len(self._futures) >= self._max_concurrent_tasks
 
-    def submit(self, function: Callable[..., Any], *args: Any) -> None:
+    def submit(self, function: Callable[..., Any], *args: Any) -> None:  # noqa: ANN401  (any-type)
         self._futures.append(self._threadpool.submit(function, *args))
 
     def _prune_futures(self, futures: list[Future[Any]]) -> None:

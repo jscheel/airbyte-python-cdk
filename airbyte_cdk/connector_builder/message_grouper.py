@@ -147,7 +147,7 @@ class MessageGrouper:
             elif isinstance(message_group, StreamReadSlices):
                 slices.append(message_group)
             else:
-                raise ValueError(f"Unknown message group type: {type(message_group)}")
+                raise ValueError(f"Unknown message group type: {type(message_group)}")  # noqa: TRY004  # Should raise TypeError
 
         try:
             # The connector builder currently only supports reading from a single stream at a time
@@ -155,7 +155,7 @@ class MessageGrouper:
             schema = schema_inferrer.get_stream_schema(configured_stream.stream.name)
         except SchemaValidationException as exception:
             for validation_error in exception.validation_errors:
-                log_messages.append(LogMessage(validation_error, "ERROR"))
+                log_messages.append(LogMessage(validation_error, "ERROR"))  # noqa: PERF401  # Could be list comprehension
             schema = exception.schema
 
         return StreamRead(
@@ -170,7 +170,7 @@ class MessageGrouper:
             inferred_datetime_formats=datetime_format_inferrer.get_inferred_datetime_formats(),
         )
 
-    def _get_message_groups(
+    def _get_message_groups(  # noqa: PLR0912, PLR0915  # Too complex
         self,
         messages: Iterator[AirbyteMessage],
         schema_inferrer: SchemaInferrer,
@@ -213,7 +213,11 @@ class MessageGrouper:
                     f"Expected log message to be a dict, got {json_object} of type {type(json_object)}"
                 )
             json_message: dict[str, JsonType] | None = json_object
-            if self._need_to_close_page(at_least_one_page_in_group, message, json_message):
+            if self._need_to_close_page(
+                at_least_one_page_in_group=at_least_one_page_in_group,
+                message=message,
+                json_message=json_message,
+            ):
                 self._close_page(
                     current_page_request,
                     current_page_response,
@@ -304,6 +308,7 @@ class MessageGrouper:
 
     @staticmethod
     def _need_to_close_page(
+        *,
         at_least_one_page_in_group: bool,
         message: AirbyteMessage,
         json_message: dict[str, Any] | None,
@@ -397,7 +402,7 @@ class MessageGrouper:
         # protocol change is worked on.
         try:
             json_object: JsonType = json.loads(log_message.message)
-            return json_object
+            return json_object  # noqa: TRY300
         except JSONDecodeError:
             return None
 

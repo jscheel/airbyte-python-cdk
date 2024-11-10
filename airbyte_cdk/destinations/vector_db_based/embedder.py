@@ -44,7 +44,7 @@ class Embedder(ABC):
     The CDK defines basic embedders that should be supported in each destination. It is possible to implement custom embedders for special destinations if needed.
     """
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: B027 (intentionally empty, non-abstract)
         pass
 
     @abstractmethod
@@ -177,6 +177,7 @@ class CohereEmbedder(Embedder):
 
 class FakeEmbedder(Embedder):
     def __init__(self, config: FakeEmbeddingConfigModel) -> None:
+        _ = config  # unused
         super().__init__()
         self.embeddings = FakeEmbeddings(size=OPEN_AI_VECTOR_SIZE)
 

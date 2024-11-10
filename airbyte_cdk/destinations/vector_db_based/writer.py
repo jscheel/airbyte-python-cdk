@@ -36,6 +36,7 @@ class Writer:
         indexer: Indexer,
         embedder: Embedder,
         batch_size: int,
+        *,
         omit_raw_text: bool,
     ) -> None:
         self.processing_config = processing_config

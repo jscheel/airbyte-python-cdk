@@ -77,8 +77,8 @@ class ConcurrentSource:
         self,
         threadpool: ThreadPoolManager,
         logger: logging.Logger,
-        slice_logger: SliceLogger = DebugSliceLogger(),
-        message_repository: MessageRepository = InMemoryMessageRepository(),
+        slice_logger: SliceLogger = DebugSliceLogger(),  # noqa: B008  (func call in default arg)
+        message_repository: MessageRepository = InMemoryMessageRepository(),  # noqa: B008  (func call in default arg)
         initial_number_partitions_to_generate: int = 1,
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
@@ -167,4 +167,4 @@ class ConcurrentSource:
         elif isinstance(queue_item, Record):
             yield from concurrent_stream_processor.on_record(queue_item)
         else:
-            raise ValueError(f"Unknown queue item type: {type(queue_item)}")
+            raise ValueError(f"Unknown queue item type: {type(queue_item)}")  # noqa: TRY004 (should raise TypeError)

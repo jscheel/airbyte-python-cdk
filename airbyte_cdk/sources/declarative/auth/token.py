@@ -1,6 +1,8 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+# ruff: noqa: A005  (shadows built-in 'token' module)
+
 from __future__ import annotations
 
 import base64
@@ -151,7 +153,7 @@ class BasicHttpAuthenticator(DeclarativeAuthenticator):
     i.e. by adding another item the cache would exceed its maximum size, the cache must choose which item(s) to discard
     ttl=86400 means that cached token will live for 86400 seconds (one day)
 """
-cacheSessionTokenAuthenticator: TTLCache[str, str] = TTLCache(maxsize=1000, ttl=86400)
+cacheSessionTokenAuthenticator: TTLCache[str, str] = TTLCache(maxsize=1000, ttl=86400)  # noqa: N816  (allow mixed-case name)
 
 
 @cached(cacheSessionTokenAuthenticator)
@@ -262,7 +264,7 @@ class LegacySessionTokenAuthenticator(DeclarativeAuthenticator):
             if e.response.status_code == requests.codes["unauthorized"]:
                 self.logger.info(f"Unable to connect by session token from config due to {e!s}")
                 return False
-            raise ConnectionError(f"Error while validating session token: {e}")
+            raise ConnectionError(f"Error while validating session token: {e}") from None
         if response.ok:
             self.logger.info("Connection check for source is successful.")
             return True

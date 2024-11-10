@@ -10,6 +10,7 @@ from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     Generic,
     TypeVar,
 )
@@ -67,6 +68,7 @@ class AsyncPartition:
 
     def should_split(self, job: AsyncJob) -> bool:
         """Not used right now but once we support job split, we should split based on the number of attempts"""
+        _ = job
         return False
 
     @property
@@ -92,7 +94,7 @@ class AsyncPartition:
     def __repr__(self) -> str:
         return f"AsyncPartition(stream_slice={self._stream_slice}, attempt_per_job={self._attempts_per_job})"
 
-    def __json_serializable__(self) -> Any:
+    def __json_serializable__(self) -> Any:  # noqa: ANN401, PLW3201  (any-type, unrecognized-dunder)
         return self._stream_slice
 
 
@@ -129,13 +131,16 @@ class LookaheadIterator(Generic[T]):
 
 class AsyncJobOrchestrator:
     _WAIT_TIME_BETWEEN_STATUS_UPDATE_IN_SECONDS = 5
-    _KNOWN_JOB_STATUSES = {
+    _KNOWN_JOB_STATUSES: ClassVar[set[AsyncJobStatus]] = {
         AsyncJobStatus.COMPLETED,
         AsyncJobStatus.FAILED,
         AsyncJobStatus.RUNNING,
         AsyncJobStatus.TIMED_OUT,
     }
-    _RUNNING_ON_API_SIDE_STATUS = {AsyncJobStatus.RUNNING, AsyncJobStatus.TIMED_OUT}
+    _RUNNING_ON_API_SIDE_STATUS: ClassVar[set[AsyncJobStatus]] = {
+        AsyncJobStatus.RUNNING,
+        AsyncJobStatus.TIMED_OUT,
+    }
 
     def __init__(
         self,
@@ -225,7 +230,7 @@ class AsyncJobOrchestrator:
         try:
             job = self._job_repository.start(_slice)
             self._job_tracker.add_job(id_to_replace, job.api_job_id())
-            return job
+            return job  # noqa: TRY300  (consider 'else')
         except Exception as exception:
             LOGGER.warning(f"Exception has occurred during job creation: {exception}")
             if self._is_breaking_exception(exception):
@@ -367,7 +372,12 @@ class AsyncJobOrchestrator:
                 # we don't free allocation here because it is expected to retry the job
                 self._abort_job(job, free_job_allocation=False)
 
-    def _abort_job(self, job: AsyncJob, free_job_allocation: bool = True) -> None:
+    def _abort_job(
+        self,
+        job: AsyncJob,
+        *,
+        free_job_allocation: bool = True,
+    ) -> None:
         try:
             self._job_repository.abort(job)
             if free_job_allocation:

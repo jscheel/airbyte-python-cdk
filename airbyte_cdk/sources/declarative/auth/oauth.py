@@ -62,7 +62,7 @@ class DeclarativeOauth2Authenticator(AbstractOauth2Authenticator, DeclarativeAut
     expires_in_name: InterpolatedString | str = "expires_in"
     refresh_request_body: Mapping[str, Any] | None = None
     grant_type: InterpolatedString | str = "refresh_token"
-    message_repository: MessageRepository = NoopMessageRepository()
+    message_repository: MessageRepository = NoopMessageRepository()  # noqa: RUF009  (func call in default arg)
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
         super().__init__()
@@ -169,5 +169,5 @@ class DeclarativeSingleUseRefreshTokenOauth2Authenticator(
 ):
     """Declarative version of SingleUseRefreshTokenOauth2Authenticator which can be used in declarative connectors."""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401  (any-type)
         super().__init__(*args, **kwargs)

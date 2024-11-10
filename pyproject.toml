@@ -171,6 +171,7 @@ ignore = [
     "A003",    # Class attribute 'type' is shadowing a Python builtin
     "BLE001",  # Do not catch blind exception: Exception
     "C416",    # Allow unnecessary-comprehensions. Auto-fix sometimes unsafe if operating over a mapping.
+    "DTZ005",  # Allow use of 'datetime.datetime.now()' without timezone (we should fix these eventually)
     "D",       # pydocstyle (Docstring conventions)
     "D102",    # Missing docstring in public method
     "D103",    # Missing docstring in public function

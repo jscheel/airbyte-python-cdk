@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-class JwtAlgorithm(str):
+class JwtAlgorithm(str):  # noqa: SLOT000  (no slots in str subclass)
     """Enum for supported JWT algorithms"""
 
     HS256 = "HS256"
@@ -156,7 +156,7 @@ class JwtAuthenticator(DeclarativeAuthenticator):
             else secret_key
         )
 
-    def _get_signed_token(self) -> str | Any:
+    def _get_signed_token(self) -> str | Any:  # noqa: ANN401  (any-type)
         """Signed the JWT using the provided secret key and algorithm and the generated headers and payload. For additional information on PyJWT see: https://pyjwt.readthedocs.io/en/stable/"""
         try:
             return jwt.encode(
@@ -166,7 +166,7 @@ class JwtAuthenticator(DeclarativeAuthenticator):
                 headers=self._get_jwt_headers(),
             )
         except Exception as e:
-            raise ValueError(f"Failed to sign token: {e}")
+            raise ValueError(f"Failed to sign token: {e}") from None
 
     def _get_header_prefix(self) -> str | None:
         """Returns the header prefix to be used when attaching the token to the request."""

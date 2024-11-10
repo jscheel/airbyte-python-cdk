@@ -3,7 +3,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, Literal, Union
+from typing import Any, ClassVar, Literal, Union
 
 import dpath
 from pydantic.v1 import BaseModel, Field
@@ -78,7 +78,7 @@ class CodeSplitterConfigModel(BaseModel):
         discriminator = "mode"
 
 
-TextSplitterConfigModel = Union[
+TextSplitterConfigModel = Union[  # noqa: UP007  # Deprecated `Union` and `Optional`
     SeparatorSplitterConfigModel, MarkdownHeaderSplitterConfigModel, CodeSplitterConfigModel
 ]
 
@@ -131,7 +131,7 @@ class ProcessingConfigModel(BaseModel):
     )
 
     class Config:
-        schema_extra = {"group": "processing"}
+        schema_extra: ClassVar[dict] = {"group": "processing"}
 
 
 class OpenAIEmbeddingConfigModel(BaseModel):
@@ -275,7 +275,7 @@ class VectorDBConfigModel(BaseModel):
 
     class Config:
         title = "Destination Config"
-        schema_extra = {
+        schema_extra: ClassVar[dict] = {
             "groups": [
                 {"id": "processing", "title": "Processing"},
                 {"id": "embedding", "title": "Embedding"},
@@ -290,8 +290,13 @@ class VectorDBConfigModel(BaseModel):
         dpath.delete(schema, "properties/**/discriminator")
 
     @classmethod
-    def schema(cls, by_alias: bool = True, ref_template: str = "") -> dict[str, Any]:
+    def schema(
+        cls,
+        by_alias: bool = True,  # noqa: FBT001, FBT002 (positional bool)
+        ref_template: str = "",
+    ) -> dict[str, Any]:
         """We're overriding the schema classmethod to enable some post-processing"""
+        _ = by_alias, ref_template  # unused
         schema: dict[str, Any] = super().schema()
         schema = resolve_refs(schema)
         cls.remove_discriminator(schema)

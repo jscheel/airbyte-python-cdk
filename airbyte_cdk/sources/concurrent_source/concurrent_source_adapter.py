@@ -38,7 +38,7 @@ DEFAULT_LOOKBACK_SECONDS = 0
 
 
 class ConcurrentSourceAdapter(AbstractSource, ABC):
-    def __init__(self, concurrent_source: ConcurrentSource, **kwargs: Any) -> None:
+    def __init__(self, concurrent_source: ConcurrentSource, **kwargs: Any) -> None:  # noqa: ANN401  (any-type)
         """ConcurrentSourceAdapter is a Source that wraps a concurrent source and exposes it as a regular source.
 
         The source's streams are still defined through the streams() method.

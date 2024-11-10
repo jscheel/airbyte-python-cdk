@@ -13,7 +13,7 @@ class AsyncJobStatus(Enum):
     FAILED = ("FAILED", _TERMINAL)
     TIMED_OUT = ("TIMED_OUT", _TERMINAL)
 
-    def __init__(self, value: str, is_terminal: bool) -> None:
+    def __init__(self, value: str, is_terminal: bool) -> None:  # noqa: FBT001  (positional bool arg)
         self._value = value
         self._is_terminal = is_terminal
 

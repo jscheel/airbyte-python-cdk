@@ -50,7 +50,7 @@ class AirbyteStateBlob:  # noqa: PLW1641  # Should implement __hash__
 
     kwargs: InitVar[Mapping[str, Any]]
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 (any-type)
         # Set any attribute passed in through kwargs
         for arg in args:
             self.__dict__.update(arg)

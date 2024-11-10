@@ -59,5 +59,5 @@ class BaseIntegrationTest(unittest.TestCase):
         )
 
     def setUp(self) -> None:
-        with open("secrets/config.json", encoding="utf-8") as f:
+        with open("secrets/config.json", encoding="utf-8") as f:  # noqa: PTH123, FURB101  # Should use pathlib
             self.config = json.loads(f.read())

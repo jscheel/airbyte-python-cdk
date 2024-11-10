@@ -8,7 +8,7 @@ import io
 import logging
 import sys
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from orjson import orjson
 
@@ -33,7 +33,7 @@ logger = logging.getLogger("airbyte")
 
 
 class Destination(Connector, ABC):
-    VALID_CMDS = {"spec", "check", "write"}
+    VALID_CMDS: ClassVar[set[str]] = {"spec", "check", "write"}
 
     @abstractmethod
     def write(
@@ -65,7 +65,9 @@ class Destination(Connector, ABC):
         input_stream: io.TextIOWrapper,
     ) -> Iterable[AirbyteMessage]:
         catalog = ConfiguredAirbyteCatalogSerializer.load(
-            orjson.loads(open(configured_catalog_path, encoding="utf-8").read())
+            orjson.loads(
+                open(configured_catalog_path, encoding="utf-8").read(),  # noqa: SIM115, PTH123  (Should use pathlib)
+            )
         )
         input_messages = self._parse_input_stream(input_stream)
         logger.info("Begin writing to the destination...")
@@ -111,18 +113,18 @@ class Destination(Connector, ABC):
         parsed_args = main_parser.parse_args(args)
         cmd = parsed_args.command
         if not cmd:
-            raise Exception("No command entered. ")
+            raise Exception("No command entered. ")  # noqa: TRY002  # Don't use vanilla Exception
         if cmd not in {"spec", "check", "write"}:
             # This is technically dead code since parse_args() would fail if this was the case
             # But it's non-obvious enough to warrant placing it here anyways
-            raise Exception(f"Unknown command entered: {cmd}")
+            raise Exception(f"Unknown command entered: {cmd}")  # noqa: TRY002  # Don't use vanilla Exception
 
         return parsed_args
 
     def run_cmd(self, parsed_args: argparse.Namespace) -> Iterable[AirbyteMessage]:
         cmd = parsed_args.command
         if cmd not in self.VALID_CMDS:
-            raise Exception(f"Unrecognized command: {cmd}")
+            raise Exception(f"Unrecognized command: {cmd}")  # noqa: TRY002  # Don't use vanilla Exception
 
         spec = self.spec(logger)
         if cmd == "spec":

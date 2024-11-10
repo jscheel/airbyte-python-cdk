@@ -22,11 +22,11 @@ class Indexer(ABC):
     In a destination connector, implement a custom indexer by extending this class and implementing the abstract methods.
     """
 
-    def __init__(self, config: Any) -> None:
+    def __init__(self, config: Any) -> None:  # noqa: ANN401  # Avoid `Any` type
         self.config = config
         pass
 
-    def pre_sync(self, catalog: ConfiguredAirbyteCatalog) -> None:
+    def pre_sync(self, catalog: ConfiguredAirbyteCatalog) -> None:  # noqa: B027  # unused parameter
         """Run before the sync starts. This method should be used to make sure all records in the destination that belong to streams with a destination mode of overwrite are deleted.
 
         Each record has a metadata field with the name airbyte_cdk.destinations.vector_db_based.document_processor.METADATA_STREAM_FIELD which can be used to filter documents for deletion.

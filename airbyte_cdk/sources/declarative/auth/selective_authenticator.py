@@ -29,8 +29,8 @@ class SelectiveAuthenticator(DeclarativeAuthenticator):
         config: Mapping[str, Any],
         authenticators: Mapping[str, DeclarativeAuthenticator],
         authenticator_selection_path: list[str],
-        *arg: Any,
-        **kwargs: Any,
+        *arg: Any,  # noqa: ANN401, ARG003  (any-type, unused)
+        **kwargs: Any,  # noqa: ANN401, ARG003  (any-type, unused)
     ) -> DeclarativeAuthenticator:
         try:
             selected_key = str(dpath.get(config, authenticator_selection_path))

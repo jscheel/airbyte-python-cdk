@@ -41,7 +41,7 @@ class SessionTokenProvider(TokenProvider):
     session_token_path: list[str]
     expiration_duration: datetime.timedelta | Duration | None
     parameters: InitVar[Mapping[str, Any]]
-    message_repository: MessageRepository = NoopMessageRepository()
+    message_repository: MessageRepository = NoopMessageRepository()  # noqa: RUF009  (func call in default value)
     decoder: Decoder = field(default_factory=lambda: JsonDecoder(parameters={}))
 
     _next_expiration_time: DateTime | None = None
