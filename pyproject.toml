@@ -196,6 +196,7 @@ ignore = [
     "ISC001",  # Conflicts with ruff auto-format
     "N818",    # Custom exception names should use the suffix "Error"
     "NPY",     # NumPy-specific rules
+    "N805",    # Enforce first-arg is 'self' (false positive for class methods in Pydantic)
     "PERF203", # exception handling in loop
     "PIE790",  # Allow unnecssary 'pass' (sometimes useful for readability)
     "PLR6201", # Allow membership checks in lists (set-based check is unsafe when values are unhashable)
