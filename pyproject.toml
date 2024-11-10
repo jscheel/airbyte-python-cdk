@@ -103,6 +103,7 @@ skip = ["__init__.py"]  # TODO: Remove after this is fixed: https://github.com/a
 
 [tool.ruff]
 exclude = ["__init__.py"]  # TODO: Remove after this is fixed: https://github.com/airbytehq/airbyte-python-cdk/issues/12
+include = ["airbyte_cdk/**/*.py"]  # Ignore test and script folders
 
 target-version = "py310"
 line-length = 100
@@ -116,19 +117,18 @@ select = [
     "ARG",   # flake8-unused-arguments
     "ASYNC", # flake8-async
     "B",     # flake8-bugbear
-    "FBT",   # flake8-boolean-trap
     "BLE",   # Blind except
     "C4",    # flake8-comprehensions
     "C90",   # mccabe (complexity)
     "COM",   # flake8-commas
     "CPY",   # missing copyright notice
-    "D",     # pydocstyle (Docstring conventions)
     "DTZ",   # flake8-datetimez
     "E",     # pycodestyle (errors)
     "ERA",   # flake8-eradicate (commented out code)
     "EXE",   # flake8-executable
     "F",     # Pyflakes
     "FA",    # flake8-future-annotations
+    "FBT",   # flake8-boolean-trap
     "FIX",   # flake8-fixme
     "FLY",   # flynt
     "FURB",  # Refurb
@@ -137,13 +137,12 @@ select = [
     "INP",   # flake8-no-pep420
     "INT",   # flake8-gettext
     "ISC",   # flake8-implicit-str-concat
-    "ICN",   # flake8-import-conventions
     "LOG",   # flake8-logging
     "N",     # pep8-naming
     "PD",    # pandas-vet
     "PERF",  # Perflint
-    "PIE",   # flake8-pie
     "PGH",   # pygrep-hooks
+    "PIE",   # flake8-pie
     "PL",    # Pylint
     "PT",    # flake8-pytest-style
     "PTH",   # flake8-use-pathlib
@@ -156,7 +155,6 @@ select = [
     "SLF",   # flake8-self
     "SLOT",  # flake8-slots
     "T10",   # debugger calls
-    # "T20", # flake8-print # TODO: Re-enable once we have logging
     "TCH",    # flake8-type-checking
     "TD",     # flake8-todos
     "TID",    # flake8-tidy-imports
@@ -168,6 +166,21 @@ select = [
 ]
 ignore = [
     # For rules reference, see https://docs.astral.sh/ruff/rules/
+
+    # Consider re-enabling these when we have time to address them:
+    "A003",    # Class attribute 'type' is shadowing a Python builtin
+    "BLE001",  # Do not catch blind exception: Exception
+    "D",       # pydocstyle (Docstring conventions)
+    "D102",    # Missing docstring in public method
+    "D103",    # Missing docstring in public function
+    "E501",    # Line too long
+    "ERA001",  # Remove commented-out code
+    "FIX002",  # Allow "TODO:" comments
+    "PGH003",  # Allow non-specific "type: ignore" comments
+    "PLW0108", # Lambda may be unnecessary; consider inlining inner function
+    "PLW0603", # Using the global statement to update _cache is discouraged
+    "T20",     # flake8-print, consider re-enabling once we have logging
+    "TD003",   # Require issue links for TODOs
 
     # These we don't agree with or don't want to prioritize to enforce:
     "ANN003",  # kwargs missing type annotations
@@ -189,15 +202,6 @@ ignore = [
     "SIM910",  # Allow "None" as second argument to Dict.get(). "Explicit is better than implicit."
     "TD002",   # Require author for TODOs
     "TRY003",  # Allow string passing to exception constructor.
-
-    # TODO: Consider re-enabling these when we have time to address them:
-    "A003",    # Class attribute 'type' is shadowing a Python builtin
-    "BLE001",  # Do not catch blind exception: Exception
-    "ERA001",  # Remove commented-out code
-    "FIX002",  # Allow "TODO:" until release (then switch to requiring links via TDO003)
-    "PLW0603", # Using the global statement to update _cache is discouraged
-    "PLW0108", # Lambda may be unnecessary; consider inlining inner function
-    # "TD003",   # Require links for TODOs (now enabled)
 ]
 fixable = ["ALL"]
 unfixable = [
@@ -215,11 +219,10 @@ max-branches = 15 # Relaxed from default of 12
 force-sort-within-sections = false
 lines-after-imports = 2
 known-first-party = [
-    "airbyte_cdk",
     "airbyte_protocol",
     "airbyte_protocol_dataclasses",
 ]
-known-local-folder = ["airbyte"]
+known-local-folder = ["airbyte_cdk"]
 required-imports = ["from __future__ import annotations"]
 known-third-party = []
 section-order = [
