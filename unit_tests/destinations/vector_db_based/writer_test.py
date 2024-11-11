@@ -91,7 +91,13 @@ def test_write(omit_raw_text: bool):
     mock_indexer.post_sync.return_value = [post_sync_log_message]
 
     # Create the DestinationLangchain instance
-    writer = Writer(config_model, mock_indexer, mock_embedder, BATCH_SIZE, omit_raw_text)
+    writer = Writer(
+        config_model,
+        mock_indexer,
+        mock_embedder,
+        BATCH_SIZE,
+        omit_raw_text=omit_raw_text,
+    )
 
     output_messages = writer.write(configured_catalog, input_messages)
     output_message = next(output_messages)
