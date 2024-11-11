@@ -6,7 +6,7 @@ import copy
 import json
 import logging
 from functools import lru_cache
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 from airbyte_cdk.models import (
     AirbyteLogMessage,
@@ -390,7 +390,7 @@ class CursorPartitionGenerator(PartitionGenerator):
 
     def __init__(
         self,
-        stream: Stream,
+        stream_factory: Callable[[], Stream],
         message_repository: MessageRepository,
         cursor: Cursor,
         connector_state_converter: DateTimeStreamStateConverter,
@@ -400,12 +400,12 @@ class CursorPartitionGenerator(PartitionGenerator):
         """
         Initialize the CursorPartitionGenerator with a stream, sync mode, and cursor.
 
-        :param stream: The stream to delegate to for partition generation.
+        :param stream_factory: The stream factory that created the stream to delegate to for partition generation.
         :param message_repository: The message repository to use to emit non-record messages.
         :param sync_mode: The synchronization mode.
         :param cursor: A Cursor object that maintains the state and the cursor field.
         """
-        self._stream = stream
+        self._stream_factory = stream_factory
         self.message_repository = message_repository
         self._sync_mode = SyncMode.full_refresh
         self._cursor = cursor
@@ -445,7 +445,7 @@ class CursorPartitionGenerator(PartitionGenerator):
             )
 
             yield StreamPartition(
-                self._stream,
+                self._stream_factory(),
                 copy.deepcopy(stream_slice),
                 self.message_repository,
                 self._sync_mode,

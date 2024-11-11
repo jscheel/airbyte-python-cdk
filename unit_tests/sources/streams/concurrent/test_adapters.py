@@ -448,7 +448,7 @@ def test_get_error_display_message(exception, expected_display_message):
 
 
 def test_cursor_partition_generator():
-    stream = Mock()
+    stream_factory = Mock()
     cursor = Mock()
     message_repository = Mock()
     connector_state_converter = CustomFormatConcurrentStreamStateConverter(
@@ -468,7 +468,7 @@ def test_cursor_partition_generator():
     ]
 
     partition_generator = CursorPartitionGenerator(
-        stream,
+        stream_factory,
         message_repository,
         cursor,
         connector_state_converter,
