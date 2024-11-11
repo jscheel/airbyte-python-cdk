@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import sys
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -54,7 +54,7 @@ class MockManifestDeclarativeSource(ManifestDeclarativeSource):
 
 class TestManifestDeclarativeSource:
     @pytest.fixture
-    def use_external_yaml_spec(self):
+    def use_external_yaml_spec(self) -> Generator[None, Any, None]:
         # Our way of resolving the absolute path to root of the airbyte-cdk unit test directory where spec.yaml files should
         # be written to (i.e. ~/airbyte/airbyte-cdk/python/unit-tests) because that is where they are read from during testing.
         module = sys.modules[__name__]
@@ -73,7 +73,7 @@ class TestManifestDeclarativeSource:
         yield
         os.remove(yaml_path)
 
-    def test_valid_manifest(self):
+    def test_valid_manifest(self) -> None:
         manifest = {
             "version": "3.8.2",
             "definitions": {},
@@ -170,7 +170,7 @@ class TestManifestDeclarativeSource:
             == "This is a sample source connector that is very valid."
         )
 
-    def test_manifest_with_spec(self):
+    def test_manifest_with_spec(self) -> None:
         manifest = {
             "version": "0.29.3",
             "definitions": {
@@ -279,7 +279,10 @@ class TestManifestDeclarativeSource:
             "order": 0,
         }
 
-    def test_manifest_with_external_spec(self, use_external_yaml_spec):
+    def test_manifest_with_external_spec(
+        self,
+        use_external_yaml_spec,
+    ) -> None:
         manifest = {
             "version": "0.29.3",
             "definitions": {
@@ -518,7 +521,7 @@ class TestManifestDeclarativeSource:
         with pytest.raises(ValidationError):
             ManifestDeclarativeSource(source_config=manifest)
 
-    def test_source_with_missing_streams_fails(self):
+    def test_source_with_missing_streams_fails(self) -> None:
         manifest = {
             "version": "0.29.3",
             "definitions": None,
@@ -527,7 +530,7 @@ class TestManifestDeclarativeSource:
         with pytest.raises(ValidationError):
             ManifestDeclarativeSource(source_config=manifest)
 
-    def test_source_with_missing_version_fails(self):
+    def test_source_with_missing_version_fails(self) -> None:
         manifest = {
             "definitions": {
                 "schema_loader": {

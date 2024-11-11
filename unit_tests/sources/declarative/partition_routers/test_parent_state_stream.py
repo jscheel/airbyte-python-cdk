@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import requests_mock
-from orjson import orjson
+import orjson
 
 from airbyte_cdk.models import (
     AirbyteMessage,

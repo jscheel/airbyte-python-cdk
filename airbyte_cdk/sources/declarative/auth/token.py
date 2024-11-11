@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import logging
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -14,18 +15,13 @@ import requests
 from cachetools import TTLCache, cached
 
 from airbyte_cdk.sources.declarative.auth.declarative_authenticator import DeclarativeAuthenticator
+from airbyte_cdk.sources.declarative.auth.token_provider import TokenProvider
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 from airbyte_cdk.sources.declarative.requesters.request_option import (
     RequestOption,
     RequestOptionType,
 )
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from airbyte_cdk.sources.declarative.auth.token_provider import TokenProvider
-    from airbyte_cdk.sources.types import Config
+from airbyte_cdk.sources.types import Config
 
 
 @dataclass

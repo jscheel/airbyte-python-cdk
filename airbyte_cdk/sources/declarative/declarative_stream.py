@@ -3,6 +3,8 @@
 #
 from __future__ import annotations
 
+import logging
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -12,7 +14,7 @@ from airbyte_cdk.sources.declarative.incremental import (
     PerPartitionWithGlobalCursor,
 )
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
-from airbyte_cdk.sources.declarative.retrievers import SimpleRetriever
+from airbyte_cdk.sources.declarative.retrievers.simple_retriever import SimpleRetriever
 from airbyte_cdk.sources.declarative.schema import DefaultSchemaLoader
 from airbyte_cdk.sources.streams.checkpoint import (
     CheckpointMode,
@@ -25,9 +27,6 @@ from airbyte_cdk.sources.types import Config, StreamSlice
 
 
 if TYPE_CHECKING:
-    import logging
-    from collections.abc import Iterable, Mapping, MutableMapping
-
     from airbyte_cdk.models import SyncMode
     from airbyte_cdk.sources.declarative.migrations.state_migration import StateMigration
     from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever

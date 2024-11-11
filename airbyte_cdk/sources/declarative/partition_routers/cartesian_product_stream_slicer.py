@@ -6,18 +6,15 @@ from __future__ import annotations
 import itertools
 import logging
 from collections import ChainMap
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import InitVar, dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
 from airbyte_cdk.sources.declarative.partition_routers.substream_partition_router import (
     SubstreamPartitionRouter,
 )
 from airbyte_cdk.sources.types import StreamSlice, StreamState
-
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping
 
 
 def check_for_substream_in_slicers(

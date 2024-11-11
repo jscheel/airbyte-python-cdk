@@ -12,12 +12,13 @@ import socket
 import sys
 import tempfile
 from collections import defaultdict
+from collections.abc import Iterable, Mapping
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
+import orjson
 import requests
-from orjson import orjson
 from requests import PreparedRequest, Response, Session
 
 from airbyte_cdk.exception_handler import init_uncaught_exception_handler
@@ -44,8 +45,6 @@ from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
-
     from airbyte_cdk.connector import TConfig
 
 

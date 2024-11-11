@@ -11,7 +11,7 @@ from contextlib import nullcontext as does_not_raise
 from typing import Any
 
 import pytest
-from orjson import orjson
+import orjson
 from serpyco_rs import SchemaValidationError
 
 from airbyte_cdk.models import (

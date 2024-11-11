@@ -11,7 +11,7 @@ from collections.abc import MutableMapping
 from copy import copy
 from typing import Any
 
-from orjson import orjson
+import orjson
 
 from airbyte_cdk.models import (
     AirbyteControlConnectorConfigMessage,

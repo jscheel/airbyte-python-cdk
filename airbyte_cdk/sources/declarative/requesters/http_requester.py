@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable, Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
@@ -25,8 +26,6 @@ from airbyte_cdk.utils.mapping_helpers import combine_mappings
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, MutableMapping
-
     import requests
 
     from airbyte_cdk.sources.declarative.decoders import Decoder

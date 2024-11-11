@@ -3,22 +3,18 @@
 #
 from __future__ import annotations
 
+import datetime
+from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any
 
+from airbyte_cdk.sources.declarative.incremental import (
+    DatetimeBasedCursor,
+    GlobalSubstreamCursor,
+    PerPartitionWithGlobalCursor,
+)
 from airbyte_cdk.sources.declarative.interpolation.interpolated_boolean import InterpolatedBoolean
 from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
-
-
-if TYPE_CHECKING:
-    import datetime
-    from collections.abc import Iterable, Mapping
-
-    from airbyte_cdk.sources.declarative.incremental import (
-        DatetimeBasedCursor,
-        GlobalSubstreamCursor,
-        PerPartitionWithGlobalCursor,
-    )
 
 
 @dataclass

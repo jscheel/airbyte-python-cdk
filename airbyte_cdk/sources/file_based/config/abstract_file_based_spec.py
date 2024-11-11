@@ -11,11 +11,8 @@ import dpath
 from pydantic.v1 import AnyUrl, BaseModel, Field
 
 from airbyte_cdk import OneOfOptionConfig
+from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
 from airbyte_cdk.sources.utils import schema_helpers
-
-
-if TYPE_CHECKING:
-    from airbyte_cdk.sources.file_based.config.file_based_stream_config import FileBasedStreamConfig
 
 
 class DeliverRecords(BaseModel):

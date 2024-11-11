@@ -3,7 +3,9 @@
 #
 from __future__ import annotations
 
+import datetime
 from abc import abstractmethod
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -19,9 +21,6 @@ from airbyte_cdk.sources.message import MessageRepository, NoopMessageRepository
 
 
 if TYPE_CHECKING:
-    import datetime
-    from collections.abc import Mapping
-
     from isodate import Duration
 
     from airbyte_cdk.sources.declarative.decoders.decoder import Decoder

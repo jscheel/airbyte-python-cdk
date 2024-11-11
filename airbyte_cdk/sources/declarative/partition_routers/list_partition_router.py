@@ -3,6 +3,7 @@
 #
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -13,10 +14,6 @@ from airbyte_cdk.sources.declarative.requesters.request_option import (
     RequestOptionType,
 )
 from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
-
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
 
 
 @dataclass

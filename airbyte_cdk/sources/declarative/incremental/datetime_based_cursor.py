@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import datetime
+from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
@@ -24,8 +25,6 @@ from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping, MutableMapping
-
     from airbyte_cdk.sources.message import MessageRepository
 
 

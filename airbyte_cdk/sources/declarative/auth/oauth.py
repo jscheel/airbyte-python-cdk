@@ -3,6 +3,7 @@
 #
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -18,10 +19,6 @@ from airbyte_cdk.sources.streams.http.requests_native_auth.abstract_oauth import
 from airbyte_cdk.sources.streams.http.requests_native_auth.oauth import (
     SingleUseRefreshTokenOauth2Authenticator,
 )
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 
 @dataclass

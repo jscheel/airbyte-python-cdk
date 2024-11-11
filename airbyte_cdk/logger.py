@@ -8,7 +8,7 @@ import logging
 import logging.config
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from orjson import orjson
+import orjson
 
 from airbyte_cdk.models import (
     AirbyteLogMessage,

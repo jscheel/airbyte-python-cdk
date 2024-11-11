@@ -1,28 +1,40 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
-
+# ruff: noqa: TCH001, TCH002  # Don't move imports to TYPE_CHECKING block
+# ruff: noqa: F401  # Don't remove unused imports
 from __future__ import annotations
 
 import datetime
 import importlib
 import inspect
 import re
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Callable
 from functools import partial
 from typing import (
-    TYPE_CHECKING,
     Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
     get_args,
     get_origin,
     get_type_hints,
 )
 
 from isodate import parse_duration
+from pydantic.v1 import BaseModel
 
 from airbyte_cdk.models import FailureType, Level
+from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.declarative.async_job.job_orchestrator import AsyncJobOrchestrator
 from airbyte_cdk.sources.declarative.async_job.job_tracker import JobTracker
+from airbyte_cdk.sources.declarative.async_job.repository import AsyncJobRepository
 from airbyte_cdk.sources.declarative.async_job.status import AsyncJobStatus
 from airbyte_cdk.sources.declarative.auth import DeclarativeOauth2Authenticator, JwtAuthenticator
 from airbyte_cdk.sources.declarative.auth.declarative_authenticator import (
@@ -330,6 +342,7 @@ from airbyte_cdk.sources.declarative.schema import (
     JsonFileSchemaLoader,
 )
 from airbyte_cdk.sources.declarative.spec import Spec
+from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
 from airbyte_cdk.sources.declarative.transformations import (
     AddFields,
     RecordTransformation,
@@ -350,16 +363,8 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_sta
     DateTimeStreamStateConverter,
 )
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction
+from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
-
-
-if TYPE_CHECKING:
-    from pydantic.v1 import BaseModel
-
-    from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
-    from airbyte_cdk.sources.declarative.async_job.repository import AsyncJobRepository
-    from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
-    from airbyte_cdk.sources.types import Config
 
 
 ComponentDefinition = Mapping[str, Any]
@@ -509,7 +514,7 @@ class ModelToComponentFactory:  # noqa: PLR0904  (too many public methods)
     def create_added_field_definition(
         model: AddedFieldDefinitionModel,
         config: Config,  # noqa: ARG004  (unused)
-        **kwargs: Any,  # noqa: ANN401  (any-type)
+        **kwargs: Any,  # noqa: ANN401, ARG004  (any-type, unused)
     ) -> AddedFieldDefinition:
         interpolated_value = InterpolatedString.create(
             model.value, parameters=model.parameters or {}
@@ -1478,7 +1483,12 @@ class ModelToComponentFactory:  # noqa: PLR0904  (too many public methods)
         )
 
     def create_http_requester(
-        self, model: HttpRequesterModel, decoder: Decoder, config: Config, *, name: str
+        self,
+        model: HttpRequesterModel,
+        decoder: Decoder,
+        config: Config,
+        *,
+        name: str,
     ) -> HttpRequester:
         authenticator = (
             self._create_component_from_model(

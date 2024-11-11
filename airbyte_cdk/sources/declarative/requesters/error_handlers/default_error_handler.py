@@ -3,6 +3,7 @@
 #
 from __future__ import annotations
 
+from collections.abc import Mapping, MutableMapping
 from dataclasses import InitVar, dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -20,12 +21,7 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
     ErrorResolution,
     create_fallback_error_resolution,
 )
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping, MutableMapping
-
-    from airbyte_cdk.sources.types import Config
+from airbyte_cdk.sources.types import Config
 
 
 @dataclass

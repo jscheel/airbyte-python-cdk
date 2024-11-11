@@ -11,7 +11,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from orjson import orjson
+import orjson
 
 from airbyte_cdk.models import FailureType
 from airbyte_cdk.sources.file_based.config.csv_format import (
@@ -238,7 +238,10 @@ class CsvParser(FileTypeParser):
             else:
                 deduped_property_types = {}
             cast_fn = CsvParser._get_cast_function(
-                deduped_property_types, config_format, logger, config.schemaless
+                deduped_property_types,
+                config_format,
+                logger,
+                schemaless=config.schemaless,
             )
             data_generator = self._csv_reader.read_data(
                 config, file, stream_reader, logger, self.file_read_mode
@@ -249,7 +252,7 @@ class CsvParser(FileTypeParser):
                     cast_fn(row),
                     deduped_property_types,
                     config_format.null_values,
-                    config_format.strings_can_be_null,
+                    strings_can_be_null=config_format.strings_can_be_null,
                 )
         except RecordParseError as parse_err:
             raise RecordParseError(
@@ -267,8 +270,7 @@ class CsvParser(FileTypeParser):
         deduped_property_types: Mapping[str, str],
         config_format: CsvFormat,
         logger: logging.Logger,
-        *,
-        schemaless: bool,
+        schemaless: bool,  # noqa: FBT001  (positional bool)
     ) -> Callable[[Mapping[str, str]], Mapping[str, str]]:
         # Only cast values if the schema is provided
         if deduped_property_types and not schemaless:
@@ -286,13 +288,15 @@ class CsvParser(FileTypeParser):
         row: Mapping[str, str],
         deduped_property_types: Mapping[str, str],
         null_values: set[str],
-        *,
-        strings_can_be_null: bool,
+        strings_can_be_null: bool,  # noqa: FBT001  (positional bool)
     ) -> dict[str, str | None]:
         return {
             k: None
             if CsvParser._value_is_none(
-                v, deduped_property_types.get(k), null_values, strings_can_be_null
+                v,
+                deduped_property_types.get(k),
+                null_values,
+                strings_can_be_null=strings_can_be_null,
             )
             else v
             for k, v in row.items()
@@ -303,8 +307,7 @@ class CsvParser(FileTypeParser):
         value: Any,  # noqa: ANN401  (any-type)
         deduped_property_type: str | None,
         null_values: set[str],
-        *,
-        strings_can_be_null: bool,
+        strings_can_be_null: bool,  # noqa: FBT001  (positional bool)
     ) -> bool:
         return value in null_values and (strings_can_be_null or deduped_property_type != "string")
 

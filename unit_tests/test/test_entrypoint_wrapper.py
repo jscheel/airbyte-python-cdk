@@ -9,7 +9,7 @@ from typing import Any
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from orjson import orjson
+import orjson
 
 from airbyte_cdk.models import (
     AirbyteAnalyticsTraceMessage,

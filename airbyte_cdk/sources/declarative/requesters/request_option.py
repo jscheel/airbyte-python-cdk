@@ -3,15 +3,12 @@
 #
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 
 class RequestOptionType(Enum):

@@ -243,7 +243,11 @@ def check(
 ) -> dict[str, Any]:
     launch(
         scenario.source,
-        ["check", "--config", make_file(tmp_path / "config.json", scenario.config)],
+        [
+            "check",
+            "--config",
+            make_file(tmp_path / "config.json", scenario.config),
+        ],
     )
     captured = capsys.readouterr()
     return _find_connection_status(captured.out.splitlines())

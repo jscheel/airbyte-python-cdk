@@ -8,8 +8,8 @@ from collections.abc import Iterator, Mapping
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+import orjson
 import pytest
-from orjson import orjson
 
 from unit_tests.connector_builder.utils import create_configured_catalog
 

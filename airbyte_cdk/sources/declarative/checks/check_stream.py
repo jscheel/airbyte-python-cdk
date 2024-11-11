@@ -3,7 +3,9 @@
 #
 from __future__ import annotations
 
+import logging
 import traceback
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -12,9 +14,6 @@ from airbyte_cdk.sources.streams.http.availability_strategy import HttpAvailabil
 
 
 if TYPE_CHECKING:
-    import logging
-    from collections.abc import Mapping
-
     from airbyte_cdk import AbstractSource
 
 

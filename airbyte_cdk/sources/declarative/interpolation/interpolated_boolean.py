@@ -3,16 +3,12 @@
 #
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any, Final
 
 from airbyte_cdk.sources.declarative.interpolation.jinja import JinjaInterpolation
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from airbyte_cdk.sources.types import Config
+from airbyte_cdk.sources.types import Config
 
 
 FALSE_VALUES: Final[list[Any]] = [

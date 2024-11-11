@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -17,13 +18,8 @@ from airbyte_cdk.sources.declarative.requesters.error_handlers.backoff_strategie
 from airbyte_cdk.sources.declarative.requesters.error_handlers.backoff_strategy import (
     BackoffStrategy,
 )
+from airbyte_cdk.sources.types import Config
 from airbyte_cdk.utils import AirbyteTracedException
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from airbyte_cdk.sources.types import Config
 
 
 @dataclass

@@ -3,6 +3,8 @@
 #
 from __future__ import annotations
 
+import logging
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 from airbyte_cdk.exception_handler import generate_failed_streams_error_message
@@ -16,9 +18,6 @@ from airbyte_cdk.utils.stream_status_utils import (
 
 
 if TYPE_CHECKING:
-    import logging
-    from collections.abc import Iterable
-
     from airbyte_cdk.sources.concurrent_source.partition_generation_completed_sentinel import (
         PartitionGenerationCompletedSentinel,
     )

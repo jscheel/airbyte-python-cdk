@@ -208,6 +208,7 @@ ignore = [
     "RUF022",  # Allow unsorted __all__ (sometimes useful for grouping by type with pdoc)
     "S",       # flake8-bandit (noisy, security related)
     "SIM910",  # Allow "None" as second argument to Dict.get(). "Explicit is better than implicit."
+    "TCH003",  # Moving standard library imports under `TYPE_CHECKING` blocks is unsafe with Pydantic and Serpyco models
     "TD002",   # Require author for TODOs
     "TRY003",  # Allow string passing to exception constructor.
     "TRY400",  # Ignore for now: prefer logging.exception over logging.error
@@ -216,6 +217,8 @@ fixable = ["ALL"]
 unfixable = [
     "ERA001", # Commented-out code (avoid silent loss of code)
     "T201",   # print() calls (avoid silent loss of code / log messages)
+    "TCH001",  # Moving application imports under `TYPE_CHECKING` blocks is unsafe with Pydantic and Serpyco models
+    "TCH002",  # Moving 3rd part imports under `TYPE_CHECKING` blocks is unsafe with Pydantic and Serpyco models
 ]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 

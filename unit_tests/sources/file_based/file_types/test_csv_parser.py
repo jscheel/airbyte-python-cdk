@@ -230,10 +230,19 @@ def test_cast_to_python_type(
         ),
     ],
 )
-def test_to_nullable(row, strings_can_be_null, expected_output):
+def test_to_nullable(
+    row,
+    strings_can_be_null,
+    expected_output,
+) -> None:
     property_types = {"id": "string", "name": "string", "age": "integer", "is_cool": "boolean"}
     null_values = {"null"}
-    nulled_row = CsvParser._to_nullable(row, property_types, null_values, strings_can_be_null)
+    nulled_row = CsvParser._to_nullable(
+        row,
+        property_types,
+        null_values,
+        strings_can_be_null=strings_can_be_null,
+    )
     assert nulled_row == expected_output
 
 

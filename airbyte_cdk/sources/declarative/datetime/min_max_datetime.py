@@ -3,16 +3,13 @@
 #
 from __future__ import annotations
 
+import datetime as dt
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
-
-
-if TYPE_CHECKING:
-    import datetime as dt
-    from collections.abc import Mapping
 
 
 @dataclass

@@ -4,19 +4,15 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator, Mapping, MutableMapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any
 from xml.parsers.expat import ExpatError
 
+import requests
 import xmltodict
 
 from airbyte_cdk.sources.declarative.decoders.decoder import Decoder
-
-
-if TYPE_CHECKING:
-    from collections.abc import Generator, Mapping, MutableMapping
-
-    import requests
 
 
 logger = logging.getLogger("airbyte")

@@ -3,8 +3,11 @@
 #
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any
+
+import requests
 
 from airbyte_cdk.sources.streams.http.error_handlers import ErrorHandler
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
@@ -12,12 +15,6 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
     ResponseAction,
     create_fallback_error_resolution,
 )
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    import requests
 
 
 @dataclass

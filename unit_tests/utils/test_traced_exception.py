@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import pytest
-from orjson import orjson
+import orjson
 
 from airbyte_cdk.models import (
     AirbyteErrorTraceMessage,

@@ -3,12 +3,13 @@
 #
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any
 
+import orjson
 import pandas as pd
 from numpy import datetime64, issubdtype
 from numpy import dtype as dtype_
-from orjson import orjson
 
 from airbyte_cdk.sources.file_based.config.file_based_stream_config import (
     ExcelFormat,
@@ -28,7 +29,6 @@ from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeP
 
 if TYPE_CHECKING:
     import logging
-    from collections.abc import Iterable, Mapping
     from io import IOBase
     from pathlib import Path
 

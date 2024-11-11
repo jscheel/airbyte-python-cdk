@@ -24,7 +24,7 @@ from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from orjson import orjson
+import orjson
 from pydantic import ValidationError as V2ValidationError
 from serpyco_rs import SchemaValidationError
 
@@ -202,7 +202,9 @@ def discover(
         config_file = make_file(tmp_directory_path / "config.json", config)
 
         return _run_command(
-            source, ["discover", "--config", config_file, "--debug"], expecting_exception
+            source,
+            ["discover", "--config", config_file, "--debug"],
+            expecting_exception=expecting_exception,
         )
 
 
@@ -244,7 +246,11 @@ def read(
                 ]
             )
 
-        return _run_command(source, args, expecting_exception)
+        return _run_command(
+            source,
+            args,
+            expecting_exception=expecting_exception,
+        )
 
 
 def make_file(

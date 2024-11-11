@@ -3,16 +3,13 @@
 #
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import dpath
 
 from airbyte_cdk.sources.declarative.auth.declarative_authenticator import DeclarativeAuthenticator
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 
 @dataclass

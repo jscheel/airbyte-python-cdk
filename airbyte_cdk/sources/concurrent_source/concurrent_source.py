@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import concurrent
+import logging
+from collections.abc import Iterable, Iterator
 from queue import Queue
 from typing import TYPE_CHECKING
 
@@ -26,9 +28,6 @@ from airbyte_cdk.sources.utils.slice_logger import DebugSliceLogger, SliceLogger
 
 
 if TYPE_CHECKING:
-    import logging
-    from collections.abc import Iterable, Iterator
-
     from airbyte_cdk.models import AirbyteMessage
     from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
 

@@ -3,19 +3,15 @@
 #
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from typing import TYPE_CHECKING, Any
 
+import requests
+
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 from airbyte_cdk.sources.streams.http.error_handlers import BackoffStrategy
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    import requests
-
-    from airbyte_cdk.sources.types import Config
+from airbyte_cdk.sources.types import Config
 
 
 @dataclass

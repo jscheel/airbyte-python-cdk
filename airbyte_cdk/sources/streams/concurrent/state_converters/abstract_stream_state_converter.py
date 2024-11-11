@@ -34,8 +34,7 @@ class AbstractStreamStateConverter(ABC):
 
     def __init__(
         self,
-        *,
-        is_sequential_state: bool = True,
+        is_sequential_state: bool = True,  # noqa: FBT001, FBT002  (positional-arg)
     ) -> None:
         self._is_sequential_state = is_sequential_state
 

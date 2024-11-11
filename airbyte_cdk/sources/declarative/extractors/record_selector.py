@@ -3,6 +3,7 @@
 #
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -13,8 +14,6 @@ from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
-
     import requests
 
     from airbyte_cdk.sources.declarative.extractors.record_extractor import RecordExtractor

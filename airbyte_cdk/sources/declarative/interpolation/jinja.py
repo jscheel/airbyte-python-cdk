@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Mapping
 from functools import cache
 from typing import TYPE_CHECKING, Any
 
@@ -17,8 +18,6 @@ from airbyte_cdk.sources.declarative.interpolation.macros import macros
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from jinja2.environment import Template
 
     from airbyte_cdk.sources.types import Config
