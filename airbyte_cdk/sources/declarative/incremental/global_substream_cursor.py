@@ -65,7 +65,7 @@ class Timer:
 
     def finish(self) -> int:
         if self._start:
-            return ((time.perf_counter_ns() - self._start) / 1e9).__ceil__()
+            return ((time.perf_counter_ns() - self._start) / 1e9).__ceil__()  # noqa: PLC2801  (unnecessary dunder?)
         raise RuntimeError("Global substream cursor timer not started")
 
 
@@ -124,7 +124,7 @@ class GlobalSubstreamCursor(DeclarativeCursor):
         )
 
         self.start_slices_generation()
-        for slice, last, state in iterate_with_last_flag_and_state(
+        for slice, last, state in iterate_with_last_flag_and_state(  # noqa: A001  (shadowed built-in)
             slice_generator, self._partition_router.get_stream_state
         ):
             self._parent_state = state
@@ -140,7 +140,7 @@ class GlobalSubstreamCursor(DeclarativeCursor):
 
         yield from slice_generator
 
-    def register_slice(self, last: bool) -> None:
+    def register_slice(self, last: bool) -> None:  # noqa: FBT001  (positional bool)
         """Tracks the processing of a stream slice.
 
         Releases the semaphore for each slice. If it's the last slice (`last=True`),
@@ -216,7 +216,7 @@ class GlobalSubstreamCursor(DeclarativeCursor):
             StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice), record
         )
 
-    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
+    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:  # noqa: ANN401  (any-type)
         """Close the current stream slice.
 
         This method is called when a stream slice is completed. For the global parent cursor, we close the child cursor
@@ -229,7 +229,7 @@ class GlobalSubstreamCursor(DeclarativeCursor):
         """
         with self._lock:
             self._slice_semaphore.acquire()
-            if self._all_slices_yielded and self._slice_semaphore._value == 0:
+            if self._all_slices_yielded and self._slice_semaphore._value == 0:  # noqa: SLF001  (private member)
                 self._lookback_window = self._timer.finish()
                 self._stream_cursor.close_slice(
                     StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice), *args
@@ -246,7 +246,7 @@ class GlobalSubstreamCursor(DeclarativeCursor):
 
         return state
 
-    def select_state(self, stream_slice: StreamSlice | None = None) -> StreamState | None:
+    def select_state(self, stream_slice: StreamSlice | None = None) -> StreamState | None:  # noqa: ARG002  (unused)
         # stream_slice is ignored as cursor is global
         return self._stream_cursor.get_stream_state()
 

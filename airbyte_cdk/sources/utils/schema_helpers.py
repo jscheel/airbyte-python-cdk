@@ -31,14 +31,14 @@ class JsonFileLoader:
 
     def __call__(self, uri: str) -> dict[str, Any]:
         uri = uri.replace(self.uri_base, f"{self.uri_base}/{self.shared}/")
-        with open(uri, encoding="utf-8") as f:
+        with open(uri, encoding="utf-8") as f:  # noqa: PTH123  (prefer pathlib)
             data = json.load(f)
             if isinstance(data, dict):
                 return data
             raise ValueError(f"Expected to read a dictionary from {uri}. Got: {data}")
 
 
-def resolve_ref_links(obj: Any) -> Any:
+def resolve_ref_links(obj: Any) -> Any:  # noqa: ANN401  (any-type)
     """Scan resolved schema and convert jsonref.JsonRef object to JSON serializable dict.
 
     :param obj - jsonschema object with ref field resolved.
@@ -59,7 +59,7 @@ def resolve_ref_links(obj: Any) -> Any:
     return obj
 
 
-def _expand_refs(schema: Any, ref_resolver: RefResolver | None = None) -> None:
+def _expand_refs(schema: Any, ref_resolver: RefResolver | None = None) -> None:  # noqa: ANN401  (any-type)
     """Internal function to iterate over schema and replace all occurrences of $ref with their definitions. Recursive.
 
     :param schema: schema that will be patched
@@ -83,7 +83,7 @@ def _expand_refs(schema: Any, ref_resolver: RefResolver | None = None) -> None:
             _expand_refs(value, ref_resolver=ref_resolver)
 
 
-def expand_refs(schema: Any) -> None:
+def expand_refs(schema: Any) -> None:  # noqa: ANN401  (any-type)
     """Iterate over schema and replace all occurrences of $ref with their definitions.
 
     :param schema: schema that will be patched
@@ -92,7 +92,7 @@ def expand_refs(schema: Any) -> None:
     schema.pop("definitions", None)  # remove definitions created by $ref
 
 
-def rename_key(schema: Any, old_key: str, new_key: str) -> None:
+def rename_key(schema: Any, old_key: str, new_key: str) -> None:  # noqa: ANN401  (any-type)
     """Iterate over nested dictionary and replace one key with another.
 
     Used to replace anyOf with oneOf. Recursive.
@@ -145,7 +145,7 @@ class ResourceSchemaLoader:
         """
         package = importlib.import_module(self.package_name)
         if package.__file__:
-            base = os.path.dirname(package.__file__) + "/"
+            base = os.path.dirname(package.__file__) + "/"  # noqa: PTH120  (prefer pathlib)
         else:
             raise ValueError(f"Package {package} does not have a valid __file__ field")
         resolved = jsonref.JsonRef.replace_refs(
@@ -182,7 +182,7 @@ class InternalConfig(BaseModel):
     limit: int = Field(None, alias="_limit")
     page_size: int = Field(None, alias="_page_size")
 
-    def dict(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+    def dict(self, *args: Any, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401  (any-type)
         kwargs["by_alias"] = True
         kwargs["exclude_unset"] = True
         return super().dict(*args, **kwargs)  # type: ignore[no-any-return]

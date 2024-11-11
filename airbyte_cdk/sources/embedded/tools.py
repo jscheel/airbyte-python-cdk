@@ -15,8 +15,9 @@ if TYPE_CHECKING:
 
 
 def get_first(
-    iterable: Iterable[Any], predicate: Callable[[Any], bool] = lambda m: True
-) -> Any | None:
+    iterable: Iterable[Any],
+    predicate: Callable[[Any], bool] = lambda m: True,  # noqa: ARG005  (unused lambda arg)
+) -> Any | None:  # noqa: ANN401  (any-type)
     return next(filter(predicate, iterable), None)
 
 

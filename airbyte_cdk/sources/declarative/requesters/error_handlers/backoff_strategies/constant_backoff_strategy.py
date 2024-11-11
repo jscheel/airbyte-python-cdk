@@ -44,7 +44,7 @@ class ConstantBackoffStrategy(BackoffStrategy):
 
     def backoff_time(
         self,
-        response_or_exception: requests.Response | requests.RequestException | None,
-        attempt_count: int,
+        response_or_exception: requests.Response | requests.RequestException | None,  # noqa: ARG002  (unused)
+        attempt_count: int,  # noqa: ARG002  (unused)
     ) -> float | None:
         return self.backoff_time_in_seconds.eval(self.config)  # type: ignore # backoff_time_in_seconds is always cast to an interpolated string

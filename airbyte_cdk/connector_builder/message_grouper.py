@@ -155,7 +155,7 @@ class MessageGrouper:
             schema = schema_inferrer.get_stream_schema(configured_stream.stream.name)
         except SchemaValidationException as exception:
             for validation_error in exception.validation_errors:
-                log_messages.append(LogMessage(validation_error, "ERROR"))  # noqa: PERF401  # Could be list comprehension
+                log_messages.append(LogMessage(validation_error, "ERROR"))  # noqa: PERF401  (consider list comprehension)
             schema = exception.schema
 
         return StreamRead(

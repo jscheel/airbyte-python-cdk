@@ -81,7 +81,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
     # We make each source override the concurrency level to give control over when they are upgraded.
     _concurrency_level = None
 
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917  (too many args)
         self,
         stream_reader: AbstractFileBasedStreamReader,
         spec_class: type[AbstractFileBasedSpec],
@@ -89,7 +89,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
         config: Mapping[str, Any] | None,
         state: list[AirbyteStateMessage] | None,
         availability_strategy: AbstractFileBasedAvailabilityStrategy | None = None,
-        discovery_policy: AbstractDiscoveryPolicy = DefaultDiscoveryPolicy(),
+        discovery_policy: AbstractDiscoveryPolicy = DefaultDiscoveryPolicy(),  # noqa: B008
         parsers: Mapping[type[Any], FileTypeParser] = default_parsers,
         validation_policies: Mapping[
             ValidationPolicy, AbstractSchemaValidationPolicy
@@ -153,7 +153,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
                 message=FileBasedSourceError.CONFIG_VALIDATION_ERROR.value,
                 exception=AirbyteTracedException(exception=config_exception),
                 failure_type=FailureType.config_error,
-            )
+            ) from None
         if len(streams) == 0:
             return (
                 False,
@@ -166,7 +166,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
         tracebacks = []
         for stream in streams:
             if not isinstance(stream, AbstractFileBasedStream):
-                raise ValueError(f"Stream {stream} is not a file-based stream.")
+                raise ValueError(f"Stream {stream} is not a file-based stream.")  # noqa: TRY004  (expected TypeError)
             try:
                 parsed_config = self._get_parsed_config(config)
                 availability_method = (
@@ -210,7 +210,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
 
     def streams(self, config: Mapping[str, Any]) -> list[Stream]:
         """Return a list of this source's streams."""
-        if self.catalog:
+        if self.catalog:  # noqa: SIM108  (consider ternary if)
             state_manager = ConnectorStateManager(state=self.state)
         else:
             # During `check` operations we don't have a catalog so cannot create a state manager.
@@ -294,7 +294,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
                     )
 
                 streams.append(stream)
-            return streams
+            return streams  # noqa: TRY300  (consider try-else)
 
         except ValidationError as exc:
             raise ConfigValidationError(FileBasedSourceError.CONFIG_VALIDATION_ERROR) from exc
@@ -303,6 +303,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
         self,
         stream_config: FileBasedStreamConfig,
         cursor: AbstractFileBasedCursor | None,
+        *,
         use_file_transfer: bool = False,
     ) -> AbstractFileBasedStream:
         return DefaultFileBasedStream(
@@ -352,7 +353,7 @@ class FileBasedSource(ConcurrentSourceAdapter, ABC):
         ).items():
             yield create_analytics_message(f"file-cdk-{parser}-stream-count", count)
 
-    def spec(self, *args: Any, **kwargs: Any) -> ConnectorSpecification:
+    def spec(self, *args: Any, **kwargs: Any) -> ConnectorSpecification:  # noqa: ANN401, ARG002  (any-type, unused)
         """Returns the specification describing what fields can be configured by a user when setting up a file-based source."""
         return ConnectorSpecification(
             documentationUrl=self.spec_class.documentation_url(),

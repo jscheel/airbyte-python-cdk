@@ -34,8 +34,8 @@ FALSE_VALUES: Final[list[Any]] = [
 
 @dataclass
 class InterpolatedBoolean:
-    f"""
-    Wrapper around a string to be evaluated to a boolean value.
+    """Wrapper around a string to be evaluated to a boolean value.
+
     The string will be evaluated as False if it interpolates to a value in {FALSE_VALUES}
 
     Attributes:
@@ -49,7 +49,7 @@ class InterpolatedBoolean:
         self._interpolation = JinjaInterpolation()
         self._parameters = parameters
 
-    def eval(self, config: Config, **additional_parameters: Any) -> bool:
+    def eval(self, config: Config, **additional_parameters: Any) -> bool:  # noqa: ANN401  (any-type)
         """Interpolates the predicate condition string using the config and other optional arguments passed as parameter.
 
         :param config: The user-provided configuration as specified by the source's spec
@@ -65,7 +65,7 @@ class InterpolatedBoolean:
             parameters=self._parameters,
             **additional_parameters,
         )
-        if evaluated in FALSE_VALUES:
+        if evaluated in FALSE_VALUES:  # noqa: SIM103  (unnecessary bool)
             return False
         # The presence of a value is generally regarded as truthy, so we treat it as such
         return True

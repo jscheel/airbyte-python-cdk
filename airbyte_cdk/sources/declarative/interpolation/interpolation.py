@@ -20,8 +20,8 @@ class Interpolation(ABC):
         input_str: str,
         config: Config,
         default: str | None = None,
-        **additional_options: Any,
-    ) -> Any:
+        **additional_options: Any,  # noqa: ANN401  (any-type)
+    ) -> Any:  # noqa: ANN401  (any-type)
         """Interpolates the input string using the config, and additional options passed as parameter.
 
         :param input_str: The string to interpolate

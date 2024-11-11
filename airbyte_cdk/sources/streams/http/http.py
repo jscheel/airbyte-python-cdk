@@ -1,6 +1,8 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+# ruff: noqa: A005  # Shadows built-in 'http' module
+
 from __future__ import annotations
 
 import logging
@@ -174,9 +176,9 @@ class HttpStream(Stream, CheckpointMixin, ABC):  # noqa: PLR0904  # Too many pub
 
     def request_params(
         self,
-        stream_state: Mapping[str, Any] | None,
-        stream_slice: Mapping[str, Any] | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: Mapping[str, Any] | None,  # noqa: ARG002  (unused)
+        stream_slice: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> MutableMapping[str, Any]:
         """Override this method to define the query parameters that should be set on an outgoing HTTP request given the inputs.
 
@@ -186,18 +188,18 @@ class HttpStream(Stream, CheckpointMixin, ABC):  # noqa: PLR0904  # Too many pub
 
     def request_headers(
         self,
-        stream_state: Mapping[str, Any] | None,
-        stream_slice: Mapping[str, Any] | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: Mapping[str, Any] | None,  # noqa: ARG002  (unused)
+        stream_slice: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         """Override to return any non-auth headers. Authentication headers will overwrite any overlapping headers returned from this method."""
         return {}
 
     def request_body_data(
         self,
-        stream_state: Mapping[str, Any] | None,
-        stream_slice: Mapping[str, Any] | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: Mapping[str, Any] | None,  # noqa: ARG002  (unused)
+        stream_slice: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any] | str | None:
         """Override when creating POST/PUT/PATCH requests to populate the body of the request with a non-JSON payload.
 
@@ -211,9 +213,9 @@ class HttpStream(Stream, CheckpointMixin, ABC):  # noqa: PLR0904  # Too many pub
 
     def request_body_json(
         self,
-        stream_state: Mapping[str, Any] | None,
-        stream_slice: Mapping[str, Any] | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: Mapping[str, Any] | None,  # noqa: ARG002  (unused)
+        stream_slice: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any] | None:
         """Override when creating POST/PUT/PATCH requests to populate the body of the request with a JSON payload.
 
@@ -223,9 +225,9 @@ class HttpStream(Stream, CheckpointMixin, ABC):  # noqa: PLR0904  # Too many pub
 
     def request_kwargs(
         self,
-        stream_state: Mapping[str, Any] | None,
-        stream_slice: Mapping[str, Any] | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: Mapping[str, Any] | None,  # noqa: ARG002  (unused)
+        stream_slice: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         """Override to return a mapping of keyword arguments to be used when creating the HTTP request.
         Any option listed in https://docs.python-requests.org/en/latest/api/#requests.adapters.BaseAdapter.send for can be returned from
@@ -334,15 +336,15 @@ class HttpStream(Stream, CheckpointMixin, ABC):  # noqa: PLR0904  # Too many pub
 
     def read_records(
         self,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
         stream_slice: Mapping[str, Any] | None = None,
         stream_state: Mapping[str, Any] | None = None,
     ) -> Iterable[StreamData]:
         # A cursor_field indicates this is an incremental stream which offers better checkpointing than RFR enabled via the cursor
         if self.cursor_field or not isinstance(self.get_cursor(), ResumableFullRefreshCursor):
             yield from self._read_pages(
-                lambda req, res, state, _slice: self.parse_response(
+                lambda req, res, state, _slice: self.parse_response(  # noqa: ARG005  (unused)
                     res, stream_slice=_slice, stream_state=state
                 ),
                 stream_slice,
@@ -350,7 +352,7 @@ class HttpStream(Stream, CheckpointMixin, ABC):  # noqa: PLR0904  # Too many pub
             )
         else:
             yield from self._read_single_page(
-                lambda req, res, state, _slice: self.parse_response(
+                lambda req, res, state, _slice: self.parse_response(  # noqa: ARG005  (unused)
                     res, stream_slice=_slice, stream_state=state
                 ),
                 stream_slice,
@@ -530,7 +532,7 @@ class HttpStream(Stream, CheckpointMixin, ABC):  # noqa: PLR0904  # Too many pub
 
 
 class HttpSubStream(HttpStream, ABC):
-    def __init__(self, parent: HttpStream, **kwargs: Any) -> None:
+    def __init__(self, parent: HttpStream, **kwargs: Any) -> None:  # noqa: ANN401  (any-type)
         """:param parent: should be the instance of HttpStream class"""
         super().__init__(**kwargs)
         self.parent = parent
@@ -552,8 +554,8 @@ class HttpSubStream(HttpStream, ABC):
 
     def stream_slices(
         self,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
         stream_state: Mapping[str, Any] | None = None,
     ) -> Iterable[Mapping[str, Any] | None]:
         # read_stateless() assumes the parent is not concurrent. This is currently okay since the concurrent CDK does
@@ -562,11 +564,11 @@ class HttpSubStream(HttpStream, ABC):
             # Skip non-records (eg AirbyteLogMessage)
             if isinstance(parent_record, AirbyteMessage):
                 if parent_record.type == MessageType.RECORD:
-                    parent_record = parent_record.record.data
+                    parent_record = parent_record.record.data  # noqa: PLW2901  (redefined loop name)
                 else:
                     continue
             elif isinstance(parent_record, Record):
-                parent_record = parent_record.data
+                parent_record = parent_record.data  # noqa: PLW2901  (redefined loop name)
             yield {"parent": parent_record}
 
 
@@ -581,7 +583,7 @@ class HttpStreamAdapterBackoffStrategy(BackoffStrategy):
     def backoff_time(
         self,
         response_or_exception: requests.Response | requests.RequestException | None,
-        attempt_count: int,
+        attempt_count: int,  # noqa: ARG002  (unused)
     ) -> float | None:
         return self.stream.backoff_time(response_or_exception)  # type: ignore # HttpStream.backoff_time has been deprecated
 
@@ -595,7 +597,7 @@ class HttpStreamAdapterHttpStatusErrorHandler(HttpStatusErrorHandler):
         self.stream = stream
         super().__init__(**kwargs)
 
-    def interpret_response(
+    def interpret_response(  # noqa: PLR0911  (too-many-return-statements)
         self, response_or_exception: requests.Response | Exception | None = None
     ) -> ErrorResolution:
         if isinstance(response_or_exception, Exception):
@@ -603,7 +605,7 @@ class HttpStreamAdapterHttpStatusErrorHandler(HttpStatusErrorHandler):
         if isinstance(response_or_exception, requests.Response):
             should_retry = self.stream.should_retry(response_or_exception)  # type: ignore
             if should_retry:
-                if response_or_exception.status_code == 429:
+                if response_or_exception.status_code == 429:  # noqa: PLR2004  (magic number)
                     return ErrorResolution(
                         response_action=ResponseAction.RATE_LIMITED,
                         failure_type=FailureType.transient_error,

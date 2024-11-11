@@ -52,8 +52,8 @@ class BaseConnector(ABC, Generic[TConfig]):
         )
 
     @staticmethod
-    def _read_json_file(file_path: str) -> Any:
-        with open(file_path, encoding="utf-8") as file:
+    def _read_json_file(file_path: str) -> Any:  # noqa: ANN401  (any-type)
+        with open(file_path, encoding="utf-8") as file:  # noqa: PTH123, FURB101  (prefer pathlib)
             contents = file.read()
 
         try:
@@ -61,17 +61,18 @@ class BaseConnector(ABC, Generic[TConfig]):
         except json.JSONDecodeError as error:
             raise ValueError(
                 f"Could not read json file {file_path}: {error}. Please ensure that it is a valid JSON."
-            )
+            ) from None
 
     @staticmethod
     def write_config(config: TConfig, config_path: str) -> None:
-        with open(config_path, "w", encoding="utf-8") as fh:
+        with open(config_path, "w", encoding="utf-8") as fh:  # noqa: PTH123, FURB103  (replace with pathlib)
             fh.write(json.dumps(config))
 
     def spec(self, logger: logging.Logger) -> ConnectorSpecification:
         """Returns the spec for this integration. The spec is a JSON-Schema object describing the required configurations (e.g: username and password)
         required to run this integration. By default, this will be loaded from a "spec.yaml" or a "spec.json" in the package root.
         """
+        _ = logger  # unused
         package = self.__class__.__module__.split(".")[0]
 
         yaml_spec = load_optional_package_file(package, "spec.yaml")
@@ -90,7 +91,7 @@ class BaseConnector(ABC, Generic[TConfig]):
             except json.JSONDecodeError as error:
                 raise ValueError(
                     f"Could not read json spec file: {error}. Please ensure that it is a valid JSON."
-                )
+                ) from None
         else:
             raise FileNotFoundError("Unable to find spec.yaml or spec.json in the package.")
 
@@ -113,7 +114,7 @@ class DefaultConnectorMixin:
     def configure(
         self: _WriteConfigProtocol, config: Mapping[str, Any], temp_dir: str
     ) -> Mapping[str, Any]:
-        config_path = os.path.join(temp_dir, "config.json")
+        config_path = os.path.join(temp_dir, "config.json")  # noqa: PTH118  (should use pathlib)
         self.write_config(config, config_path)
         return config
 

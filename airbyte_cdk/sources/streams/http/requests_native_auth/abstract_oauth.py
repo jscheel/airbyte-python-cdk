@@ -119,7 +119,7 @@ class AbstractOauth2Authenticator(AuthBase):  # noqa: PLR0904  # Too complex
         ),
         max_time=300,
     )
-    def _get_refresh_access_token_response(self) -> Any:
+    def _get_refresh_access_token_response(self) -> Any:  # noqa: ANN401  (any-type)
         try:
             response = requests.request(
                 method="POST",
@@ -129,11 +129,11 @@ class AbstractOauth2Authenticator(AuthBase):  # noqa: PLR0904  # Too complex
             if response.ok:
                 response_json = response.json()
                 # Add the access token to the list of secrets so it is replaced before logging the response
-                # An argument could be made to remove the prevous access key from the list of secrets, but unmasking values seems like a security incident waiting to happen...
+                # An argument could be made to remove the previous access key from the list of secrets, but unmasking values seems like a security incident waiting to happen...
                 access_key = response_json.get(self.get_access_token_name())
                 if not access_key:
-                    raise Exception(
-                        "Token refresh API response was missing access token {self.get_access_token_name()}"
+                    raise Exception(  # noqa: TRY002, TRY301  (vanilla exception, raise within try)
+                        f"Token refresh API response was missing access token {self.get_access_token_name()}"
                     )
                 add_to_secrets(access_key)
                 self._log_response(response)
@@ -142,17 +142,20 @@ class AbstractOauth2Authenticator(AuthBase):  # noqa: PLR0904  # Too complex
             self._log_response(response)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            if e.response is not None:
-                if e.response.status_code == 429 or e.response.status_code >= 500:
-                    raise DefaultBackoffException(request=e.response.request, response=e.response)
+            if e.response is not None:  # noqa: SIM102  (collapsible-if)
+                if e.response.status_code == 429 or e.response.status_code >= 500:  # noqa: PLR2004  (magic number)
+                    raise DefaultBackoffException(
+                        request=e.response.request,
+                        response=e.response,
+                    ) from None
             if self._wrap_refresh_token_exception(e):
                 message = "Refresh token is invalid or expired. Please re-authenticate from Sources/<your source>/Settings."
                 raise AirbyteTracedException(
                     internal_message=message, message=message, failure_type=FailureType.config_error
-                )
+                ) from None
             raise
         except Exception as e:
-            raise Exception(f"Error while refreshing access token: {e}") from e
+            raise Exception(f"Error while refreshing access token: {e}") from e  # noqa: TRY002  (vanilla exception)
 
     def refresh_access_token(self) -> tuple[str, str | int]:
         """Returns the refresh token and its expiration datetime

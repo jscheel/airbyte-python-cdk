@@ -116,7 +116,9 @@ class SimpleRetriever(Retriever):
             self._name = value
 
     def _get_mapping(
-        self, method: Callable[..., Mapping[str, Any] | str | None], **kwargs: Any
+        self,
+        method: Callable[..., Mapping[str, Any] | str | None],
+        **kwargs: Any,  # noqa: ANN401  (any-type)
     ) -> tuple[Mapping[str, Any] | str, set[str]]:
         """Get mapping from the provided method, and get the keys of the mapping.
         If the method returns a string, it will return the string and an empty set.
@@ -138,7 +140,7 @@ class SimpleRetriever(Retriever):
         Raise a ValueError if there's a key collision
         Returned merged mapping otherwise
         """
-        # FIXME we should eventually remove the usage of stream_state as part of the interpolation
+        # TODO: we should eventually remove the usage of stream_state as part of the interpolation
         mappings = [
             paginator_method(
                 stream_state=stream_state,
@@ -173,7 +175,7 @@ class SimpleRetriever(Retriever):
             self.stream_slicer.get_request_headers,
         )
         if isinstance(headers, str):
-            raise ValueError("Request headers cannot be a string")
+            raise ValueError("Request headers cannot be a string")  # noqa: TRY004  (expected TypeError)
         return {str(k): str(v) for k, v in headers.items()}
 
     def _request_params(
@@ -194,7 +196,7 @@ class SimpleRetriever(Retriever):
             self.request_option_provider.get_request_params,
         )
         if isinstance(params, str):
-            raise ValueError("Request params cannot be a string")
+            raise ValueError("Request params cannot be a string")  # noqa: TRY004  (expected TypeError)
         return params
 
     def _request_body_data(
@@ -237,7 +239,7 @@ class SimpleRetriever(Retriever):
             self.request_option_provider.get_request_body_json,
         )
         if isinstance(body_json, str):
-            raise ValueError("Request body json cannot be a string")
+            raise ValueError("Request body json cannot be a string")  # noqa: TRY004  (expected TypeError)
         return body_json
 
     def _paginator_path(
@@ -425,7 +427,7 @@ class SimpleRetriever(Retriever):
                     self.cursor.observe(_slice, current_record)
 
                 # Latest record read, not necessarily within slice boundaries.
-                # TODO Remove once all custom components implement `observe` method.
+                # TODO: Remove once all custom components implement `observe` method.
                 # https://github.com/airbytehq/airbyte-internal-issues/issues/6955
                 most_recent_record_from_slice = self._get_most_recent_record(
                     most_recent_record_from_slice, current_record, _slice
@@ -440,7 +442,7 @@ class SimpleRetriever(Retriever):
         self,
         current_most_recent: Record | None,
         current_record: Record | None,
-        stream_slice: StreamSlice,
+        stream_slice: StreamSlice,  # noqa: ARG002  (unused)
     ) -> Record | None:
         if self.cursor and current_record:
             if not current_most_recent:
@@ -505,7 +507,7 @@ class SimpleRetriever(Retriever):
         return True
 
     @staticmethod
-    def _to_partition_key(to_serialize: Any) -> str:
+    def _to_partition_key(to_serialize: Any) -> str:  # noqa: ANN401  (any-type)
         # separators have changed in Python 3.4. To avoid being impacted by further change, we explicitly specify our own value
         return json.dumps(to_serialize, indent=None, separators=(",", ":"), sort_keys=True)
 

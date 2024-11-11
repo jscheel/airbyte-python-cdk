@@ -1,6 +1,5 @@
-#
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
-#
+# ruff: noqa: A005  # Shadows built-in 'types' module
 
 from __future__ import annotations
 
@@ -16,7 +15,7 @@ ConnectionDefinition = Mapping[str, Any]
 StreamState = Mapping[str, Any]
 
 
-class Record(Mapping[str, Any]):
+class Record(Mapping[str, Any]):  # noqa: PLW1641  # missing __hash__ method
     def __init__(
         self,
         data: Mapping[str, Any],
@@ -36,13 +35,13 @@ class Record(Mapping[str, Any]):
     def __repr__(self) -> str:
         return repr(self._data)
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> Any:  # noqa: ANN401  (any-type)
         return self._data[key]
 
     def __len__(self) -> int:
         return len(self._data)
 
-    def __iter__(self) -> Any:
+    def __iter__(self) -> Any:  # noqa: ANN401  (any-type)
         return iter(self._data)
 
     def __contains__(self, item: object) -> bool:
@@ -58,7 +57,7 @@ class Record(Mapping[str, Any]):
         return not self.__eq__(other)
 
 
-class StreamSlice(Mapping[str, Any]):
+class StreamSlice(Mapping[str, Any]):  # noqa: PLW1641  # missing __hash__ method
     def __init__(
         self,
         *,
@@ -104,10 +103,10 @@ class StreamSlice(Mapping[str, Any]):
     def __repr__(self) -> str:
         return repr(self._stream_slice)
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: Any) -> None:  # noqa: ANN401  (any-type)
         raise ValueError("StreamSlice is immutable")
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> Any:  # noqa: ANN401  (any-type)
         return self._stream_slice[key]
 
     def __len__(self) -> int:
@@ -116,7 +115,7 @@ class StreamSlice(Mapping[str, Any]):
     def __iter__(self) -> Iterator[str]:
         return iter(self._stream_slice)
 
-    def __contains__(self, item: Any) -> bool:
+    def __contains__(self, item: Any) -> bool:  # noqa: ANN401  (any-type)
         return item in self._stream_slice
 
     def keys(self) -> KeysView[str]:
@@ -128,7 +127,7 @@ class StreamSlice(Mapping[str, Any]):
     def values(self) -> ValuesView[Any]:
         return self._stream_slice.values()
 
-    def get(self, key: str, default: Any = None) -> Any | None:
+    def get(self, key: str, default: Any = None) -> Any | None:  # noqa: ANN401  (any-type)
         return self._stream_slice.get(key, default)
 
     def __eq__(self, other: object) -> bool:
@@ -142,5 +141,5 @@ class StreamSlice(Mapping[str, Any]):
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
-    def __json_serializable__(self) -> Any:
+    def __json_serializable__(self) -> Any:  # noqa: ANN401, PLW3201  (any-type, unexpected types)
         return self._stream_slice

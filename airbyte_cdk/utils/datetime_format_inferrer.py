@@ -36,7 +36,7 @@ class DatetimeFormatInferrer:
             range(1_000_000_000_000, 2_000_000_000_000),
         ]
 
-    def _can_be_datetime(self, value: Any) -> bool:
+    def _can_be_datetime(self, value: Any) -> bool:  # noqa: ANN401  (any-type)
         """Checks if the value can be a datetime.
         This is the case if the value is a string or an integer between 1_000_000_000 and 2_000_000_000 for seconds
         or between 1_000_000_000_000 and 2_000_000_000_000 for milliseconds.
@@ -53,11 +53,11 @@ class DatetimeFormatInferrer:
                 return True
         return False
 
-    def _matches_format(self, value: Any, format: str) -> bool:
+    def _matches_format(self, value: Any, format: str) -> bool:  # noqa: ANN401, A002  (any type, shadows built-in name)
         """Checks if the value matches the format"""
         try:
             self._parser.parse(value, format)
-            return True
+            return True  # noqa: TRY300  (consider 'else')
         except ValueError:
             return False
 
@@ -67,7 +67,7 @@ class DatetimeFormatInferrer:
         for field_name, field_value in record.data.items():
             if not self._can_be_datetime(field_value):
                 continue
-            for format in self._formats:
+            for format in self._formats:  # noqa: A001  (shadowed name)
                 if self._matches_format(field_value, format):
                     self._datetime_candidates[field_name] = format
                     break

@@ -28,6 +28,7 @@ class ObservedDict(dict):  # type: ignore # disallow_any_generics is set to True
         self,
         non_observed_mapping: MutableMapping[Any, Any],
         observer: ConfigObserver,
+        *,
         update_on_unchanged_value: bool = True,
     ) -> None:
         non_observed_mapping = copy(non_observed_mapping)
@@ -45,7 +46,7 @@ class ObservedDict(dict):  # type: ignore # disallow_any_generics is set to True
                         value[i] = ObservedDict(sub_value, observer)
         super().__init__(non_observed_mapping)
 
-    def __setitem__(self, item: Any, value: Any) -> None:
+    def __setitem__(self, item: Any, value: Any) -> None:  # noqa: ANN401  (any-type)
         """Override dict.__setitem__ by:
         1. Observing the new value if it is a dict
         2. Call observer update if the new value is different from the previous one
@@ -78,7 +79,7 @@ def observe_connector_config(
     non_observed_connector_config: MutableMapping[str, Any],
 ) -> ObservedDict:
     if isinstance(non_observed_connector_config, ObservedDict):
-        raise ValueError("This connector configuration is already observed")
+        raise ValueError("This connector configuration is already observed")  # noqa: TRY004  (expected TypeError)
     connector_config_observer = ConfigObserver()
     observed_connector_config = ObservedDict(
         non_observed_connector_config, connector_config_observer

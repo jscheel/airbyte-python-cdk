@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 class ExcelParser(FileTypeParser):
     ENCODING = None
 
-    def check_config(self, config: FileBasedStreamConfig) -> tuple[bool, str | None]:
+    def check_config(self, config: FileBasedStreamConfig) -> tuple[bool, str | None]:  # noqa: ARG002  (unused)
         """ExcelParser does not require config checks, implicit pydantic validation is enough."""
         return True, None
 
@@ -90,7 +90,7 @@ class ExcelParser(FileTypeParser):
         file: RemoteFile,
         stream_reader: AbstractFileBasedStreamReader,
         logger: logging.Logger,
-        discovered_schema: Mapping[str, SchemaType] | None = None,
+        discovered_schema: Mapping[str, SchemaType] | None = None,  # noqa: ARG002  (unused)
     ) -> Iterable[dict[str, Any]]:
         """Parses records from an Excel file based on the provided configuration.
 

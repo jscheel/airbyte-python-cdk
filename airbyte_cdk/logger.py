@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import logging.config
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from orjson import orjson
 
@@ -61,7 +61,7 @@ class AirbyteLogFormatter(logging.Formatter):
     """Output log records using AirbyteMessage"""
 
     # Transforming Python log levels to Airbyte protocol log levels
-    level_mapping = {
+    level_mapping: ClassVar[dict[int, Level]] = {
         logging.FATAL: Level.FATAL,
         logging.ERROR: Level.ERROR,
         logging.WARNING: Level.WARN,

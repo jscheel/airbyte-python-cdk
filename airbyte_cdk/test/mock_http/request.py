@@ -14,7 +14,7 @@ def _is_subdict(small: Mapping[str, str], big: Mapping[str, str]) -> bool:
     return dict(big, **small) == big
 
 
-class HttpRequest:
+class HttpRequest:  # noqa: PLW1641  # Missing __hash__ method
     def __init__(
         self,
         url: str,
@@ -40,27 +40,27 @@ class HttpRequest:
             return query_params
         return urlencode(query_params, doseq=True)
 
-    def matches(self, other: Any) -> bool:
+    def matches(self, other: Any) -> bool:  # noqa: ANN401  (any-type)
         """If the body of any request is a Mapping, we compare as Mappings which means that the order is not important.
         If the body is a string, encoding ISO-8859-1 will be assumed
         Headers only need to be a subset of `other` in order to match
         """
         if isinstance(other, HttpRequest):
             # if `other` is a mapping, we match as an object and formatting is not considers
-            if isinstance(self._body, Mapping) or isinstance(other._body, Mapping):
-                body_match = self._to_mapping(self._body) == self._to_mapping(other._body)
+            if isinstance(self._body, Mapping) or isinstance(other._body, Mapping):  # noqa: SLF001  (private member)
+                body_match = self._to_mapping(self._body) == self._to_mapping(other._body)  # noqa: SLF001  (private member)
             else:
-                body_match = self._to_bytes(self._body) == self._to_bytes(other._body)
+                body_match = self._to_bytes(self._body) == self._to_bytes(other._body)  # noqa: SLF001  (private member)
 
             return (
-                self._parsed_url.scheme == other._parsed_url.scheme
-                and self._parsed_url.hostname == other._parsed_url.hostname
-                and self._parsed_url.path == other._parsed_url.path
+                self._parsed_url.scheme == other._parsed_url.scheme  # noqa: SLF001  (private member)
+                and self._parsed_url.hostname == other._parsed_url.hostname  # noqa: SLF001  (private member)
+                and self._parsed_url.path == other._parsed_url.path  # noqa: SLF001  (private member)
                 and (
-                    ANY_QUERY_PARAMS in (self._query_params, other._query_params)
-                    or parse_qs(self._parsed_url.query) == parse_qs(other._parsed_url.query)
+                    ANY_QUERY_PARAMS in (self._query_params, other._query_params)  # noqa: SLF001  (private member)
+                    or parse_qs(self._parsed_url.query) == parse_qs(other._parsed_url.query)  # noqa: SLF001  (private member)
                 )
-                and _is_subdict(other._headers, self._headers)
+                and _is_subdict(other._headers, self._headers)  # noqa: SLF001  (private member)
                 and body_match
             )
         return False

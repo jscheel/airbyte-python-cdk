@@ -110,7 +110,7 @@ class ManifestReferenceResolver:
         """
         return self._evaluate_node(manifest, manifest, set())  # type: ignore[no-any-return]
 
-    def _evaluate_node(self, node: Any, manifest: Mapping[str, Any], visited: set[Any]) -> Any:
+    def _evaluate_node(self, node: Any, manifest: Mapping[str, Any], visited: set[Any]) -> Any:  # noqa: ANN401  (any-type)
         if isinstance(node, dict):
             evaluated_dict = {
                 k: self._evaluate_node(v, manifest, visited)
@@ -136,7 +136,7 @@ class ManifestReferenceResolver:
             return ret
         return node
 
-    def _lookup_ref_value(self, ref: str, manifest: Mapping[str, Any]) -> Any:
+    def _lookup_ref_value(self, ref: str, manifest: Mapping[str, Any]) -> Any:  # noqa: ANN401  (any-type)
         ref_match = re.match(r"#/(.*)", ref)
         if not ref_match:
             raise ValueError(f"Invalid reference format {ref}")
@@ -144,10 +144,10 @@ class ManifestReferenceResolver:
             path = ref_match.groups()[0]
             return self._read_ref_value(path, manifest)
         except (AttributeError, KeyError, IndexError):
-            raise UndefinedReferenceException(path, ref)
+            raise UndefinedReferenceException(path, ref) from None
 
     @staticmethod
-    def _is_ref(node: Any) -> bool:
+    def _is_ref(node: Any) -> bool:  # noqa: ANN401  (any-type)
         return isinstance(node, str) and node.startswith("#/")
 
     @staticmethod
@@ -155,7 +155,7 @@ class ManifestReferenceResolver:
         return bool(key == REF_TAG)
 
     @staticmethod
-    def _read_ref_value(ref: str, manifest_node: Mapping[str, Any]) -> Any:
+    def _read_ref_value(ref: str, manifest_node: Mapping[str, Any]) -> Any:  # noqa: ANN401  (any-type)
         """Read the value at the referenced location of the manifest.
 
         References are ambiguous because one could define a key containing `/`

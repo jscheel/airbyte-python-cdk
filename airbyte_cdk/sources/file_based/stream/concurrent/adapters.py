@@ -74,7 +74,7 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
         """Create a ConcurrentStream from a FileBasedStream object."""
         pk = get_primary_key_from_stream(stream.primary_key)
         cursor_field = get_cursor_field_from_stream(stream)
-        stream._cursor = cursor
+        stream._cursor = cursor  # noqa: SLF001  (private member)
 
         if not source.message_repository:
             raise ValueError(
@@ -106,7 +106,7 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
             stream,
             cursor,
             logger=logger,
-            slice_logger=source._slice_logger,
+            slice_logger=source._slice_logger,  # noqa: SLF001  (private member)
         )
 
     def __init__(
@@ -146,7 +146,7 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
     def availability_strategy(self) -> AbstractFileBasedAvailabilityStrategy:
         return self._legacy_stream.availability_strategy
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def get_json_schema(self) -> Mapping[str, Any]:
         return self._abstract_stream.get_json_schema()
 
@@ -177,21 +177,21 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
 
     def read(
         self,
-        configured_stream: ConfiguredAirbyteStream,
-        logger: logging.Logger,
-        slice_logger: SliceLogger,
-        stream_state: MutableMapping[str, Any],
-        state_manager: ConnectorStateManager,
-        internal_config: InternalConfig,
+        configured_stream: ConfiguredAirbyteStream,  # noqa: ARG002  (unused)
+        logger: logging.Logger,  # noqa: ARG002  (unused)
+        slice_logger: SliceLogger,  # noqa: ARG002  (unused)
+        stream_state: MutableMapping[str, Any],  # noqa: ARG002  (unused)
+        state_manager: ConnectorStateManager,  # noqa: ARG002  (unused)
+        internal_config: InternalConfig,  # noqa: ARG002  (unused)
     ) -> Iterable[StreamData]:
         yield from self._read_records()
 
     def read_records(
         self,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
-        stream_slice: Mapping[str, Any] | None = None,
-        stream_state: Mapping[str, Any] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
+        stream_slice: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
+        stream_state: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Iterable[StreamData]:
         try:
             yield from self._read_records()
@@ -264,7 +264,7 @@ class FileBasedStreamPartition(Partition):
                         else record_data.record.data
                     )
                     if not record_message_data:
-                        raise ExceptionWithDisplayMessage("A record without data was found")
+                        raise ExceptionWithDisplayMessage("A record without data was found")  # noqa: TRY301  (raise within try)
                     else:
                         yield Record(
                             data=record_message_data,
@@ -310,7 +310,7 @@ class FileBasedStreamPartition(Partition):
     def stream_name(self) -> str:
         return self._stream.name
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def _use_file_transfer(self) -> bool:
         return hasattr(self._stream, "use_file_transfer") and self._stream.use_file_transfer
 
@@ -342,7 +342,7 @@ class FileBasedStreamPartitionGenerator(PartitionGenerator):
         ):
             if _slice is not None:
                 for file in _slice.get("files", []):
-                    pending_partitions.append(
+                    pending_partitions.append(  # noqa: PERF401  (consider list comprehension)
                         FileBasedStreamPartition(
                             self._stream,
                             {"files": [copy.deepcopy(file)]},

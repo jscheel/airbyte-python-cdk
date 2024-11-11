@@ -167,7 +167,11 @@ class DatetimeBasedCursor(DeclarativeCursor):
         ):
             self._highest_observed_cursor_field_value = record_cursor_value
 
-    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
+    def close_slice(
+        self,
+        stream_slice: StreamSlice,
+        *args: Any,  # noqa: ANN401, ARG002  (any-type, unused)
+    ) -> None:
         if stream_slice.partition:
             raise ValueError(
                 f"Stream slice {stream_slice} should not have a partition. Got {stream_slice.partition}."
@@ -205,7 +209,7 @@ class DatetimeBasedCursor(DeclarativeCursor):
         start_datetime = self._calculate_earliest_possible_value(self.select_best_end_datetime())
         return self._partition_daterange(start_datetime, end_datetime, self._step)
 
-    def select_state(self, stream_slice: StreamSlice | None = None) -> StreamState | None:
+    def select_state(self, stream_slice: StreamSlice | None = None) -> StreamState | None:  # noqa: ARG002  (unused)
         # Datetime based cursors operate over slices made up of datetime ranges. Stream state is based on the progress
         # through each slice and does not belong to a specific slice. We just return stream state as it is.
         return self.get_stream_state()
@@ -321,36 +325,36 @@ class DatetimeBasedCursor(DeclarativeCursor):
     def get_request_params(
         self,
         *,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.request_parameter, stream_slice)
 
     def get_request_headers(
         self,
         *,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.header, stream_slice)
 
     def get_request_body_data(
         self,
         *,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.body_data, stream_slice)
 
     def get_request_body_json(
         self,
         *,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.body_json, stream_slice)
 

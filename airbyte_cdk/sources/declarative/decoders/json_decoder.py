@@ -69,8 +69,11 @@ class JsonlDecoder(Decoder):
     def is_stream_response(self) -> bool:
         return True
 
-    def decode(self, response: requests.Response) -> Generator[Mapping[str, Any], None, None]:
-        # TODO???: set delimiter? usually it is `\n` but maybe it would be useful to set optional?
+    def decode(  # type: ignore[override]  # Base class returns MutableMapping
+        self,
+        response: requests.Response,
+    ) -> Generator[Mapping[str, Any], None, None]:
+        # TODO: (?) set delimiter? usually it is `\n` but maybe it would be useful to set optional?
         #  https://github.com/airbytehq/airbyte-internal-issues/issues/8436
         for record in response.iter_lines():
             yield orjson.loads(record)

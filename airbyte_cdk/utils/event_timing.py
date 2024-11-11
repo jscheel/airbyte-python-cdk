@@ -8,6 +8,11 @@ import logging
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
+
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 logger = logging.getLogger("airbyte")
@@ -39,7 +44,7 @@ class EventTimer:
         else:
             logger.warning(f"{self.name} finish_event called without start_event")
 
-    def report(self, order_by="name") -> str:
+    def report(self, order_by: str = "name") -> str:
         """:param order_by: 'name' or 'duration'"""
         if order_by == "name":
             events = sorted(self.events.values(), key=lambda event: event.name)
@@ -71,7 +76,7 @@ class Event:
 
 
 @contextmanager
-def create_timer(name):
+def create_timer(name: str) -> Generator[EventTimer, Any, None]:
     """Creates a new EventTimer as a context manager to improve code readability."""
     a_timer = EventTimer(name)
     yield a_timer

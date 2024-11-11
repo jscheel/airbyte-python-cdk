@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class AbstractConcurrentFileBasedCursor(Cursor, AbstractFileBasedCursor, ABC):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401  (any-type)
         pass
 
     @property

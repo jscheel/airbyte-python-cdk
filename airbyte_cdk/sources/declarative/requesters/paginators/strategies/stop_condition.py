@@ -47,7 +47,7 @@ class StopConditionPaginationStrategyDecorator(PaginationStrategy):
 
     def next_page_token(
         self, response: requests.Response, last_page_size: int, last_record: Record | None
-    ) -> Any | None:
+    ) -> Any | None:  # noqa: ANN401  (any-type)
         # We evaluate in reverse order because the assumption is that most of the APIs using data feed structure will return records in
         # descending order. In terms of performance/memory, we return the records lazily
         if last_record and self._stop_condition.is_met(last_record):
@@ -61,5 +61,5 @@ class StopConditionPaginationStrategyDecorator(PaginationStrategy):
         return self._delegate.get_page_size()
 
     @property
-    def initial_token(self) -> Any | None:
+    def initial_token(self) -> Any | None:  # noqa: ANN401  (any-type)
         return self._delegate.initial_token

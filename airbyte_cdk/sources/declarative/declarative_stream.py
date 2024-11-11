@@ -111,7 +111,9 @@ class DeclarativeStream(Stream):
         self.retriever.state = state
 
     def get_updated_state(
-        self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]
+        self,
+        current_stream_state: MutableMapping[str, Any],  # noqa: ARG002  (unused)
+        latest_record: Mapping[str, Any],  # noqa: ARG002  (unused)
     ) -> MutableMapping[str, Any]:
         return self.state
 
@@ -131,10 +133,10 @@ class DeclarativeStream(Stream):
 
     def read_records(
         self,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
         stream_slice: Mapping[str, Any] | None = None,
-        stream_state: Mapping[str, Any] | None = None,
+        stream_state: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Iterable[Mapping[str, Any]]:
         """:param: stream_state We knowingly avoid using stream_state as we want cursors to manage their own state."""
         if stream_slice is None or stream_slice == {}:
@@ -145,7 +147,7 @@ class DeclarativeStream(Stream):
             # empty slice which seems to make sense.
             stream_slice = StreamSlice(partition={}, cursor_slice={})
         if not isinstance(stream_slice, StreamSlice):
-            raise ValueError(
+            raise ValueError(  # noqa: TRY004  (expected TypeError)
                 f"DeclarativeStream does not support stream_slices that are not StreamSlice. Got {stream_slice}"
             )
         yield from self.retriever.read_records(self.get_json_schema(), stream_slice)  # type: ignore # records are of the correct type
@@ -161,9 +163,9 @@ class DeclarativeStream(Stream):
     def stream_slices(
         self,
         *,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
-        stream_state: Mapping[str, Any] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
+        stream_state: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Iterable[StreamSlice | None]:
         """Override to define the slices for this stream. See the stream slicing section of the docs for more information.
 

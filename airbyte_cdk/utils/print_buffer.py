@@ -60,7 +60,7 @@ class PrintBuffer:
             sys.__stdout__.write(combined_message)  # type: ignore[union-attr]
             self.buffer = StringIO()
 
-    def __enter__(self) -> PrintBuffer:
+    def __enter__(self) -> PrintBuffer:  # noqa: PYI034  (unexpected type)
         self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
         # Used to disable buffering during the pytest session, because it is not compatible with capsys
         if "pytest" not in str(type(sys.stdout)).lower():
@@ -70,7 +70,7 @@ class PrintBuffer:
 
     def __exit__(
         self,
-        exc_type: BaseException | None,
+        exc_type: BaseException | None,  # noqa: PYI036  (unexpected type)
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:

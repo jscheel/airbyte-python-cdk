@@ -61,7 +61,7 @@ class HttpRequester(Requester):
     request_options_provider: InterpolatedRequestOptionsProvider | None = None
     error_handler: ErrorHandler | None = None
     disable_retries: bool = False
-    message_repository: MessageRepository = NoopMessageRepository()
+    message_repository: MessageRepository = NoopMessageRepository()  # noqa: RUF009  (function in default arg)
     use_cache: bool = False
     _exit_on_rate_limit: bool = False
     stream_response: bool = False
@@ -115,7 +115,7 @@ class HttpRequester(Requester):
         return self._authenticator
 
     def get_url_base(self) -> str:
-        return os.path.join(self._url_base.eval(self.config), "")
+        return os.path.join(self._url_base.eval(self.config), "")  # noqa: PTH118  (prefer pathlib)
 
     def get_path(
         self,
@@ -234,7 +234,7 @@ class HttpRequester(Requester):
             extra_headers,
         )
         if isinstance(headers, str):
-            raise ValueError("Request headers cannot be a string")
+            raise ValueError("Request headers cannot be a string")  # noqa: TRY004  (expected TypeError)
         return {str(k): str(v) for k, v in headers.items()}
 
     def _request_params(
@@ -257,11 +257,11 @@ class HttpRequester(Requester):
             extra_params,
         )
         if isinstance(options, str):
-            raise ValueError("Request params cannot be a string")
+            raise ValueError("Request params cannot be a string")  # noqa: TRY004  (expected TypeError)
 
         for k, v in options.items():
             if isinstance(v, dict):
-                raise ValueError(
+                raise ValueError(  # noqa: TRY004  (expected TypeError)
                     f"Invalid value for `{k}` parameter. The values of request params cannot be an object."
                 )
 
@@ -313,14 +313,14 @@ class HttpRequester(Requester):
             extra_body_json,
         )
         if isinstance(options, str):
-            raise ValueError("Request body json cannot be a string")
+            raise ValueError("Request body json cannot be a string")  # noqa: TRY004  (expected TypeError)
         return options
 
     @classmethod
     def _join_url(cls, url_base: str, path: str) -> str:
         return urljoin(url_base, path)
 
-    def send_request(
+    def send_request(  # noqa: PLR0913, PLR0917  (too many args)
         self,
         stream_state: StreamState | None = None,
         stream_slice: StreamSlice | None = None,

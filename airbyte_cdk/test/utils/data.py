@@ -20,5 +20,5 @@ def read_resource_file_contents(resource: str, test_location: str) -> str:
     file_path = str(
         get_unit_test_folder(test_location) / "resource" / "http" / "response" / f"{resource}"
     )
-    with open(file_path, encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:  # noqa: PTH123, FURB101  (prefer pathlib)
         return f.read()

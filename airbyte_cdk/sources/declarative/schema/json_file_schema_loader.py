@@ -71,7 +71,7 @@ class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
         self.package_name = resource
         return self._resolve_schema_references(raw_schema)
 
-    def _get_json_filepath(self) -> Any:
+    def _get_json_filepath(self) -> Any:  # noqa: ANN401  (any-type)
         return self.file_path.eval(self.config)  # type: ignore # file_path is always cast to an interpolated string
 
     @staticmethod
@@ -84,7 +84,7 @@ class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
         """
         split_path = json_schema_path.split("/")
 
-        if split_path[0] == "" or split_path[0] == ".":
+        if split_path[0] == "" or split_path[0] == ".":  # noqa: PLC1901  (compare to empty string)
             split_path = split_path[1:]
 
         if len(split_path) == 0:

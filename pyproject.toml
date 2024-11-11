@@ -139,7 +139,6 @@ select = [
     "ISC",   # flake8-implicit-str-concat
     "LOG",   # flake8-logging
     "N",     # pep8-naming
-    "PD",    # pandas-vet
     "PERF",  # Perflint
     "PGH",   # pygrep-hooks
     "PIE",   # flake8-pie
@@ -172,6 +171,7 @@ ignore = [
     "BLE001",  # Do not catch blind exception: Exception
     "C416",    # Allow unnecessary-comprehensions. Auto-fix sometimes unsafe if operating over a mapping.
     "DTZ005",  # Allow use of 'datetime.datetime.now()' without timezone (we should fix these eventually)
+    "DTZ007",  # Allow use of 'strptime()' without timezone (we should fix these eventually)
     "D",       # pydocstyle (Docstring conventions)
     "D102",    # Missing docstring in public method
     "D103",    # Missing docstring in public function
@@ -199,6 +199,7 @@ ignore = [
     "N818",    # Custom exception names should use the suffix "Error"
     "NPY",     # NumPy-specific rules
     "N805",    # Enforce first-arg is 'self' (false positive for class methods in Pydantic)
+    "PD",      # pandas-vet
     "PERF203", # exception handling in loop
     "PIE790",  # Allow unnecssary 'pass' (sometimes useful for readability)
     "PLR6201", # Allow membership checks in lists (set-based check is unsafe when values are unhashable)

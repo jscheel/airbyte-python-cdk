@@ -83,36 +83,36 @@ class SubstreamPartitionRouter(PartitionRouter):
 
     def get_request_params(
         self,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.request_parameter, stream_slice)
 
     def get_request_headers(
         self,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.header, stream_slice)
 
     def get_request_body_data(
         self,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.body_data, stream_slice)
 
     def get_request_body_json(
         self,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.body_json, stream_slice)
@@ -177,7 +177,7 @@ class SubstreamPartitionRouter(PartitionRouter):
                             f"Parent stream {parent_stream.name} returns records of type AirbyteMessage. This SubstreamPartitionRouter is not able to checkpoint incremental parent state."
                         )
                         if parent_record.type == MessageType.RECORD:
-                            parent_record = parent_record.record.data  # type: ignore[union-attr, assignment]  # record is always a Record
+                            parent_record = parent_record.record.data  # type: ignore[union-attr, assignment]  # record is always a Record  # noqa: PLW2901 (redefined loop var)
                         else:
                             continue
                     elif isinstance(parent_record, Record):
@@ -186,7 +186,7 @@ class SubstreamPartitionRouter(PartitionRouter):
                             if parent_record.associated_slice
                             else {}
                         )
-                        parent_record = parent_record.data
+                        parent_record = parent_record.data  # noqa: PLW2901 (redefined loop var)
                     elif not isinstance(parent_record, Mapping):
                         # The parent_record should only take the form of a Record, AirbyteMessage, or Mapping. Anything else is invalid
                         raise AirbyteTracedException(

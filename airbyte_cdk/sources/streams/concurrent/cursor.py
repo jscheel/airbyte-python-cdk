@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     )
 
 
-def _extract_value(mapping: Mapping[str, Any], path: list[str]) -> Any:
+def _extract_value(mapping: Mapping[str, Any], path: list[str]) -> Any:  # noqa: ANN401  (any-type)
     return functools.reduce(lambda a, b: a[b], path, mapping)
 
 
@@ -138,11 +138,11 @@ class ConcurrentCursor(Cursor):
     _START_BOUNDARY = 0
     _END_BOUNDARY = 1
 
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917  (too-many-args)
         self,
         stream_name: str,
         stream_namespace: str | None,
-        stream_state: Any,
+        stream_state: Any,  # noqa: ANN401  (any-type)
         message_repository: MessageRepository,
         connector_state_manager: ConnectorStateManager,
         connector_state_converter: AbstractStreamStateConverter,
@@ -204,7 +204,7 @@ class ConcurrentCursor(Cursor):
         if most_recent_cursor_value is None or most_recent_cursor_value < cursor_value:
             self._most_recent_cursor_value_per_partition[record.partition] = cursor_value
 
-    def _extract_cursor_value(self, record: Record) -> Any:
+    def _extract_cursor_value(self, record: Record) -> Any:  # noqa: ANN401  (any-type)
         return self._connector_state_converter.parse_value(self._cursor_field.extract_value(record))
 
     def close_partition(self, partition: Partition) -> None:
@@ -281,7 +281,7 @@ class ConcurrentCursor(Cursor):
         try:
             _slice = partition.to_slice()
             if not _slice:
-                raise KeyError(f"Could not find key `{key}` in empty slice")
+                raise KeyError(f"Could not find key `{key}` in empty slice")  # noqa: TRY301  (raise within try)
             return self._connector_state_converter.parse_value(_slice[key])  # type: ignore  # we expect the devs to specify a key that would return a CursorValueType
         except KeyError as exception:
             raise KeyError(
@@ -311,7 +311,7 @@ class ConcurrentCursor(Cursor):
             yield from self._split_per_slice_range(
                 self._start,
                 self.state["slices"][0][self._connector_state_converter.START_KEY],
-                False,
+                upper_is_end=False,
             )
 
         if len(self.state["slices"]) == 1:
@@ -320,7 +320,7 @@ class ConcurrentCursor(Cursor):
                     self.state["slices"][0][self._connector_state_converter.END_KEY]
                 ),
                 self._end_provider(),
-                True,
+                upper_is_end=True,
             )
         elif len(self.state["slices"]) > 1:
             for i in range(len(self.state["slices"]) - 1):
@@ -329,20 +329,20 @@ class ConcurrentCursor(Cursor):
                         self.state["slices"][i][self._connector_state_converter.END_KEY]
                         + self._cursor_granularity,
                         self.state["slices"][i + 1][self._connector_state_converter.START_KEY],
-                        False,
+                        upper_is_end=False,
                     )
                 else:
                     yield from self._split_per_slice_range(
                         self.state["slices"][i][self._connector_state_converter.END_KEY],
                         self.state["slices"][i + 1][self._connector_state_converter.START_KEY],
-                        False,
+                        upper_is_end=False,
                     )
             yield from self._split_per_slice_range(
                 self._calculate_lower_boundary_of_last_slice(
                     self.state["slices"][-1][self._connector_state_converter.END_KEY]
                 ),
                 self._end_provider(),
-                True,
+                upper_is_end=True,
             )
         else:
             raise ValueError("Expected at least one slice")
@@ -361,7 +361,11 @@ class ConcurrentCursor(Cursor):
         return lower_boundary
 
     def _split_per_slice_range(
-        self, lower: CursorValueType, upper: CursorValueType, upper_is_end: bool
+        self,
+        lower: CursorValueType,
+        upper: CursorValueType,
+        *,
+        upper_is_end: bool,
     ) -> Iterable[tuple[CursorValueType, CursorValueType]]:
         if lower >= upper:
             return

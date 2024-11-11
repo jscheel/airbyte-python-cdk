@@ -54,7 +54,7 @@ class WaitUntilTimeFromHeaderBackoffStrategy(BackoffStrategy):
     def backoff_time(
         self,
         response_or_exception: requests.Response | requests.RequestException | None,
-        attempt_count: int,
+        attempt_count: int,  # noqa: ARG002  (unused)
     ) -> float | None:
         now = time.time()
         header = self.header.eval(self.config)  # type: ignore # header is always cast to an interpolated string

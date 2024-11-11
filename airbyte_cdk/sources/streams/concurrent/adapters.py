@@ -115,7 +115,7 @@ class StreamFacade(AbstractStreamFacade[DefaultStream], Stream):
             ),
             stream,
             cursor,
-            slice_logger=source._slice_logger,
+            slice_logger=source._slice_logger,  # noqa: SLF001  (private member)
             logger=logger,
         )
 
@@ -147,21 +147,21 @@ class StreamFacade(AbstractStreamFacade[DefaultStream], Stream):
 
     def read(
         self,
-        configured_stream: ConfiguredAirbyteStream,
-        logger: logging.Logger,
-        slice_logger: SliceLogger,
-        stream_state: MutableMapping[str, Any],
-        state_manager: ConnectorStateManager,
-        internal_config: InternalConfig,
+        configured_stream: ConfiguredAirbyteStream,  # noqa: ARG002  (unused)
+        logger: logging.Logger,  # noqa: ARG002  (unused)
+        slice_logger: SliceLogger,  # noqa: ARG002  (unused)
+        stream_state: MutableMapping[str, Any],  # noqa: ARG002  (unused)
+        state_manager: ConnectorStateManager,  # noqa: ARG002  (unused)
+        internal_config: InternalConfig,  # noqa: ARG002  (unused)
     ) -> Iterable[StreamData]:
         yield from self._read_records()
 
     def read_records(
         self,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
-        stream_slice: Mapping[str, Any] | None = None,
-        stream_state: Mapping[str, Any] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
+        stream_slice: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
+        stream_state: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Iterable[StreamData]:
         try:
             yield from self._read_records()
@@ -205,7 +205,7 @@ class StreamFacade(AbstractStreamFacade[DefaultStream], Stream):
     def cursor(self) -> Cursor | None:  # type: ignore[override] # StreamFaced expects to use only airbyte_cdk.sources.streams.concurrent.cursor.Cursor
         return self._cursor
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def get_json_schema(self) -> Mapping[str, Any]:
         return self._abstract_stream.get_json_schema()
 
@@ -214,7 +214,9 @@ class StreamFacade(AbstractStreamFacade[DefaultStream], Stream):
         return self._legacy_stream.supports_incremental
 
     def check_availability(
-        self, logger: logging.Logger, source: Source | None = None
+        self,
+        logger: logging.Logger,  # noqa: ARG002  (unused)
+        source: Source | None = None,  # noqa: ARG002  (unused)
     ) -> tuple[bool, str | None]:
         """Verifies the stream is available. Delegates to the underlying AbstractStream and ignores the parameters
         :param logger: (ignored)
@@ -235,7 +237,7 @@ class StreamFacade(AbstractStreamFacade[DefaultStream], Stream):
 
 
 class SliceEncoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
+    def default(self, obj: Any) -> Any:  # noqa: ANN401  (any-type)
         if hasattr(obj, "__json_serializable__"):
             return obj.__json_serializable__()
 
@@ -460,9 +462,9 @@ class AvailabilityStrategyFacade(AvailabilityStrategy):
 
     def check_availability(
         self,
-        stream: Stream,
+        stream: Stream,  # noqa: ARG002  (unused)
         logger: logging.Logger,
-        source: Source | None = None,
+        source: Source | None = None,  # noqa: ARG002  (unused)
     ) -> tuple[bool, str | None]:
         """Checks stream availability.
 

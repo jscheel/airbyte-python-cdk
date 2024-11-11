@@ -28,7 +28,7 @@ class Oauth2Authenticator(AbstractOauth2Authenticator):
     If a connector_config is provided any mutation of it's value in the scope of this class will emit AirbyteControlConnectorConfigMessage.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917  (too many arguments)
         self,
         token_refresh_endpoint: str,
         client_id: str,
@@ -124,7 +124,7 @@ class SingleUseRefreshTokenOauth2Authenticator(Oauth2Authenticator):
     client_secret_config_path, refresh_token_config_path constructor arguments.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917  (too many arguments)
         self,
         connector_config: Mapping[str, Any],
         token_refresh_endpoint: str,
@@ -140,7 +140,7 @@ class SingleUseRefreshTokenOauth2Authenticator(Oauth2Authenticator):
         refresh_token_config_path: Sequence[str] = ("credentials", "refresh_token"),
         token_expiry_date_config_path: Sequence[str] = ("credentials", "token_expiry_date"),
         token_expiry_date_format: str | None = None,
-        message_repository: MessageRepository = NoopMessageRepository(),
+        message_repository: MessageRepository = NoopMessageRepository(),  # noqa: B008  (function call in default)
         *,
         token_expiry_is_time_of_expiration: bool = False,
         refresh_token_error_status_codes: tuple[int, ...] = (),
@@ -227,9 +227,13 @@ class SingleUseRefreshTokenOauth2Authenticator(Oauth2Authenticator):
         expiry_date = dpath.get(
             self._connector_config, self._token_expiry_date_config_path, default=""
         )
-        return pendulum.now().subtract(days=1) if expiry_date == "" else pendulum.parse(expiry_date)
+        return (
+            pendulum.now().subtract(days=1)
+            if expiry_date == ""  # noqa: PLC1901  (comparison to empty string)
+            else pendulum.parse(expiry_date)
+        )
 
-    def set_token_expiry_date(self, new_token_expiry_date) -> None:
+    def set_token_expiry_date(self, new_token_expiry_date) -> None:  # noqa: ANN001
         dpath.new(
             self._connector_config,
             self._token_expiry_date_config_path,
@@ -264,7 +268,7 @@ class SingleUseRefreshTokenOauth2Authenticator(Oauth2Authenticator):
             self.access_token = new_access_token
             self.set_refresh_token(new_refresh_token)
             self.set_token_expiry_date(new_token_expiry_date)
-            # FIXME emit_configuration_as_airbyte_control_message as been deprecated in favor of package airbyte_cdk.sources.message
+            # TODO: emit_configuration_as_airbyte_control_message as been deprecated in favor of package airbyte_cdk.sources.message
             #  Usually, a class shouldn't care about the implementation details but to keep backward compatibility where we print the
             #  message directly in the console, this is needed
             if not isinstance(self._message_repository, NoopMessageRepository):

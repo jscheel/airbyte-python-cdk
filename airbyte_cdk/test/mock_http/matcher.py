@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from airbyte_cdk.test.mock_http.request import HttpRequest
 
 
-class HttpRequestMatcher:
+class HttpRequestMatcher:  # noqa: PLW1641  # missing __hash__ method
     def __init__(self, request: HttpRequest, minimum_number_of_expected_match: int) -> None:
         self._request_to_match = request
         self._minimum_number_of_expected_match = minimum_number_of_expected_match

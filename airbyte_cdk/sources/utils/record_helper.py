@@ -26,8 +26,9 @@ if TYPE_CHECKING:
 def stream_data_to_airbyte_message(
     stream_name: str,
     data_or_message: StreamData,
-    transformer: TypeTransformer = TypeTransformer(TransformConfig.NoTransform),
+    transformer: TypeTransformer = TypeTransformer(TransformConfig.NoTransform),  # noqa: B008  (function call in default)
     schema: Mapping[str, Any] | None = None,
+    *,
     is_file_transfer_message: bool = False,
 ) -> AirbyteMessage:
     if schema is None:

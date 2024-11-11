@@ -12,7 +12,7 @@ from jsonschema import Draft7Validator, ValidationError, validators
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+    from collections.abc import Callable, Generator, Mapping
 
 
 json_to_python_simple = {
@@ -56,7 +56,7 @@ class TypeTransformer:
         :param config Transform config that would be applied to object
         """
         if TransformConfig.NoTransform in config and config != TransformConfig.NoTransform:
-            raise Exception("NoTransform option cannot be combined with other flags.")
+            raise Exception("NoTransform option cannot be combined with other flags.")  # noqa: TRY002  (vanilla exception)
         self._config = config
         all_validators = {
             key: self.__get_normalizer(key, orig_validator)
@@ -68,7 +68,7 @@ class TypeTransformer:
             meta_schema=Draft7Validator.META_SCHEMA, validators=all_validators
         )
 
-    def registerCustomTransform(
+    def registerCustomTransform(  # noqa: N802  (violates naming convention)
         self, normalization_callback: Callable[[Any, dict[str, Any]], Any]
     ) -> Callable:
         """Register custom normalization callback.
@@ -79,13 +79,13 @@ class TypeTransformer:
         :return Same callbeck, this is usefull for using registerCustomTransform function as decorator.
         """
         if TransformConfig.CustomSchemaNormalization not in self._config:
-            raise Exception(
+            raise Exception(  # noqa: TRY002  (vanilla exception)
                 "Please set TransformConfig.CustomSchemaNormalization config before registering custom normalizer"
             )
         self._custom_normalizer = normalization_callback
         return normalization_callback
 
-    def __normalize(self, original_item: Any, subschema: dict[str, Any]) -> Any:
+    def __normalize(self, original_item: Any, subschema: dict[str, Any]) -> Any:  # noqa: ANN401  (any-type)
         """Applies different transform function to object's field according to config.
         :param original_item original value of field.
         :param subschema part of the jsonschema containing field type/format data.
@@ -99,7 +99,10 @@ class TypeTransformer:
         return original_item
 
     @staticmethod
-    def default_convert(original_item: Any, subschema: dict[str, Any]) -> Any:
+    def default_convert(  # noqa: PLR0911  (too many return statements)
+        original_item: Any,  # noqa: ANN401  (any-type)
+        subschema: dict[str, Any],
+    ) -> Any:  # noqa: ANN401  (any-type)
         """Default transform function that is used when TransformConfig.DefaultSchemaNormalization flag set.
         :param original_item original value of field.
         :param subschema part of the jsonschema containing field type/format data.
@@ -140,15 +143,22 @@ class TypeTransformer:
             return original_item
         return original_item
 
-    def __get_normalizer(self, schema_key: str, original_validator: Callable):
+    def __get_normalizer(
+        self,
+        schema_key: str,
+        original_validator: Callable,
+    ) -> Callable[..., Generator[Any, Any, None]]:
         """Traverse through object fields using native jsonschema validator and apply normalization function.
         :param schema_key related json schema key that currently being validated/normalized.
         :original_validator: native jsonschema validator callback.
         """
 
-        def normalizator(
-            validator_instance: Callable, property_value: Any, instance: Any, schema: dict[str, Any]
-        ):
+        def _normalizer_fn(
+            validator_instance: Callable,
+            property_value: Any,  # noqa: ANN401  (any-type)
+            instance: Any,  # noqa: ANN401  (any-type)
+            schema: dict[str, Any],
+        ) -> Generator[Any, Any, None]:
             """Jsonschema validator callable it uses for validating instance. We
             override default Draft7Validator to perform value transformation
             before validation take place. We do not take any action except
@@ -160,7 +170,7 @@ class TypeTransformer:
             :
             """
 
-            def resolve(subschema):
+            def resolve(subschema):  # noqa: ANN001, ANN202
                 if "$ref" in subschema:
                     _, resolved = validator_instance.resolver.resolve(subschema["$ref"])
                     return resolved
@@ -172,7 +182,7 @@ class TypeTransformer:
             if schema_key == "properties" and isinstance(instance, dict):
                 for k, subschema in property_value.items():
                     if k in instance:
-                        subschema = resolve(subschema)
+                        subschema = resolve(subschema)  # noqa: PLW2901 (redefined loop var)
                         instance[k] = self.__normalize(instance[k], subschema)
             # Recursively normalize every item of the "instance" sub-array,
             # if "instance" is an incorrect type - skip recursive normalization of "instance"
@@ -184,7 +194,7 @@ class TypeTransformer:
             # Running native jsonschema traverse algorithm after field normalization is done.
             yield from original_validator(validator_instance, property_value, instance, schema)
 
-        return normalizator
+        return _normalizer_fn
 
     def transform(self, record: dict[str, Any], schema: Mapping[str, Any]) -> None:
         """Normalize and validate according to config.

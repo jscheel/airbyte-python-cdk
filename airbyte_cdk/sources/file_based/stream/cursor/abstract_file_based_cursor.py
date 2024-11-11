@@ -21,7 +21,7 @@ class AbstractFileBasedCursor(ABC):
     """Abstract base class for cursors used by file-based streams."""
 
     @abstractmethod
-    def __init__(self, stream_config: FileBasedStreamConfig, **kwargs: Any) -> None:
+    def __init__(self, stream_config: FileBasedStreamConfig, **kwargs: Any) -> None:  # noqa: ANN401  (any-type)
         """Common interface for all cursors."""
         ...
 

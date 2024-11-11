@@ -77,7 +77,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
     def observe(self, record: Record) -> None:
         pass
 
-    def close_partition(self, partition: Partition) -> None:
+    def close_partition(self, partition: Partition) -> None:  # noqa: ARG002  (unused)
         with self._pending_files_lock:
             if self._pending_files is None:
                 raise RuntimeError(
@@ -142,7 +142,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
             raise RuntimeError(
                 "Expected pending partitions to be set but it was not. This is unexpected. Please contact Support."
             )
-        with self._pending_files_lock:
+        with self._pending_files_lock:  # noqa: SIM117  (consider combining `with` blocks)
             with self._state_lock:
                 if file.uri not in self._pending_files:
                     self._message_repository.emit_message(
@@ -165,7 +165,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                     if oldest_file:
                         del self._file_to_datetime_history[oldest_file.uri]
                     else:
-                        raise Exception(
+                        raise Exception(  # noqa: TRY002  (vanilla exception)
                             "The history is full but there is no files in the history. This should never happen and might be indicative of a bug in the CDK."
                         )
                 self.emit_state_message()
@@ -184,7 +184,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
             self._message_repository.emit_message(state_message)
 
     def _get_new_cursor_value(self) -> str:
-        with self._pending_files_lock:
+        with self._pending_files_lock:  # noqa: SIM117  (consider combining `with` blocks)
             with self._state_lock:
                 if self._pending_files:
                     # If there are partitions that haven't been synced, we don't know whether the files that have been synced
@@ -234,7 +234,7 @@ class FileBasedConcurrentCursor(AbstractConcurrentFileBasedCursor):
                 if self._should_sync_file(f, logger):
                     yield f
 
-    def _should_sync_file(self, file: RemoteFile, logger: logging.Logger) -> bool:
+    def _should_sync_file(self, file: RemoteFile, logger: logging.Logger) -> bool:  # noqa: ARG002  (unused)
         with self._state_lock:
             if file.uri in self._file_to_datetime_history:
                 # If the file's uri is in the history, we should sync the file if it has been modified since it was synced

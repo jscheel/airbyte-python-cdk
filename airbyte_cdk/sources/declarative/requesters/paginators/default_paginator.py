@@ -142,40 +142,40 @@ class DefaultPaginator(Paginator):
     def get_request_params(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> MutableMapping[str, Any]:
         return self._get_request_options(RequestOptionType.request_parameter)
 
     def get_request_headers(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, str]:
         return self._get_request_options(RequestOptionType.header)
 
     def get_request_body_data(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.body_data)
 
     def get_request_body_json(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.body_json)
 
-    def reset(self, reset_value: Any | None = None) -> None:
+    def reset(self, reset_value: Any | None = None) -> None:  # noqa: ANN401  (any-type)
         if reset_value:
             self.pagination_strategy.reset(reset_value=reset_value)
         else:
@@ -275,6 +275,6 @@ class PaginatorTestReadDecorator(Paginator):
             stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token
         )
 
-    def reset(self, reset_value: Any | None = None) -> None:
+    def reset(self, reset_value: Any | None = None) -> None:  # noqa: ANN401, ARG002  (any-type, unused-argument)
         self._decorated.reset()
         self._page_count = self._PAGE_COUNT_BEFORE_FIRST_NEXT_CALL

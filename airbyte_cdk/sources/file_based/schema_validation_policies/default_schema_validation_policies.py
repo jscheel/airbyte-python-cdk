@@ -22,7 +22,9 @@ class EmitRecordPolicy(AbstractSchemaValidationPolicy):
     name = "emit_record"
 
     def record_passes_validation_policy(
-        self, record: Mapping[str, Any], schema: Mapping[str, Any] | None
+        self,
+        record: Mapping[str, Any],  # noqa: ARG002  (unused)
+        schema: Mapping[str, Any] | None,  # noqa: ARG002  (unused)
     ) -> bool:
         return True
 

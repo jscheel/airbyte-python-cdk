@@ -10,7 +10,7 @@ import re
 from typing import Any
 
 
-def hash(value: Any, hash_type: str = "md5", salt: str | None = None) -> str:
+def hash(value: Any, hash_type: str = "md5", salt: str | None = None) -> str:  # noqa: ANN401, A001  (any-type, shadowed-builtin)
     """Implementation of a custom Jinja2 hash filter
       Hash type defaults to 'md5' if one is not specified.
 
@@ -89,7 +89,7 @@ def base64decode(value: str) -> str:
     return base64.b64decode(value.encode("utf-8")).decode()
 
 
-def string(value: Any) -> str:
+def string(value: Any) -> str:  # noqa: ANN401  (any-type)
     """Converts the input value to a string.
     If the value is already a string, it is returned as is.
     Otherwise, the value is interpreted as a json object and wrapped in triple-quotes so it's evalued as a string by the JinjaInterpolation

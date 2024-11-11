@@ -44,7 +44,7 @@ class ExponentialBackoffStrategy(BackoffStrategy):
 
     def backoff_time(
         self,
-        response_or_exception: requests.Response | requests.RequestException | None,
+        response_or_exception: requests.Response | requests.RequestException | None,  # noqa: ARG002  (unused)
         attempt_count: int,
     ) -> float | None:
         return self._retry_factor * 2**attempt_count  # type: ignore # factor is always cast to an interpolated string

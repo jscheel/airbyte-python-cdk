@@ -49,7 +49,7 @@ class HttpStatusErrorHandler(ErrorHandler):
     def max_time(self) -> int | None:
         return self._max_time
 
-    def interpret_response(
+    def interpret_response(  # noqa: PLR0911  (too many returns)
         self, response_or_exception: requests.Response | Exception | None = None
     ) -> ErrorResolution:
         """Interpret the response and return the corresponding response action, failure type, and error message.

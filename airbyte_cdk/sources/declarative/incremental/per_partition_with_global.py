@@ -100,7 +100,7 @@ class PerPartitionWithGlobalCursor(DeclarativeCursor):
         ):
             # Generate slices for the current cursor and handle the last slice using the flag
             self._parent_state = parent_state
-            for slice, is_last_slice, _ in iterate_with_last_flag_and_state(
+            for slice, is_last_slice, _ in iterate_with_last_flag_and_state(  # noqa: A001  (shadowed built-in)
                 self._get_active_cursor().generate_slices_from_partition(partition=partition),
                 lambda: None,
             ):
@@ -126,7 +126,7 @@ class PerPartitionWithGlobalCursor(DeclarativeCursor):
             self._per_partition_cursor.observe(stream_slice, record)
         self._global_cursor.observe(stream_slice, record)
 
-    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
+    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:  # noqa: ANN401  (any-type)
         if not self._use_global_cursor:
             self._per_partition_cursor.close_slice(stream_slice, *args)
         self._global_cursor.close_slice(stream_slice, *args)

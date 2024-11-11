@@ -70,7 +70,7 @@ def _str_to_datetime(s: str) -> datetime.datetime:
     return parsed_date.astimezone(pytz.utc)
 
 
-def max(*args: typing.Any) -> typing.Any:
+def max(*args: typing.Any) -> typing.Any:  # noqa: ANN401, A001  (any-type, shadow builtin)
     """Returns biggest object of an iterable, or two or more arguments.
 
     max(iterable, *[, default=obj, key=func]) -> value
@@ -89,7 +89,7 @@ def max(*args: typing.Any) -> typing.Any:
     return builtins.max(*args)
 
 
-def day_delta(num_days: int, format: str = "%Y-%m-%dT%H:%M:%S.%f%z") -> str:
+def day_delta(num_days: int, format: str = "%Y-%m-%dT%H:%M:%S.%f%z") -> str:  # noqa: A002  (shadow builtin)
     """Returns datetime of now() + num_days
 
     Usage:
@@ -113,7 +113,9 @@ def duration(datestring: str) -> datetime.timedelta | isodate.Duration:
 
 
 def format_datetime(
-    dt: str | datetime.datetime, format: str, input_format: str | None = None
+    dt: str | datetime.datetime,
+    format: str,  # noqa: A002  (shadow builtin)
+    input_format: str | None = None,
 ) -> str:
     """Converts datetime to another format
 

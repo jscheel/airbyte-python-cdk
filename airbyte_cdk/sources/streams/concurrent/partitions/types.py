@@ -1,6 +1,8 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+# ruff: noqa: A005  # Shadows built-in 'types' module
+
 from __future__ import annotations
 
 from typing import Union
@@ -12,7 +14,7 @@ from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partitio
 from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 
 
-class PartitionCompleteSentinel:
+class PartitionCompleteSentinel:  # noqa: PLW1641  # missing __hash__ method
     """A sentinel object indicating all records for a partition were produced.
     Includes a pointer to the partition that was processed.
     """
@@ -36,6 +38,6 @@ class PartitionCompleteSentinel:
 """
 Typedef representing the items that can be added to the ThreadBasedConcurrentStream
 """
-QueueItem = Union[
+QueueItem = Union[  # noqa: UP007  (deprecated Union type)
     Record, Partition, PartitionCompleteSentinel, PartitionGenerationCompletedSentinel, Exception
 ]

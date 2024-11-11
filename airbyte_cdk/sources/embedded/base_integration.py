@@ -36,7 +36,7 @@ class BaseEmbeddedIntegration(ABC, Generic[TConfig, TOutput]):
         self.last_state: AirbyteStateMessage | None = None
 
     @abstractmethod
-    def _handle_record(self, record: AirbyteRecordMessage, id: str | None) -> TOutput | None:
+    def _handle_record(self, record: AirbyteRecordMessage, id: str | None) -> TOutput | None:  # noqa: A002  (shadowed built-in)
         """Turn an Airbyte record into the appropriate output type for the integration."""
         pass
 

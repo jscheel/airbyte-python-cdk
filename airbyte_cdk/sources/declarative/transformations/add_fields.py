@@ -39,7 +39,7 @@ class ParsedAddFieldDefinition:
 
 
 @dataclass
-class AddFields(RecordTransformation):
+class AddFields(RecordTransformation):  # noqa: PLW1641  # missing __hash__ method
     """Transformation which adds field to an output record. The path of the added field can be nested. Adding nested fields will create all
     necessary parent objects (like mkdir -p). Adding fields to an array will extend the array to that index (filling intermediate
     indices with null values). So if you add a field at index 5 to the array ["value"], it will become ["value", null, null, null, null,

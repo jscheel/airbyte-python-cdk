@@ -13,7 +13,7 @@ from airbyte_cdk.models import (
 )
 
 
-def create_analytics_message(type: str, value: Any | None) -> AirbyteMessage:
+def create_analytics_message(type: str, value: Any | None) -> AirbyteMessage:  # noqa: ANN401, A002  (any type, shadows built-in name)
     return AirbyteMessage(
         type=Type.TRACE,
         trace=AirbyteTraceMessage(

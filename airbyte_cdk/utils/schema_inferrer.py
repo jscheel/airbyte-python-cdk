@@ -65,7 +65,11 @@ class SchemaValidationException(Exception):
         # We assume the schema is the same for all SchemaValidationException
         return SchemaValidationException(
             exceptions[0].schema,
-            [x for exception in exceptions for x in exception._validation_errors],
+            [
+                x
+                for exception in exceptions
+                for x in exception._validation_errors  # noqa: SLF001  (private member)
+            ],
         )
 
     def __init__(
@@ -117,7 +121,7 @@ class SchemaInferrer:
             node.pop(_TYPE, None)
 
     def _clean_any_of(self, node: InferredSchema) -> None:
-        if len(node[_ANY_OF]) == 2 and self._null_type_in_any_of(node):
+        if len(node[_ANY_OF]) == 2 and self._null_type_in_any_of(node):  # noqa: PLR2004  (magic number)
             real_type = (
                 node[_ANY_OF][1] if node[_ANY_OF][0][_TYPE] == _NULL_TYPE else node[_ANY_OF][0]
             )
@@ -125,7 +129,7 @@ class SchemaInferrer:
             node[_TYPE] = [node[_TYPE], _NULL_TYPE]
             node.pop(_ANY_OF)
         # populate `type` for `anyOf` if it's not present to pass all other checks
-        elif len(node[_ANY_OF]) == 2 and not self._null_type_in_any_of(node):
+        elif len(node[_ANY_OF]) == 2 and not self._null_type_in_any_of(node):  # noqa: PLR2004  (magic number)
             node[_TYPE] = [_NULL_TYPE]
 
     def _clean_properties(self, node: InferredSchema) -> None:

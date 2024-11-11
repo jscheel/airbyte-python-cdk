@@ -17,7 +17,7 @@ class DatetimeParser:
 
     _UNIX_EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
 
-    def parse(self, date: str | int, format: str) -> datetime.datetime:
+    def parse(self, date: str | int, format: str) -> datetime.datetime:  # noqa: A002  (shadowed built-in)
         # "%s" is a valid (but unreliable) directive for formatting, but not for parsing
         # It is defined as
         # The number of seconds since the Epoch, 1970-01-01 00:00:00+0000 (UTC). https://man7.org/linux/man-pages/man3/strptime.3.html
@@ -36,7 +36,7 @@ class DatetimeParser:
             return parsed_datetime.replace(tzinfo=datetime.timezone.utc)
         return parsed_datetime
 
-    def format(self, dt: datetime.datetime, format: str) -> str:
+    def format(self, dt: datetime.datetime, format: str) -> str:  # noqa: A002  (shadowed built-in)
         # strftime("%s") is unreliable because it ignores the time zone information and assumes the time zone of the system it's running on
         # It's safer to use the timestamp() method than the %s directive
         # See https://stackoverflow.com/a/4974930

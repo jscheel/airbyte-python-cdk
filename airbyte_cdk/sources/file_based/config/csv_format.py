@@ -189,7 +189,7 @@ class CsvFormat(BaseModel):
         try:
             codecs.lookup(v)
         except LookupError:
-            raise ValueError(f"invalid encoding format: {v}")
+            raise ValueError(f"invalid encoding format: {v}") from None
         return v
 
     @root_validator

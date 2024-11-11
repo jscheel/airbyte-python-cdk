@@ -33,7 +33,7 @@ class UserDefinedBackoffException(BaseBackoffException):
 
     def __init__(
         self,
-        backoff: int | float,
+        backoff: int | float,  # noqa: PYI041  (redundant union)
         request: requests.PreparedRequest,
         response: requests.Response | Exception | None,
         error_message: str = "",

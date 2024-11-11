@@ -18,7 +18,10 @@ if typing.TYPE_CHECKING:
 
 class HttpAvailabilityStrategy(AvailabilityStrategy):
     def check_availability(
-        self, stream: Stream, logger: logging.Logger, source: Source | None = None
+        self,
+        stream: Stream,
+        logger: logging.Logger,
+        source: Source | None = None,  # noqa: ARG002  (unused)
     ) -> tuple[bool, str | None]:
         """Check stream availability by attempting to read the first record of the
         stream.
@@ -47,7 +50,7 @@ class HttpAvailabilityStrategy(AvailabilityStrategy):
 
         try:
             self.get_first_record_for_slice(stream, stream_slice)
-            return True, None
+            return True, None  # noqa: TRY300  (consider try-else)
         except StopIteration:
             logger.info(f"Successfully connected to stream {stream.name}, but got 0 records.")
             return True, None

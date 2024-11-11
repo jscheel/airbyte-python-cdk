@@ -157,7 +157,7 @@ class PerPartitionCursor(DeclarativeCursor):
             StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice), record
         )
 
-    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
+    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:  # noqa: ANN401  (any-type)
         try:
             self._cursor_per_partition[self._to_partition_key(stream_slice.partition)].close_slice(
                 StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice), *args
@@ -166,7 +166,7 @@ class PerPartitionCursor(DeclarativeCursor):
             raise ValueError(
                 f"Partition {exception!s} could not be found in current state based on the record. This is unexpected because "
                 f"we should only update state for partitions that were emitted during `stream_slices`"
-            )
+            ) from None
 
     def get_stream_state(self) -> StreamState:
         states = []
@@ -212,7 +212,7 @@ class PerPartitionCursor(DeclarativeCursor):
 
         return self._get_state_for_partition(stream_slice.partition)
 
-    def _create_cursor(self, cursor_state: Any) -> DeclarativeCursor:
+    def _create_cursor(self, cursor_state: Any) -> DeclarativeCursor:  # noqa: ANN401  (any-type)
         cursor = self._cursor_factory.create()
         cursor.set_initial_state(cursor_state)
         return cursor

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 class DefaultBackoffStrategy(BackoffStrategy):
     def backoff_time(
         self,
-        response_or_exception: requests.Response | requests.RequestException | None,
-        attempt_count: int,
+        response_or_exception: requests.Response | requests.RequestException | None,  # noqa: ARG002  (unused)
+        attempt_count: int,  # noqa: ARG002  (unused)
     ) -> float | None:
         return None

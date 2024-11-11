@@ -30,7 +30,7 @@ class InterpolatedMapping:
         self._interpolation = JinjaInterpolation()
         self._parameters = parameters
 
-    def eval(self, config: Config, **additional_parameters: Any) -> dict[str, Any]:
+    def eval(self, config: Config, **additional_parameters: Any) -> dict[str, Any]:  # noqa: ANN401  (any-type)
         """Wrapper around a Mapping[str, str] that allows for both keys and values to be interpolated.
 
         :param config: The user-provided configuration as specified by the source's spec
@@ -50,7 +50,7 @@ class InterpolatedMapping:
             for name, value in self.mapping.items()
         }
 
-    def _eval(self, value: str, config: Config, **kwargs: Any) -> Any:
+    def _eval(self, value: str, config: Config, **kwargs: Any) -> Any:  # noqa: ANN401  (any-type)
         # The values in self._mapping can be of Any type
         # We only want to interpolate them if they are strings
         if isinstance(value, str):

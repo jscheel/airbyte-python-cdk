@@ -75,10 +75,15 @@ class AbstractSource(Source, ABC):
         """
 
     # Stream name to instance map for applying output object transformation
-    _stream_to_instance_map: dict[str, Stream] = {}
+    _stream_to_instance_map: dict[str, Stream] = {}  # noqa: RUF012  (mutable class member can leak across instances)
     _slice_logger: SliceLogger = DebugSliceLogger()
 
-    def discover(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteCatalog:
+    def discover(
+        self,
+        logger: logging.Logger,
+        config: Mapping[str, Any],
+    ) -> AirbyteCatalog:
+        _ = logger  # unused
         """Implements the Discover operation from the Airbyte Specification.
         See https://docs.airbyte.com/understanding-airbyte/airbyte-protocol/#discover.
         """
@@ -94,7 +99,7 @@ class AbstractSource(Source, ABC):
             return AirbyteConnectionStatus(status=Status.FAILED, message=repr(error))
         return AirbyteConnectionStatus(status=Status.SUCCEEDED)
 
-    def read(
+    def read(  # noqa: PLR0915
         self,
         logger: logging.Logger,
         config: Mapping[str, Any],
@@ -104,7 +109,7 @@ class AbstractSource(Source, ABC):
         """Implements the Read operation from the Airbyte Specification. See https://docs.airbyte.com/understanding-airbyte/airbyte-protocol/."""
         logger.info(f"Starting syncing {self.name}")
         config, internal_config = split_config(config)
-        # TODO assert all streams exist in the connector
+        # TODO assert all streams exist in the connector  # noqa: TD004
         # get the streams once in case the connector needs to make any queries to generate them
         stream_instances = {s.name: s for s in self.streams(config)}
         state_manager = ConnectorStateManager(state=state)
@@ -133,7 +138,7 @@ class AbstractSource(Source, ABC):
                         # Use configured_stream as stream_instance to support references in error handling.
                         stream_instance = configured_stream.stream
 
-                        raise AirbyteTracedException(
+                        raise AirbyteTracedException(  # noqa: TRY301
                             message="A stream listed in your configuration was not found in the source. Please check the logs for more "
                             "details.",
                             internal_message=error_message,

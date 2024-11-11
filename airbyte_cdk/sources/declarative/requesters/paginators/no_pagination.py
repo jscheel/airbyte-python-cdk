@@ -29,44 +29,47 @@ class NoPagination(Paginator):
     def get_request_params(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> MutableMapping[str, Any]:
         return {}
 
     def get_request_headers(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, str]:
         return {}
 
     def get_request_body_data(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any] | str:
         return {}
 
     def get_request_body_json(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return {}
 
     def next_page_token(
-        self, response: requests.Response, last_page_size: int, last_record: Record | None
+        self,
+        response: requests.Response,  # noqa: ARG002  (unused)
+        last_page_size: int,  # noqa: ARG002  (unused)
+        last_record: Record | None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return {}
 
-    def reset(self, reset_value: Any | None = None) -> None:
+    def reset(self, reset_value: Any | None = None) -> None:  # noqa: ANN401  (any-type)
         # No state to reset
         pass

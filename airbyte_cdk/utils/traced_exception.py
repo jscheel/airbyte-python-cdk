@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import time
 import traceback
+from typing import Any
 
 from orjson import orjson
 
@@ -100,20 +101,20 @@ class AirbyteTracedException(Exception):
         cls,
         exc: BaseException,
         stream_descriptor: StreamDescriptor | None = None,
-        *args,
-        **kwargs,
-    ) -> AirbyteTracedException:  # type: ignore  # ignoring because of args and kwargs
+        *args: Any,  # noqa: ANN401  (any-type)
+        **kwargs: Any,  # noqa: ANN401  (any-type)
+    ) -> AirbyteTracedException:
         """Helper to create an AirbyteTracedException from an existing exception
         :param exc: the exception that caused the error
         :param stream_descriptor: describe the stream from which the exception comes from
         """
         return cls(
+            *args,
             internal_message=str(exc),
             exception=exc,
             stream_descriptor=stream_descriptor,
-            *args,
             **kwargs,
-        )  # type: ignore  # ignoring because of args and kwargs
+        )
 
     def as_sanitized_airbyte_message(
         self, stream_descriptor: StreamDescriptor | None = None

@@ -20,13 +20,13 @@ class PaginationStrategy:
 
     @property
     @abstractmethod
-    def initial_token(self) -> Any | None:
+    def initial_token(self) -> Any | None:  # noqa: ANN401  (any-type)
         """Return the initial value of the token"""
 
     @abstractmethod
     def next_page_token(
         self, response: requests.Response, last_page_size: int, last_record: Record | None
-    ) -> Any | None:
+    ) -> Any | None:  # noqa: ANN401  (any-type)
         """:param response: response to process
         :param last_page_size: the number of records read from the response
         :param last_record: the last record extracted from the response
@@ -35,7 +35,7 @@ class PaginationStrategy:
         pass
 
     @abstractmethod
-    def reset(self, reset_value: Any | None = None) -> None:
+    def reset(self, reset_value: Any | None = None) -> None:  # noqa: ANN401  (any-type)
         """Reset the pagination's inner state"""
 
     @abstractmethod

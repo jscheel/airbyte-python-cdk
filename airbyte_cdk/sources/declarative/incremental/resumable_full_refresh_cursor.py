@@ -30,7 +30,8 @@ class ResumableFullRefreshCursor(DeclarativeCursor):
         """Resumable full refresh manages state using a page number so it does not need to update state by observing incoming records."""
         pass
 
-    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
+    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:  # noqa: ANN401   (any-type)
+        _ = args
         # The ResumableFullRefreshCursor doesn't support nested streams yet so receiving a partition is unexpected
         if stream_slice.partition:
             raise ValueError(
@@ -38,17 +39,17 @@ class ResumableFullRefreshCursor(DeclarativeCursor):
             )
         self._cursor = stream_slice.cursor_slice
 
-    def should_be_synced(self, record: Record) -> bool:
+    def should_be_synced(self, record: Record) -> bool:  # noqa: ARG002  (unused)
         """Unlike date-based cursors which filter out records outside slice boundaries, resumable full refresh records exist within pages
         that don't have filterable bounds. We should always return them.
         """
         return True
 
-    def is_greater_than_or_equal(self, first: Record, second: Record) -> bool:
+    def is_greater_than_or_equal(self, first: Record, second: Record) -> bool:  # noqa: ARG002  (unused)
         """RFR record don't have ordering to be compared between one another."""
         return False
 
-    def select_state(self, stream_slice: StreamSlice | None = None) -> StreamState | None:
+    def select_state(self, stream_slice: StreamSlice | None = None) -> StreamState | None:  # noqa: ARG002  (unused)
         # A top-level RFR cursor only manages the state of a single partition
         return self._cursor
 
@@ -64,36 +65,36 @@ class ResumableFullRefreshCursor(DeclarativeCursor):
     def get_request_params(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return {}
 
     def get_request_headers(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return {}
 
     def get_request_body_data(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return {}
 
     def get_request_body_json(
         self,
         *,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return {}
 
@@ -107,7 +108,7 @@ class ChildPartitionResumableFullRefreshCursor(ResumableFullRefreshCursor):
     Check the `close_slice` method overide for more info about the actual behaviour of this cursor.
     """
 
-    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
+    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:  # noqa: ANN401  (any-type)
         """Once the current slice has finished syncing:
          - paginator returns None
          - no more slices to process
@@ -116,4 +117,5 @@ class ChildPartitionResumableFullRefreshCursor(ResumableFullRefreshCursor):
         thus we have to set the cursor to ` __ab_full_refresh_sync_complete: true `,
         otherwise there is a risk of Inf. Loop processing the same slice.
         """
+        _ = stream_slice, args
         self._cursor = FULL_REFRESH_COMPLETE_STATE

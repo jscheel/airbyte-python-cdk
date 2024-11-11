@@ -17,7 +17,7 @@ from airbyte_cdk.sources.file_based.exceptions import (
 )
 
 
-JsonSchemaSupportedType = Union[list[str], Literal["string"], str]
+JsonSchemaSupportedType = Union[list[str], Literal["string"], str]  # noqa: PYI051, UP007  (deprecated Union type, redundant Union)
 SchemaType = Mapping[str, Mapping[str, JsonSchemaSupportedType]]
 
 schemaless_schema = {"type": "object", "properties": {"data": {"type": "object"}}}
@@ -36,7 +36,7 @@ class ComparableType(Enum):
     STRING = 4
     OBJECT = 5
 
-    def __lt__(self, other: Any) -> bool:
+    def __lt__(self, other: Any) -> bool:  # noqa: ANN401  (any-type)
         if self.__class__ is other.__class__:
             return self.value < other.value  # type: ignore
         return NotImplemented
@@ -55,7 +55,7 @@ TYPE_PYTHON_MAPPING: Mapping[str, tuple[str, type[Any] | None]] = {
 PYTHON_TYPE_MAPPING = {t: k for k, (_, t) in TYPE_PYTHON_MAPPING.items()}
 
 
-def get_comparable_type(value: Any) -> ComparableType | None:
+def get_comparable_type(value: Any) -> ComparableType | None:  # noqa: ANN401, PLR0911  (any-type, too many returns)
     if value == "null":
         return ComparableType.NULL
     if value == "boolean":
@@ -71,7 +71,7 @@ def get_comparable_type(value: Any) -> ComparableType | None:
     return None
 
 
-def get_inferred_type(value: Any) -> ComparableType | None:
+def get_inferred_type(value: Any) -> ComparableType | None:  # noqa: ANN401, PLR0911  (any-type, too many returns)
     if value is None:
         return ComparableType.NULL
     if isinstance(value, bool):
@@ -163,7 +163,7 @@ def _choose_wider_type(key: str, t1: Mapping[str, Any], t2: Mapping[str, Any]) -
     )  # accessing the type_mapping value
 
 
-def is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:
+def is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:  # noqa: ANN401  (any-type)
     if isinstance(value, list):
         # We do not compare lists directly; the individual items are compared.
         # If we hit this condition, it means that the expected type is not
@@ -178,7 +178,7 @@ def is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:
     return ComparableType(inferred_type) <= ComparableType(get_comparable_type(expected_type))
 
 
-def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> bool:
+def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> bool:  # noqa: PLR0911  (too many returns)
     """Return true iff the record conforms to the supplied schema.
 
     The record conforms to the supplied schema iff:
@@ -248,7 +248,7 @@ def type_mapping_to_jsonschema(
     json_mapping = _parse_json_input(input_schema) or {}
 
     for col_name, type_name in json_mapping.items():
-        col_name, type_name = col_name.strip(), type_name.strip()
+        col_name, type_name = col_name.strip(), type_name.strip()  # noqa: PLW2901  (redefined loop var)
         if not (col_name and type_name):
             raise ConfigValidationError(
                 FileBasedSourceError.ERROR_PARSING_USER_PROVIDED_SCHEMA,

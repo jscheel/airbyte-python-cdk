@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class RecordTransformation:
+class RecordTransformation:  # noqa: PLW1641  # missing __hash__ method
     """Implementations of this class define transformations that can be applied to records of a stream."""
 
     @abstractmethod

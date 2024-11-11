@@ -62,7 +62,7 @@ class IncrementalCheckpointReader(CheckpointReader):
         try:
             next_slice = next(self._stream_slices)
             self._has_slices = True
-            return next_slice
+            return next_slice  # noqa: TRY300  (consider try-else)
         except StopIteration:
             # This is used to avoid sending a duplicate state message at the end of a sync since the stream has already
             # emitted state at the end of each slice. If we want to avoid this extra complexity, we can also just accept
@@ -90,6 +90,7 @@ class CursorBasedCheckpointReader(CheckpointReader):
         self,
         cursor: Cursor,
         stream_slices: Iterable[Mapping[str, Any] | None],
+        *,
         read_state_from_cursor: bool = False,
     ) -> None:
         self._cursor = cursor
@@ -104,7 +105,7 @@ class CursorBasedCheckpointReader(CheckpointReader):
     def next(self) -> Mapping[str, Any] | None:
         try:
             self.current_slice = self._find_next_slice()
-            return self.current_slice
+            return self.current_slice  # noqa: TRY300  (consider try-else)
         except StopIteration:
             self._finished_sync = True
             return None
@@ -196,7 +197,7 @@ class CursorBasedCheckpointReader(CheckpointReader):
     def read_and_convert_slice(self) -> StreamSlice:
         next_slice = next(self._stream_slices)
         if not isinstance(next_slice, StreamSlice):
-            raise ValueError(
+            raise ValueError(  # noqa: TRY004  (expected TypeError)
                 f"{self.current_slice} should be of type StreamSlice. This is likely a bug in the CDK, please contact Airbyte support"
             )
         return next_slice
@@ -226,6 +227,7 @@ class LegacyCursorBasedCheckpointReader(CursorBasedCheckpointReader):
         self,
         cursor: Cursor,
         stream_slices: Iterable[Mapping[str, Any] | None],
+        *,
         read_state_from_cursor: bool = False,
     ) -> None:
         super().__init__(
@@ -259,7 +261,7 @@ class LegacyCursorBasedCheckpointReader(CursorBasedCheckpointReader):
     def read_and_convert_slice(self) -> StreamSlice:
         next_mapping_slice = next(self._stream_slices)
         if not isinstance(next_mapping_slice, Mapping):
-            raise ValueError(
+            raise ValueError(  # noqa: TRY004  (expected TypeError)
                 f"{self.current_slice} should be of type Mapping. This is likely a bug in the CDK, please contact Airbyte support"
             )
 

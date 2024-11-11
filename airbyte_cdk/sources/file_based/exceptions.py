@@ -42,9 +42,9 @@ class FileBasedSourceError(Enum):
 class FileBasedErrorsCollector:
     """The placeholder for all errors collected."""
 
-    errors: list[AirbyteMessage] = []
+    errors: list[AirbyteMessage] = []  # noqa: RUF012  (mutable class attribute can leak across instances)
 
-    def yield_and_raise_collected(self) -> Any:
+    def yield_and_raise_collected(self) -> Any:  # noqa: ANN401  (any-type)
         if self.errors:
             # emit collected logged messages
             yield from self.errors

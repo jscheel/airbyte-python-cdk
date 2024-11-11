@@ -30,7 +30,7 @@ class StreamPartitionAccessEnvironment(SandboxedEnvironment):
     parameter
     """
 
-    def is_safe_attribute(self, obj: Any, attr: str, value: Any) -> bool:
+    def is_safe_attribute(self, obj: Any, attr: str, value: Any) -> bool:  # noqa: ANN401  (any-type)
         if attr == "_partition":
             return True
         return super().is_safe_attribute(obj, attr, value)  # type: ignore  # for some reason, mypy says 'Returning Any from function declared to return "bool"'
@@ -54,7 +54,7 @@ class JinjaInterpolation(Interpolation):
     """
 
     # These aliases are used to deprecate existing keywords without breaking all existing connectors.
-    ALIASES = {
+    ALIASES = {  # noqa: RUF012
         "stream_interval": "stream_slice",  # Use stream_interval to access incremental_sync values
         "stream_partition": "stream_slice",  # Use stream_partition to access partition router's values
     }
@@ -62,12 +62,14 @@ class JinjaInterpolation(Interpolation):
     # These extensions are not installed so they're not currently a problem,
     # but we're still explicitely removing them from the jinja context.
     # At worst, this is documentation that we do NOT want to include these extensions because of the potential security risks
-    RESTRICTED_EXTENSIONS = ["jinja2.ext.loopcontrols"]  # Adds support for break continue in loops
+    RESTRICTED_EXTENSIONS = [  # noqa: RUF012  (mutable class attribute)
+        "jinja2.ext.loopcontrols"
+    ]  # Adds support for break continue in loops
 
     # By default, these Python builtin functions are available in the Jinja context.
     # We explicitely remove them because of the potential security risk.
     # Please add a unit test to test_jinja.py when adding a restriction.
-    RESTRICTED_BUILTIN_FUNCTIONS = [
+    RESTRICTED_BUILTIN_FUNCTIONS = [  # noqa: RUF012
         "range"
     ]  # The range function can cause very expensive computations
 
@@ -87,8 +89,8 @@ class JinjaInterpolation(Interpolation):
         config: Config,
         default: str | None = None,
         valid_types: tuple[type[Any]] | None = None,
-        **additional_parameters: Any,
-    ) -> Any:
+        **additional_parameters: Any,  # noqa: ANN401  (any-type)
+    ) -> Any:  # noqa: ANN401  (any-type)
         context = {"config": config, **additional_parameters}
 
         for alias, equivalent in self.ALIASES.items():
@@ -107,13 +109,13 @@ class JinjaInterpolation(Interpolation):
                     return self._literal_eval(result, valid_types)
             else:
                 # If input is not a string, return it as is
-                raise Exception(f"Expected a string, got {input_str}")
+                raise Exception(f"Expected a string, got {input_str}")  # noqa: TRY002, TRY004  (should raise TypeError)
         except UndefinedError:
             pass
         # If result is empty or resulted in an undefined error, evaluate and return the default string
         return self._literal_eval(self._eval(default, context), valid_types)
 
-    def _literal_eval(self, result: str | None, valid_types: tuple[type[Any]] | None) -> Any:
+    def _literal_eval(self, result: str | None, valid_types: tuple[type[Any]] | None) -> Any:  # noqa: ANN401  (any-type)
         try:
             evaluated = ast.literal_eval(result)  # type: ignore # literal_eval is able to handle None
         except (ValueError, SyntaxError):
@@ -136,13 +138,13 @@ class JinjaInterpolation(Interpolation):
             # It can be returned as is
             return s
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def _find_undeclared_variables(self, s: str | None) -> Template:
         """Find undeclared variables and cache them"""
         ast = self._environment.parse(s)  # type: ignore # parse is able to handle None
         return meta.find_undeclared_variables(ast)
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def _compile(self, s: str | None) -> Template:
         """We must cache the Jinja Template ourselves because we're using `from_string` instead of a template loader"""
         return self._environment.from_string(s)

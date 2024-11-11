@@ -33,7 +33,7 @@ def init_uncaught_exception_handler(logger: logging.Logger) -> None:
         exception_type: type[BaseException],
         exception_value: BaseException,
         traceback_: TracebackType | None,
-    ) -> Any:
+    ) -> Any:  # noqa: ANN401  (any-type)
         # For developer ergonomics, we want to see the stack trace in the logs when we do a ctrl-c
         if issubclass(exception_type, KeyboardInterrupt):
             sys.__excepthook__(exception_type, exception_value, traceback_)

@@ -8,7 +8,7 @@ import itertools
 import traceback
 from copy import deepcopy
 from functools import cache
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, FailureType, Level
 from airbyte_cdk.models import Type as MessageType
@@ -52,10 +52,10 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
     ab_file_name_col = "_ab_source_file_url"
     modified = "modified"
     source_file_url = "source_file_url"
-    airbyte_columns = [ab_last_mod_col, ab_file_name_col]
+    airbyte_columns: ClassVar[list[str]] = [ab_last_mod_col, ab_file_name_col]
     use_file_transfer = False
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401  (any-type)
         if self.FILE_TRANSFER_KW in kwargs:
             self.use_file_transfer = kwargs.pop(self.FILE_TRANSFER_KW, False)
         super().__init__(**kwargs)
@@ -156,7 +156,7 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
                         if not self.record_passes_validation_policy(record):
                             n_skipped += 1
                             continue
-                        record = self.transform_record_for_file_transfer(record, file)
+                        record = self.transform_record_for_file_transfer(record, file)  # noqa: PLW2901  (redefined loop var)
                         yield stream_data_to_airbyte_message(
                             self.name, record, is_file_transfer_message=True
                         )
@@ -166,11 +166,11 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
                     ):
                         line_no += 1
                         if self.config.schemaless:
-                            record = {"data": record}
+                            record = {"data": record}  # noqa: PLW2901 (redefined loop var)
                         elif not self.record_passes_validation_policy(record):
                             n_skipped += 1
                             continue
-                        record = self.transform_record(record, file, file_datetime_string)
+                        record = self.transform_record(record, file, file_datetime_string)  # noqa: PLW2901 (redefined loop var)
                         yield stream_data_to_airbyte_message(self.name, record)
                 self._cursor.add_file(file)
 
@@ -229,7 +229,7 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
         """
         return self.ab_last_mod_col
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def get_json_schema(self) -> JsonSchema:
         extra_fields = {
             self.ab_last_mod_col: {"type": "string"},

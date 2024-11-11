@@ -61,12 +61,12 @@ class CursorPaginationStrategy(PaginationStrategy):
             self._stop_condition = self.stop_condition
 
     @property
-    def initial_token(self) -> Any | None:
+    def initial_token(self) -> Any | None:  # noqa: ANN401  (any-type)
         return self._initial_cursor
 
     def next_page_token(
         self, response: requests.Response, last_page_size: int, last_record: Record | None
-    ) -> Any | None:
+    ) -> Any | None:  # noqa: ANN401  (any-type)
         decoded_response = next(self.decoder.decode(response))
 
         # The default way that link is presented in requests.Response is a string of various links (last, next, etc). This
@@ -92,7 +92,7 @@ class CursorPaginationStrategy(PaginationStrategy):
         )
         return token or None
 
-    def reset(self, reset_value: Any | None = None) -> None:
+    def reset(self, reset_value: Any | None = None) -> None:  # noqa: ANN401  (any-type)
         self._initial_cursor = reset_value
 
     def get_page_size(self) -> int | None:

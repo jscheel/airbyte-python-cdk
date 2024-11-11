@@ -75,7 +75,7 @@ class AlwaysAvailableAvailabilityStrategy(AbstractAvailabilityStrategy):
     without disrupting existing functionality.
     """
 
-    def check_availability(self, logger: logging.Logger) -> StreamAvailability:
+    def check_availability(self, logger: logging.Logger) -> StreamAvailability:  # noqa: ARG002  (unused)
         """Checks stream availability.
 
         :param logger: logger object to use

@@ -45,7 +45,7 @@ class ConcurrencyLevel:
         if isinstance(self._default_concurrency, InterpolatedString):
             evaluated_default_concurrency = self._default_concurrency.eval(config=self.config)
             if not isinstance(evaluated_default_concurrency, int):
-                raise ValueError("default_concurrency did not evaluate to an integer")
+                raise ValueError("default_concurrency did not evaluate to an integer")  # noqa: TRY004  (expected TypeError)
             return (
                 min(evaluated_default_concurrency, self.max_concurrency)
                 if self.max_concurrency

@@ -12,7 +12,7 @@ class ExceptionWithDisplayMessage(Exception):
     def __init__(
         self,
         display_message: str,
-        **kwargs: Any,
+        **kwargs: Any,  # noqa: ANN401  (any-type)
     ) -> None:
         super().__init__(**kwargs)
         self.display_message = display_message

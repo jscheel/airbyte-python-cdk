@@ -125,7 +125,7 @@ class AirbyteEntrypoint:
     def run(self, parsed_args: argparse.Namespace) -> Iterable[str]:
         cmd = parsed_args.command
         if not cmd:
-            raise Exception("No command passed")
+            raise Exception("No command passed")  # noqa: TRY002  (vanilla exception)
 
         if hasattr(parsed_args, "debug") and parsed_args.debug:
             self.logger.setLevel(logging.DEBUG)
@@ -174,7 +174,7 @@ class AirbyteEntrypoint:
                             self.read(source_spec, config, config_catalog, state),
                         )
                     else:
-                        raise Exception("Unexpected command " + cmd)
+                        raise Exception("Unexpected command " + cmd)  # noqa: TRY002  (vanilla exception)
         finally:
             yield from [
                 self.airbyte_message_to_string(queued_message)
@@ -234,7 +234,11 @@ class AirbyteEntrypoint:
         yield AirbyteMessage(type=Type.CATALOG, catalog=catalog)
 
     def read(
-        self, source_spec: ConnectorSpecification, config: TConfig, catalog: Any, state: list[Any]
+        self,
+        source_spec: ConnectorSpecification,
+        config: TConfig,
+        catalog: Any,  # noqa: ANN401  (any-type)
+        state: list[Any],
     ) -> Iterable[AirbyteMessage]:
         self.set_up_secret_filter(config, source_spec.connectionSpecification)
         if self.source.check_config_against_spec:
@@ -290,21 +294,21 @@ class AirbyteEntrypoint:
         return orjson.dumps(AirbyteMessageSerializer.dump(airbyte_message)).decode()  # type: ignore[no-any-return] # orjson.dumps(message).decode() always returns string
 
     @classmethod
-    def extract_state(cls, args: list[str]) -> Any | None:
+    def extract_state(cls, args: list[str]) -> Any | None:  # noqa: ANN401  (any-type)
         parsed_args = cls.parse_args(args)
         if hasattr(parsed_args, "state"):
             return parsed_args.state
         return None
 
     @classmethod
-    def extract_catalog(cls, args: list[str]) -> Any | None:
+    def extract_catalog(cls, args: list[str]) -> Any | None:  # noqa: ANN401  (any-type)
         parsed_args = cls.parse_args(args)
         if hasattr(parsed_args, "catalog"):
             return parsed_args.catalog
         return None
 
     @classmethod
-    def extract_config(cls, args: list[str]) -> Any | None:
+    def extract_config(cls, args: list[str]) -> Any | None:  # noqa: ANN401  (any-type)
         parsed_args = cls.parse_args(args)
         if hasattr(parsed_args, "config"):
             return parsed_args.config
@@ -333,13 +337,13 @@ def _init_internal_request_filter() -> None:
     wrapped_fn = Session.send
 
     @wraps(wrapped_fn)
-    def filtered_send(self: Any, request: PreparedRequest, **kwargs: Any) -> Response:
+    def filtered_send(self: Any, request: PreparedRequest, **kwargs: Any) -> Response:  # noqa: ANN401  (any-type)
         parsed_url = urlparse(request.url)
 
         if parsed_url.scheme not in VALID_URL_SCHEMES:
             raise requests.exceptions.InvalidSchema(
                 "Invalid Protocol Scheme: The endpoint that data is being requested from is using an invalid or insecure "
-                + f"protocol {parsed_url.scheme!r}. Valid protocol schemes: {','.join(VALID_URL_SCHEMES)}"
+                f"protocol {parsed_url.scheme!r}. Valid protocol schemes: {','.join(VALID_URL_SCHEMES)}"
             )
 
         if not parsed_url.hostname:
@@ -359,7 +363,7 @@ def _init_internal_request_filter() -> None:
             # This is a special case where the developer specifies an IP address string that is not formatted correctly like trailing
             # whitespace which will fail the socket IP lookup. This only happens when using IP addresses and not text hostnames.
             # Knowing that this is a request using the requests library, we will mock the exception without calling the lib
-            raise requests.exceptions.InvalidURL(f"Invalid URL {parsed_url}: {exception}")
+            raise requests.exceptions.InvalidURL(f"Invalid URL {parsed_url}: {exception}") from None
 
         return wrapped_fn(self, request, **kwargs)
 
@@ -389,6 +393,6 @@ def main() -> None:
     source = impl()
 
     if not isinstance(source, Source):
-        raise Exception("Source implementation provided does not implement Source class!")
+        raise Exception("Source implementation provided does not implement Source class!")  # noqa: TRY002, TRY004  (should raise TypeError)
 
     launch(source, sys.argv[1:])

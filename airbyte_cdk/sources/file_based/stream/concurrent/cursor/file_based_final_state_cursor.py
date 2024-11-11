@@ -34,7 +34,7 @@ class FileBasedFinalStateCursor(AbstractConcurrentFileBasedCursor):
         stream_config: FileBasedStreamConfig,
         message_repository: MessageRepository,
         stream_namespace: str | None,
-        **kwargs: Any,
+        **kwargs: Any,  # noqa: ANN401, ARG002  (any-type, unused)
     ) -> None:
         self._stream_name = stream_config.name
         self._stream_namespace = stream_namespace
@@ -61,14 +61,16 @@ class FileBasedFinalStateCursor(AbstractConcurrentFileBasedCursor):
         pass
 
     def get_files_to_sync(
-        self, all_files: Iterable[RemoteFile], logger: logging.Logger
+        self,
+        all_files: Iterable[RemoteFile],
+        logger: logging.Logger,  # noqa: ARG002  (unused)
     ) -> Iterable[RemoteFile]:
         return all_files
 
     def get_state(self) -> MutableMapping[str, Any]:
         return {}
 
-    def set_initial_state(self, value: StreamState) -> None:
+    def set_initial_state(self, value: StreamState) -> None:  # noqa: ARG002  (unused)
         return None
 
     def get_start_time(self) -> datetime:

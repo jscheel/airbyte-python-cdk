@@ -34,7 +34,10 @@ SendRequestCallableType = Callable[[PreparedRequest, Mapping[str, Any]], Respons
 
 
 def default_backoff_handler(
-    max_tries: int | None, factor: float, max_time: int | None = None, **kwargs: Any
+    max_tries: int | None,
+    factor: float,
+    max_time: int | None = None,
+    **kwargs: Any,  # noqa: ANN401  (any-type)
 ) -> Callable[[SendRequestCallableType], SendRequestCallableType]:
     def log_retry_attempt(details: Mapping[str, Any]) -> None:
         _, exc, _ = sys.exc_info()
@@ -52,7 +55,7 @@ def default_backoff_handler(
             give_up: bool = (
                 exc.response is not None
                 and exc.response.status_code != codes.too_many_requests
-                and 400 <= exc.response.status_code < 500
+                and 400 <= exc.response.status_code < 500  # noqa: PLR2004  (magic number)
             )
             if give_up:
                 logger.info(f"Giving up for returned HTTP status: {exc.response.status_code!r}")
@@ -74,7 +77,9 @@ def default_backoff_handler(
 
 
 def http_client_default_backoff_handler(
-    max_tries: int | None, max_time: int | None = None, **kwargs: Any
+    max_tries: int | None,
+    max_time: int | None = None,
+    **kwargs: Any,  # noqa: ANN401  (any-type)
 ) -> Callable[[SendRequestCallableType], SendRequestCallableType]:
     def log_retry_attempt(details: Mapping[str, Any]) -> None:
         _, exc, _ = sys.exc_info()
@@ -86,7 +91,7 @@ def http_client_default_backoff_handler(
             f"Caught retryable error '{exc!s}' after {details['tries']} tries. Waiting {details['wait']} seconds then retrying..."
         )
 
-    def should_give_up(exc: Exception) -> bool:
+    def should_give_up(exc: Exception) -> bool:  # noqa: ARG001
         # If made it here, the ResponseAction was RETRY and therefore should not give up
         return False
 
@@ -103,9 +108,11 @@ def http_client_default_backoff_handler(
 
 
 def user_defined_backoff_handler(
-    max_tries: int | None, max_time: int | None = None, **kwargs: Any
+    max_tries: int | None,
+    max_time: int | None = None,
+    **kwargs: Any,  # noqa: ANN401  (any-type)
 ) -> Callable[[SendRequestCallableType], SendRequestCallableType]:
-    def sleep_on_ratelimit(details: Mapping[str, Any]) -> None:
+    def sleep_on_ratelimit(details: Mapping[str, Any]) -> None:  # noqa: ARG001
         _, exc, _ = sys.exc_info()
         if isinstance(exc, UserDefinedBackoffException):
             if exc.response:
@@ -139,7 +146,7 @@ def user_defined_backoff_handler(
 
 
 def rate_limit_default_backoff_handler(
-    **kwargs: Any,
+    **kwargs: Any,  # noqa: ANN401  (any-type)
 ) -> Callable[[SendRequestCallableType], SendRequestCallableType]:
     def log_retry_attempt(details: Mapping[str, Any]) -> None:
         _, exc, _ = sys.exc_info()

@@ -26,7 +26,8 @@ class YamlDeclarativeSource(ConcurrentDeclarativeSource[list[AirbyteStateMessage
     def __init__(
         self,
         path_to_yaml: str,
-        debug: bool = False,
+        *,
+        debug: bool = False,  # noqa: ARG002  (unused)
         catalog: ConfiguredAirbyteCatalog | None = None,
         config: Mapping[str, Any] | None = None,
         state: list[AirbyteStateMessage] | None = None,

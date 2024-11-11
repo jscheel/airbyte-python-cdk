@@ -27,7 +27,7 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
     DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
     CURSOR_FIELD = "_ab_source_file_last_modified"
 
-    def __init__(self, stream_config: FileBasedStreamConfig, **_: Any) -> None:
+    def __init__(self, stream_config: FileBasedStreamConfig, **_: Any) -> None:  # noqa: ANN401  (any-type)
         super().__init__(stream_config)
         self._file_to_datetime_history: MutableMapping[str, str] = {}
         self._time_window_if_history_is_full = timedelta(
@@ -58,7 +58,7 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
             if oldest_file:
                 del self._file_to_datetime_history[oldest_file.uri]
             else:
-                raise Exception(
+                raise Exception(  # noqa: TRY002  (vanilla exception)
                     "The history is full but there is no files in the history. This should never happen and might be indicative of a bug in the CDK."
                 )
 
@@ -82,7 +82,7 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
         """Returns true if the state's history is full, meaning new entries will start to replace old entries."""
         return len(self._file_to_datetime_history) >= self.DEFAULT_MAX_HISTORY_SIZE
 
-    def _should_sync_file(self, file: RemoteFile, logger: logging.Logger) -> bool:
+    def _should_sync_file(self, file: RemoteFile, logger: logging.Logger) -> bool:  # noqa: PLR0911  (too many returns)
         if file.uri in self._file_to_datetime_history:
             # If the file's uri is in the history, we should sync the file if it has been modified since it was synced
             updated_at_from_history = datetime.strptime(
@@ -133,7 +133,8 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
                 self._file_to_datetime_history.items(), key=operator.itemgetter(1, 0)
             )
             return RemoteFile(
-                uri=filename, last_modified=datetime.strptime(last_modified, self.DATE_TIME_FORMAT)
+                uri=filename,
+                last_modified=datetime.strptime(last_modified, self.DATE_TIME_FORMAT),
             )
         return None
 

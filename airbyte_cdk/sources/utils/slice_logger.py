@@ -53,4 +53,5 @@ class DebugSliceLogger(SliceLogger):
 
 class AlwaysLogSliceLogger(SliceLogger):
     def should_log_slice_message(self, logger: logging.Logger) -> bool:
+        _ = logger
         return True

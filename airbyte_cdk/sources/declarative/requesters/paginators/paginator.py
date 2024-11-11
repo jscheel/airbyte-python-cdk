@@ -29,7 +29,7 @@ class Paginator(ABC, RequestOptionsProvider):
     """
 
     @abstractmethod
-    def reset(self, reset_value: Any | None = None) -> None:
+    def reset(self, reset_value: Any | None = None) -> None:  # noqa: ANN401  (any-type)
         """Reset the pagination's inner state"""
 
     @abstractmethod

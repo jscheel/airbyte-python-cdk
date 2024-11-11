@@ -18,9 +18,9 @@ class KeysToLowerTransformation(RecordTransformation):
     def transform(
         self,
         record: dict[str, Any],
-        config: Config | None = None,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
+        config: Config | None = None,  # noqa: ARG002  (unused)
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
     ) -> None:
         for key in set(record.keys()):
             record[key.lower()] = record.pop(key)

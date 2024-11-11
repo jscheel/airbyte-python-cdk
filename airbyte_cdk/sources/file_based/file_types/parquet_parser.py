@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 class ParquetParser(FileTypeParser):
     ENCODING = None
 
-    def check_config(self, config: FileBasedStreamConfig) -> tuple[bool, str | None]:
+    def check_config(self, config: FileBasedStreamConfig) -> tuple[bool, str | None]:  # noqa: ARG002  (unused)
         """ParquetParser does not require config checks, implicit pydantic validation is enough."""
         return True, None
 
@@ -52,7 +52,7 @@ class ParquetParser(FileTypeParser):
     ) -> SchemaType:
         parquet_format = config.format
         if not isinstance(parquet_format, ParquetFormat):
-            raise ValueError(f"Expected ParquetFormat, got {parquet_format}")
+            raise ValueError(f"Expected ParquetFormat, got {parquet_format}")  # noqa: TRY004  (expected TypeError)
 
         with stream_reader.open_file(file, self.file_read_mode, self.ENCODING, logger) as fp:
             parquet_file = pq.ParquetFile(fp)
@@ -78,7 +78,7 @@ class ParquetParser(FileTypeParser):
         file: RemoteFile,
         stream_reader: AbstractFileBasedStreamReader,
         logger: logging.Logger,
-        discovered_schema: Mapping[str, SchemaType] | None,
+        discovered_schema: Mapping[str, SchemaType] | None,  # noqa: ARG002  (unused)
     ) -> Iterable[dict[str, Any]]:
         parquet_format = config.format
         if not isinstance(parquet_format, ParquetFormat):
@@ -114,7 +114,7 @@ class ParquetParser(FileTypeParser):
 
     @staticmethod
     def _extract_partitions(filepath: str) -> list[str]:
-        return [unquote(partition) for partition in filepath.split(os.sep) if "=" in partition]
+        return [unquote(partition) for partition in filepath.split(os.sep) if "=" in partition]  # noqa: PTH206
 
     @property
     def file_read_mode(self) -> FileReadMode:
@@ -123,14 +123,17 @@ class ParquetParser(FileTypeParser):
     @staticmethod
     def _to_output_value(
         parquet_value: Scalar | DictionaryArray, parquet_format: ParquetFormat
-    ) -> Any:
+    ) -> Any:  # noqa: ANN401  (any-type)
         """Convert an entry in a pyarrow table to a value that can be output by the source."""
         if isinstance(parquet_value, DictionaryArray):
             return ParquetParser._dictionary_array_to_python_value(parquet_value)
         return ParquetParser._scalar_to_python_value(parquet_value, parquet_format)
 
     @staticmethod
-    def _scalar_to_python_value(parquet_value: Scalar, parquet_format: ParquetFormat) -> Any:
+    def _scalar_to_python_value(  # noqa: PLR0911  (too many returns)
+        parquet_value: Scalar,
+        parquet_format: ParquetFormat,
+    ) -> Any:  # noqa: ANN401  (any-type)
         """Convert a pyarrow scalar to a value that can be output by the source."""
         if parquet_value.as_py() is None:
             return None
@@ -190,7 +193,7 @@ class ParquetParser(FileTypeParser):
         }
 
     @staticmethod
-    def parquet_type_to_schema_type(
+    def parquet_type_to_schema_type(  # noqa: PLR0911
         parquet_type: pa.DataType, parquet_format: ParquetFormat
     ) -> Mapping[str, str]:
         """Convert a pyarrow data type to an Airbyte schema type.

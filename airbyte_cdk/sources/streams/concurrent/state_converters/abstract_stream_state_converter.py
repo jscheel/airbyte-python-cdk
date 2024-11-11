@@ -25,11 +25,11 @@ class AbstractStreamStateConverter(ABC):
     MOST_RECENT_RECORD_KEY = "most_recent_cursor_value"
 
     @abstractmethod
-    def _from_state_message(self, value: Any) -> Any:
+    def _from_state_message(self, value: Any) -> Any:  # noqa: ANN401  (any-type)
         pass
 
     @abstractmethod
-    def _to_state_message(self, value: Any) -> Any:
+    def _to_state_message(self, value: Any) -> Any:  # noqa: ANN401  (any-type)
         pass
 
     def __init__(
@@ -57,7 +57,7 @@ class AbstractStreamStateConverter(ABC):
             return legacy_state or {}
         return self.serialize(stream_state, ConcurrencyCompatibleStateType.date_range)
 
-    def _get_latest_complete_time(self, slices: list[MutableMapping[str, Any]]) -> Any:
+    def _get_latest_complete_time(self, slices: list[MutableMapping[str, Any]]) -> Any:  # noqa: ANN401  (any-type)
         """Get the latest time before which all records have been processed."""
         if not slices:
             raise RuntimeError(
@@ -103,7 +103,7 @@ class AbstractStreamStateConverter(ABC):
         self,
         cursor_field: CursorField,  # to deprecate as it is only needed for sequential state
         stream_state: MutableMapping[str, Any],
-        start: Any | None,
+        start: Any | None,  # noqa: ANN401  (any-type)
     ) -> tuple[Any, MutableMapping[str, Any]]:
         """Convert the state message to the format required by the ConcurrentCursor.
 
@@ -118,7 +118,7 @@ class AbstractStreamStateConverter(ABC):
         ...
 
     @abstractmethod
-    def increment(self, value: Any) -> Any:
+    def increment(self, value: Any) -> Any:  # noqa: ANN401  (any-type)
         """Increment a timestamp by a single unit."""
         ...
 
@@ -164,10 +164,10 @@ class AbstractStreamStateConverter(ABC):
         return merged_intervals
 
     @abstractmethod
-    def parse_value(self, value: Any) -> Any:
+    def parse_value(self, value: Any) -> Any:  # noqa: ANN401  (any-type)
         """Parse the value of the cursor field into a comparable value."""
         ...
 
     @property
     @abstractmethod
-    def zero_value(self) -> Any: ...
+    def zero_value(self) -> Any: ...  # noqa: ANN401  (any-type)

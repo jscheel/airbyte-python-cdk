@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class AbstractHeaderAuthenticator(AuthBase):
     """Abstract class for an header-based authenticators that add a header to outgoing HTTP requests."""
 
-    def __call__(self, request: Any) -> Any:
+    def __call__(self, request: Any) -> Any:  # noqa: ANN401  (any-type)
         """Attach the HTTP headers required to authenticate on the HTTP request"""
         request.headers.update(self.get_auth_header())
         return request

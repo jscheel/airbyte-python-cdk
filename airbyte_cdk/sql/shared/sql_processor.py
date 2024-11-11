@@ -114,7 +114,7 @@ class SqlConfig(BaseModel, abc.ABC):
         )
 
 
-class SqlProcessorBase(abc.ABC):
+class SqlProcessorBase(abc.ABC):  # noqa: B024  (no abstract methods)
     """A base class to be used for SQL Caches."""
 
     type_converter_class: type[SQLTypeConverter] = SQLTypeConverter

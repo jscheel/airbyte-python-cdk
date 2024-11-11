@@ -89,6 +89,7 @@ class HttpClient:
         api_budget: APIBudget | None = None,
         session: requests.Session | requests_cache.CachedSession | None = None,
         authenticator: AuthBase | None = None,
+        *,
         use_cache: bool = False,
         backoff_strategy: BackoffStrategy | list[BackoffStrategy] | None = None,
         error_message_parser: ErrorMessageParser | None = None,
@@ -173,6 +174,7 @@ class HttpClient:
         self,
         http_method: str,
         url: str,
+        *,
         dedupe_query_params: bool = False,
         headers: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
@@ -220,6 +222,7 @@ class HttpClient:
         request: requests.PreparedRequest,
         request_kwargs: Mapping[str, Any],
         log_formatter: Callable[[requests.Response], Any] | None = None,
+        *,
         exit_on_rate_limit: bool | None = False,
     ) -> requests.Response:
         """Sends a request with retry logic.
@@ -255,6 +258,7 @@ class HttpClient:
         request: requests.PreparedRequest,
         request_kwargs: Mapping[str, Any],
         log_formatter: Callable[[requests.Response], Any] | None = None,
+        *,
         exit_on_rate_limit: bool | None = False,
     ) -> requests.Response:
         if request not in self._request_attempt_count:
@@ -327,6 +331,7 @@ class HttpClient:
         exc: requests.RequestException | None,
         request: requests.PreparedRequest,
         error_resolution: ErrorResolution,
+        *,
         exit_on_rate_limit: bool | None = False,
     ) -> None:
         # Emit stream status RUNNING with the reason RATE_LIMITED to log that the rate limit has been reached
@@ -424,7 +429,7 @@ class HttpClient:
     def name(self) -> str:
         return self._name
 
-    def send_request(
+    def send_request(  # noqa: PLR0913  (too-many-arguments)
         self,
         http_method: str,
         url: str,
@@ -433,6 +438,7 @@ class HttpClient:
         params: Mapping[str, str] | None = None,
         json: Mapping[str, Any] | None = None,
         data: str | Mapping[str, Any] | None = None,
+        *,
         dedupe_query_params: bool = False,
         log_formatter: Callable[[requests.Response], Any] | None = None,
         exit_on_rate_limit: bool | None = False,

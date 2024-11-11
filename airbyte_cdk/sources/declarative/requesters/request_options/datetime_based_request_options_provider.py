@@ -46,36 +46,36 @@ class DatetimeBasedRequestOptionsProvider(RequestOptionsProvider):
     def get_request_params(
         self,
         *,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.request_parameter, stream_slice)
 
     def get_request_headers(
         self,
         *,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.header, stream_slice)
 
     def get_request_body_data(
         self,
         *,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any] | str:
         return self._get_request_options(RequestOptionType.body_data, stream_slice)
 
     def get_request_body_json(
         self,
         *,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         return self._get_request_options(RequestOptionType.body_json, stream_slice)
 

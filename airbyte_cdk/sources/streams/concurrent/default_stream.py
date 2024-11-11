@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 class DefaultStream(AbstractStream):
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917  (too complex)
         self,
         partition_generator: PartitionGenerator,
         name: str,
@@ -66,7 +66,7 @@ class DefaultStream(AbstractStream):
     def cursor_field(self) -> str | None:
         return self._cursor_field
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def get_json_schema(self) -> Mapping[str, Any]:
         return self._json_schema
 

@@ -16,7 +16,7 @@ class StateBuilder:
     def __init__(self) -> None:
         self._state: list[AirbyteStateMessage] = []
 
-    def with_stream_state(self, stream_name: str, state: Any) -> StateBuilder:
+    def with_stream_state(self, stream_name: str, state: Any) -> StateBuilder:  # noqa: ANN401  (any-type)
         self._state.append(
             AirbyteStateMessage(
                 type=AirbyteStateType.STREAM,

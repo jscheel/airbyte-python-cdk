@@ -23,6 +23,7 @@ from airbyte_cdk.models import (
     SyncMode,
 )
 from airbyte_cdk.models import Type as MessageType
+from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.streams.checkpoint import (
     CheckpointMode,
     CheckpointReader,
@@ -45,7 +46,7 @@ from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 # A stream's read method can return one of the following types:
 # Mapping[str, Any]: The content of an AirbyteRecordMessage
 # AirbyteMessage: An AirbyteMessage. Could be of any type
-StreamData = Union[Mapping[str, Any], AirbyteMessage]
+StreamData = Union[Mapping[str, Any], AirbyteMessage]  # noqa: UP007
 
 JsonSchema = Mapping[str, Any]
 
@@ -119,7 +120,7 @@ class StreamClassification:
 
 
 # Moved to class declaration since get_updated_state is called on every record for incremental syncs, and thus the @deprecated decorator as well.
-@deprecated(
+@deprecated(  # noqa: PLR0904
     version="0.1.49",
     reason="Deprecated method get_updated_state, You should use explicit state property instead, see IncrementalMixin docs.",
     action="ignore",
@@ -147,7 +148,7 @@ class Stream(ABC):
         """:return: Stream name. By default this is the implementing class name, but it can be overridden as needed."""
         return casing.camel_to_snake(self.__class__.__name__)
 
-    def get_error_display_message(self, exception: BaseException) -> str | None:
+    def get_error_display_message(self, exception: BaseException) -> str | None:  # noqa: ARG002  (unused)
         """Retrieves the user-friendly display message that corresponds to an exception.
         This will be called when encountering an exception while reading records from the stream, and used to build the AirbyteTraceMessage.
 
@@ -164,7 +165,7 @@ class Stream(ABC):
         logger: logging.Logger,
         slice_logger: SliceLogger,
         stream_state: MutableMapping[str, Any],
-        state_manager,
+        state_manager,  # noqa: ANN001
         internal_config: InternalConfig,
     ) -> Iterable[StreamData]:
         sync_mode = configured_stream.sync_mode
@@ -175,7 +176,7 @@ class Stream(ABC):
         # opposed to the incoming stream_state value. Because some connectors like ones using the file-based CDK modify
         # state before setting the value on the Stream attribute, the most up-to-date state is derived from Stream.state
         # instead of the stream_state parameter. This does not apply to legacy connectors using get_updated_state().
-        try:
+        try:  # noqa: SIM105  (suppressible exception)
             stream_state = self.state  # type: ignore # we know the field might not exist...
         except AttributeError:
             pass
@@ -291,14 +292,14 @@ class Stream(ABC):
     ) -> Iterable[StreamData]:
         """This method should be overridden by subclasses to read records based on the inputs"""
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def get_json_schema(self) -> Mapping[str, Any]:
         """:return: A dict of the JSON schema representing this stream.
 
         The default implementation of this method looks for a JSONSchema file with the same name as this stream's "name" property.
         Override as needed.
         """
-        # TODO show an example of using pydantic to define the JSON schema, or reading an OpenAPI spec
+        # TODO: show an example of using pydantic to define the JSON schema, or reading an OpenAPI spec
         return ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema(self.name)
 
     def as_airbyte_stream(self) -> AirbyteStream:
@@ -392,9 +393,9 @@ class Stream(ABC):
     def stream_slices(
         self,
         *,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
-        stream_state: Mapping[str, Any] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
+        stream_state: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Iterable[Mapping[str, Any] | None]:
         """Override to define the slices for this stream. See the stream slicing section of the docs for more information.
 
@@ -419,7 +420,9 @@ class Stream(ABC):
         return None
 
     def get_updated_state(
-        self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]
+        self,
+        current_stream_state: MutableMapping[str, Any],  # noqa: ARG002  (unused)
+        latest_record: Mapping[str, Any],  # noqa: ARG002  (unused)
     ) -> MutableMapping[str, Any]:
         """Override to extract state from the latest record. Needed to implement incremental sync.
 
@@ -443,7 +446,7 @@ class Stream(ABC):
 
     def _get_checkpoint_reader(
         self,
-        logger: logging.Logger,
+        logger: logging.Logger,  # noqa: ARG002  (unused)
         cursor_field: list[str] | None,
         sync_mode: SyncMode,
         stream_state: MutableMapping[str, Any],
@@ -590,7 +593,7 @@ class Stream(ABC):
                 elif isinstance(component, list):
                     wrapped_keys.append(component)
                 else:
-                    raise ValueError(f"Element must be either list or str. Got: {type(component)}")
+                    raise ValueError(f"Element must be either list or str. Got: {type(component)}")  # noqa: TRY004  (should raise TypeError)
             return wrapped_keys
         raise ValueError(f"Element must be either list or str. Got: {type(keys)}")
 
@@ -620,7 +623,7 @@ class Stream(ABC):
     def _checkpoint_state(  # type: ignore  # ignoring typing for ConnectorStateManager because of circular dependencies
         self,
         stream_state: Mapping[str, Any],
-        state_manager,
+        state_manager: ConnectorStateManager,
     ) -> AirbyteMessage:
         # TODO: This can be consolidated into one ConnectorStateManager.update_and_create_state_message() method, but I want
         #  to reduce changes right now and this would span concurrent as well

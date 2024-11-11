@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 import pendulum
 from pendulum.datetime import DateTime
 
-# FIXME We would eventually like the Concurrent package do be agnostic of the declarative package. However, this is a breaking change and
+# FIXME We would eventually like the Concurrent package do be agnostic of the declarative package. However, this is a breaking change and  # noqa: FIX001, TD001, TD004
 #  the goal in the short term is only to fix the issue we are seeing for source-declarative-manifest.
 from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
 from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
@@ -26,15 +26,15 @@ if TYPE_CHECKING:
 
 
 class DateTimeStreamStateConverter(AbstractStreamStateConverter):
-    def _from_state_message(self, value: Any) -> Any:
+    def _from_state_message(self, value: Any) -> Any:  # noqa: ANN401  (any-type)
         return self.parse_timestamp(value)
 
-    def _to_state_message(self, value: Any) -> Any:
+    def _to_state_message(self, value: Any) -> Any:  # noqa: ANN401  (any-type)
         return self.output_format(value)
 
     @property
     @abstractmethod
-    def _zero_value(self) -> Any: ...
+    def _zero_value(self) -> Any: ...  # noqa: ANN401  (any-type)
 
     @property
     def zero_value(self) -> datetime:
@@ -48,16 +48,16 @@ class DateTimeStreamStateConverter(AbstractStreamStateConverter):
     def increment(self, timestamp: datetime) -> datetime: ...
 
     @abstractmethod
-    def parse_timestamp(self, timestamp: Any) -> datetime: ...
+    def parse_timestamp(self, timestamp: Any) -> datetime: ...  # noqa: ANN401  (any-type)
 
     @abstractmethod
-    def output_format(self, timestamp: datetime) -> Any: ...
+    def output_format(self, timestamp: datetime) -> Any: ...  # noqa: ANN401  (any-type)
 
-    def parse_value(self, value: Any) -> Any:
+    def parse_value(self, value: Any) -> Any:  # noqa: ANN401  (any-type)
         """Parse the value of the cursor field into a comparable value."""
         return self.parse_timestamp(value)
 
-    def _compare_intervals(self, end_time: Any, start_time: Any) -> bool:
+    def _compare_intervals(self, end_time: Any, start_time: Any) -> bool:  # noqa: ANN401  (any-type)
         return bool(self.increment(end_time) >= start_time)
 
     def convert_from_sequential_state(
@@ -135,7 +135,7 @@ class EpochValueConcurrentStreamStateConverter(DateTimeStreamStateConverter):
     def parse_timestamp(self, timestamp: int) -> datetime:
         dt_object = pendulum.from_timestamp(timestamp)
         if not isinstance(dt_object, DateTime):
-            raise ValueError(
+            raise ValueError(  # noqa: TRY004  (expected TypeError)
                 f"DateTime object was expected but got {type(dt_object)} from pendulum.parse({timestamp})"
             )
         return dt_object  # type: ignore  # we are manually type checking because pendulum.parse may return different types
@@ -157,7 +157,10 @@ class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
     _zero_value = "0001-01-01T00:00:00.000Z"
 
     def __init__(
-        self, is_sequential_state: bool = True, cursor_granularity: timedelta | None = None
+        self,
+        *,
+        is_sequential_state: bool = True,
+        cursor_granularity: timedelta | None = None,
     ) -> None:
         super().__init__(is_sequential_state=is_sequential_state)
         self._cursor_granularity = cursor_granularity or timedelta(milliseconds=1)
@@ -165,13 +168,13 @@ class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
     def increment(self, timestamp: datetime) -> datetime:
         return timestamp + self._cursor_granularity
 
-    def output_format(self, timestamp: datetime) -> Any:
+    def output_format(self, timestamp: datetime) -> Any:  # noqa: ANN401  (any-type)
         return timestamp.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
     def parse_timestamp(self, timestamp: str) -> datetime:
         dt_object = pendulum.parse(timestamp)
         if not isinstance(dt_object, DateTime):
-            raise ValueError(
+            raise ValueError(  # noqa: TRY004  (expected TypeError)
                 f"DateTime object was expected but got {type(dt_object)} from pendulum.parse({timestamp})"
             )
         return dt_object  # type: ignore  # we are manually type checking because pendulum.parse may return different types
@@ -186,6 +189,7 @@ class CustomFormatConcurrentStreamStateConverter(IsoMillisConcurrentStreamStateC
         self,
         datetime_format: str,
         input_datetime_formats: list[str] | None = None,
+        *,
         is_sequential_state: bool = True,
         cursor_granularity: timedelta | None = None,
     ) -> None:

@@ -25,6 +25,7 @@ def read_records(
     stream_name: str,
     sync_mode: SyncMode,
     state: list[AirbyteStateMessage] | None = None,
+    *,
     expecting_exception: bool = False,
 ) -> EntrypointOutput:
     """Read records from a stream."""

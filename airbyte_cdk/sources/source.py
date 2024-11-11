@@ -70,7 +70,7 @@ class Source(
         """
         parsed_state_messages = []
         if state_path:
-            state_obj = BaseConnector._read_json_file(state_path)
+            state_obj = BaseConnector._read_json_file(state_path)  # noqa: SLF001  (private member)
             if state_obj:
                 for state in state_obj:  # type: ignore  # `isinstance(state_obj, List)` ensures that this is a list
                     parsed_message = AirbyteStateMessageSerializer.load(state)

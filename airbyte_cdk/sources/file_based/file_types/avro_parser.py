@@ -53,7 +53,7 @@ AVRO_LOGICAL_TYPE_TO_JSON = {
 class AvroParser(FileTypeParser):
     ENCODING = None
 
-    def check_config(self, config: FileBasedStreamConfig) -> tuple[bool, str | None]:
+    def check_config(self, config: FileBasedStreamConfig) -> tuple[bool, str | None]:  # noqa: ARG002  (unused)
         """AvroParser does not require config checks, implicit pydantic validation is enough."""
         return True, None
 
@@ -66,7 +66,7 @@ class AvroParser(FileTypeParser):
     ) -> SchemaType:
         avro_format = config.format
         if not isinstance(avro_format, AvroFormat):
-            raise ValueError(f"Expected ParquetFormat, got {avro_format}")
+            raise ValueError(f"Expected ParquetFormat, got {avro_format}")  # noqa: TRY004  (expected TypeError)
 
         with stream_reader.open_file(file, self.file_read_mode, self.ENCODING, logger) as fp:
             avro_reader = fastavro.reader(fp)
@@ -84,7 +84,7 @@ class AvroParser(FileTypeParser):
         }
 
     @classmethod
-    def _convert_avro_type_to_json(
+    def _convert_avro_type_to_json(  # noqa: PLR0911, PLR0912  (too many returns, branches)
         cls, avro_format: AvroFormat, field_name: str, avro_field: str
     ) -> Mapping[str, Any]:
         if isinstance(avro_field, str) and avro_field in AVRO_TYPE_TO_JSON_TYPE:
@@ -173,11 +173,11 @@ class AvroParser(FileTypeParser):
         file: RemoteFile,
         stream_reader: AbstractFileBasedStreamReader,
         logger: logging.Logger,
-        discovered_schema: Mapping[str, SchemaType] | None,
+        discovered_schema: Mapping[str, SchemaType] | None,  # noqa: ARG002  (unused)
     ) -> Iterable[dict[str, Any]]:
         avro_format = config.format or AvroFormat(filetype="avro")
         if not isinstance(avro_format, AvroFormat):
-            raise ValueError(f"Expected ParquetFormat, got {avro_format}")
+            raise ValueError(f"Expected ParquetFormat, got {avro_format}")  # noqa: TRY004  (expected TypeError)
 
         line_no = 0
         try:
@@ -207,9 +207,11 @@ class AvroParser(FileTypeParser):
         return FileReadMode.READ_BINARY
 
     @staticmethod
-    def _to_output_value(
-        avro_format: AvroFormat, record_type: Mapping[str, Any], record_value: Any
-    ) -> Any:
+    def _to_output_value(  # noqa: PLR0911  (too many returns)
+        avro_format: AvroFormat,
+        record_type: Mapping[str, Any],
+        record_value: Any,  # noqa: ANN401  (any-type)
+    ) -> Any:  # noqa: ANN401  (any-type)
         if isinstance(record_value, bytes):
             return record_value.decode()
         if not isinstance(record_type, Mapping):

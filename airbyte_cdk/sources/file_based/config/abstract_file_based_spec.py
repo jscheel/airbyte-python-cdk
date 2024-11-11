@@ -74,7 +74,7 @@ class AbstractFileBasedSpec(BaseModel):
         """:return: link to docs page for this source e.g. "https://docs.airbyte.com/integrations/sources/s3" """
 
     @classmethod
-    def schema(cls, *args: Any, **kwargs: Any) -> dict[str, Any]:
+    def schema(cls, *args: Any, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401  (any-type)
         """Generates the mapping comprised of the config fields"""
         schema = super().schema(*args, **kwargs)
         transformed_schema: dict[str, Any] = copy.deepcopy(schema)
@@ -90,7 +90,7 @@ class AbstractFileBasedSpec(BaseModel):
         dpath.delete(schema, "properties/**/discriminator")
 
     @staticmethod
-    def replace_enum_allOf_and_anyOf(schema: dict[str, Any]) -> dict[str, Any]:
+    def replace_enum_allOf_and_anyOf(schema: dict[str, Any]) -> dict[str, Any]:  # noqa: N802  (violates naming convention)
         """AllOfs are not supported by the UI, but pydantic is automatically writing them for enums.
         Unpacks the enums under allOf and moves them up a level under the enum key
         anyOfs are also not supported by the UI, so we replace them with the similar oneOf, with the
@@ -99,7 +99,7 @@ class AbstractFileBasedSpec(BaseModel):
         objects_to_check = schema["properties"]["streams"]["items"]["properties"]["format"]
         objects_to_check["type"] = "object"
         objects_to_check["oneOf"] = objects_to_check.pop("anyOf", [])
-        for format in objects_to_check["oneOf"]:
+        for format in objects_to_check["oneOf"]:  # noqa: A001  (shadowed built-in)
             for key in format["properties"]:
                 object_property = format["properties"][key]
                 AbstractFileBasedSpec.move_enum_to_root(object_property)
@@ -120,7 +120,7 @@ class AbstractFileBasedSpec(BaseModel):
 
         csv_format_schemas = list(
             filter(
-                lambda format: format["properties"]["filetype"]["default"] == "csv",
+                lambda format: format["properties"]["filetype"]["default"] == "csv",  # noqa: A006  (lambda arg shadowed)
                 schema["properties"]["streams"]["items"]["properties"]["format"]["oneOf"],
             )
         )

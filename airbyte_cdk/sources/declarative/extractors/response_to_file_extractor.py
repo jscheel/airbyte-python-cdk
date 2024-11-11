@@ -95,7 +95,7 @@ class ResponseToFileExtractor(RecordExtractor):
         needs_decompression = True  # we will assume at first that the response is compressed and change the flag if not
 
         tmp_file = str(uuid.uuid4())
-        with closing(response) as response, open(tmp_file, "wb") as data_file:
+        with closing(response) as response, open(tmp_file, "wb") as data_file:  # noqa: PTH123, PLR1704  (prefer pathlib)
             response_encoding = self._get_response_encoding(dict(response.headers or {}))
             for chunk in response.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
                 try:
@@ -109,7 +109,7 @@ class ResponseToFileExtractor(RecordExtractor):
                     needs_decompression = False
 
         # check the file exists
-        if os.path.isfile(tmp_file):
+        if os.path.isfile(tmp_file):  # noqa: PTH113  (prefer pathlib)
             return tmp_file, response_encoding
         raise ValueError(
             f"The IO/Error occured while verifying binary data. Tmp file {tmp_file} doesn't exist."
@@ -132,12 +132,12 @@ class ResponseToFileExtractor(RecordExtractor):
             ValueError: If an IO/Error occurs while reading the temporary data.
         """
         try:
-            with open(path, encoding=file_encoding) as data:
+            with open(path, encoding=file_encoding) as data:  # noqa: PTH123  (prefer pathlib)
                 chunks = pd.read_csv(
                     data, chunksize=chunk_size, iterator=True, dialect="unix", dtype=object
                 )
                 for chunk in chunks:
-                    chunk = chunk.replace({nan: None}).to_dict(orient="records")
+                    chunk = chunk.replace({nan: None}).to_dict(orient="records")  # noqa: PLW2901  (redefined loop var)
                     yield from chunk  # Yield rows from chunks
         except pd.errors.EmptyDataError as e:
             self.logger.info(f"Empty data received. {e}")
@@ -149,7 +149,7 @@ class ResponseToFileExtractor(RecordExtractor):
             ) from None
         finally:
             # remove binary tmp file, after data is read
-            os.remove(path)
+            os.remove(path)  # noqa: PTH107  (prefer pathlib)
 
     def extract_records(
         self, response: requests.Response | None = None

@@ -110,7 +110,7 @@ class Requester(RequestOptionsProvider):
         """
 
     @abstractmethod
-    def send_request(
+    def send_request(  # noqa: PLR0913, PLR0917  (too many args)
         self,
         stream_state: StreamState | None = None,
         stream_slice: StreamSlice | None = None,

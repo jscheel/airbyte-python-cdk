@@ -96,7 +96,7 @@ class AbstractFileBasedStreamReader(ABC):
         seen = set()
 
         for file in files:
-            if self.file_matches_globs(file, globs):
+            if self.file_matches_globs(file, globs):  # noqa: SIM102  (collapsible-if)
                 if file.uri not in seen and (not start_date or file.last_modified >= start_date):
                     seen.add(file.uri)
                     yield file
@@ -158,9 +158,9 @@ class AbstractFileBasedStreamReader(ABC):
     def _get_file_transfer_paths(file: RemoteFile, local_directory: str) -> list[str]:
         # Remove left slashes from source path format to make relative path for writing locally
         file_relative_path = file.uri.lstrip("/")
-        local_file_path = path.join(local_directory, file_relative_path)
+        local_file_path = path.join(local_directory, file_relative_path)  # noqa: PTH118  (prefer pathlib)
 
         # Ensure the local directory exists
-        makedirs(path.dirname(local_file_path), exist_ok=True)
-        absolute_file_path = path.abspath(local_file_path)
+        makedirs(path.dirname(local_file_path), exist_ok=True)  # noqa: PTH103, PTH120  (prefer pathlib)
+        absolute_file_path = path.abspath(local_file_path)  # noqa: PTH100  (prefer pathlib)
         return [file_relative_path, local_file_path, absolute_file_path]

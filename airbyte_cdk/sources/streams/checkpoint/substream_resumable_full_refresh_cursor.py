@@ -80,19 +80,19 @@ class SubstreamResumableFullRefreshCursor(Cursor):
         """Substream resumable full refresh manages state by closing the slice after syncing a parent so observe is not used."""
         pass
 
-    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
+    def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:  # noqa: ANN401, ARG002  (any-type, unused)
         self._per_partition_state[self._to_partition_key(stream_slice.partition)] = {
             "partition": stream_slice.partition,
             "cursor": FULL_REFRESH_COMPLETE_STATE,
         }
 
-    def should_be_synced(self, record: Record) -> bool:
+    def should_be_synced(self, record: Record) -> bool:  # noqa: ARG002  (unused)
         """Unlike date-based cursors which filter out records outside slice boundaries, resumable full refresh records exist within pages
         that don't have filterable bounds. We should always return them.
         """
         return True
 
-    def is_greater_than_or_equal(self, first: Record, second: Record) -> bool:
+    def is_greater_than_or_equal(self, first: Record, second: Record) -> bool:  # noqa: ARG002  (unused)
         """RFR record don't have ordering to be compared between one another."""
         return False
 

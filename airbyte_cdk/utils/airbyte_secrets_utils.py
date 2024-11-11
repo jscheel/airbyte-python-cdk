@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 def get_secret_paths(spec: Mapping[str, Any]) -> list[list[str]]:
     paths = []
 
-    def traverse_schema(schema_item: Any, path: list[str]) -> None:
+    def traverse_schema(schema_item: Any, path: list[str]) -> None:  # noqa: ANN401  (any type)
         """schema_item can be any property or value in the originally input jsonschema, depending on how far down the recursion stack we go
         path is the path to that schema item in the original input
         for example if we have the input {'password': {'type': 'string', 'airbyte_secret': True}} then the arguments will evolve
@@ -48,8 +48,8 @@ def get_secrets(
     secret_paths = get_secret_paths(connection_specification.get("properties", {}))
     result = []
     for path in secret_paths:
-        try:
-            result.append(dpath.get(config, path))
+        try:  # noqa: SIM105  (suppressible exception)
+            result.append(dpath.get(config, path))  # type: ignore [arg-type]  # Mapping v ImmutableMapping
         except KeyError:
             # Since we try to get paths to all known secrets in the spec, in the case of oneOfs, some secret fields may not be present
             # In that case, a KeyError is thrown. This is expected behavior.
@@ -68,13 +68,13 @@ def update_secrets(secrets: list[str]) -> None:
 
 def add_to_secrets(secret: str) -> None:
     """Add to the list of secrets to be replaced"""
-    global __SECRETS_FROM_CONFIG
+    global __SECRETS_FROM_CONFIG  # noqa: PLW0602  (global not assigned)
     __SECRETS_FROM_CONFIG.append(secret)
 
 
 def filter_secrets(string: str) -> str:
     """Filter secrets from a string by replacing them with ****"""
-    # TODO this should perform a maximal match for each secret. if "x" and "xk" are both secret values, and this method is called twice on
+    # TODO this should perform a maximal match for each secret. if "x" and "xk" are both secret values, and this method is called twice on  # noqa: TD004
     #  the input "xk", then depending on call order it might only obfuscate "*k". This is a bug.
     for secret in __SECRETS_FROM_CONFIG:
         if secret:

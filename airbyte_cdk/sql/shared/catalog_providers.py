@@ -40,7 +40,7 @@ class CatalogProvider:
         self._catalog: ConfiguredAirbyteCatalog = self.validate_catalog(configured_catalog)
 
     @staticmethod
-    def validate_catalog(catalog: ConfiguredAirbyteCatalog) -> Any:
+    def validate_catalog(catalog: ConfiguredAirbyteCatalog) -> Any:  # noqa: ANN401  (any-type)
         """Validate the catalog to ensure it is valid.
 
         This requires ensuring that `generationId` and `minGenerationId` are both set. If

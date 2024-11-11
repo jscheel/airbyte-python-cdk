@@ -34,7 +34,10 @@ class DefaultFileBasedAvailabilityStrategy(AbstractFileBasedAvailabilityStrategy
         self.stream_reader = stream_reader
 
     def check_availability(
-        self, stream: AbstractFileBasedStream, logger: logging.Logger, _: Source | None
+        self,
+        stream: AbstractFileBasedStream,
+        logger: logging.Logger,  # noqa: ARG002  (unused)
+        source: Source | None,  # noqa: ARG002  (unused)
     ) -> tuple[bool, str | None]:  # type: ignore[override]
         """Perform a connection check for the stream (verify that we can list files from the stream).
 
@@ -93,7 +96,9 @@ class DefaultFileBasedAvailabilityStrategy(AbstractFileBasedAvailabilityStrategy
         try:
             file = next(iter(stream.get_files()))
         except StopIteration:
-            raise CheckAvailabilityError(FileBasedSourceError.EMPTY_STREAM, stream=stream.name)
+            raise CheckAvailabilityError(
+                FileBasedSourceError.EMPTY_STREAM, stream=stream.name
+            ) from None
         except CustomFileBasedException as exc:
             raise CheckAvailabilityError(str(exc), stream=stream.name) from exc
         except Exception as exc:
@@ -129,7 +134,7 @@ class DefaultFileBasedAvailabilityStrategy(AbstractFileBasedAvailabilityStrategy
             ) from exc
 
         schema = stream.catalog_schema or stream.config.input_schema
-        if schema and stream.validation_policy.validate_schema_before_sync:
+        if schema and stream.validation_policy.validate_schema_before_sync:  # noqa: SIM102  (collapsible-if)
             if not conforms_to_schema(record, schema):  # type: ignore
                 raise CheckAvailabilityError(
                     FileBasedSourceError.ERROR_VALIDATING_RECORD,

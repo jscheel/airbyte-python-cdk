@@ -55,14 +55,15 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
     def __init__(
         self,
-        catalog: ConfiguredAirbyteCatalog | None,
+        catalog: ConfiguredAirbyteCatalog | None,  # noqa: ARG002  (unused)
         config: Mapping[str, Any] | None,
         state: TState,
         source_config: ConnectionDefinition,
+        *,
         debug: bool = False,
         emit_connector_builder_messages: bool = False,
         component_factory: ModelToComponentFactory | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # noqa: ANN401, ARG002  (any-type, unused)
     ) -> None:
         super().__init__(
             source_config=source_config,
@@ -149,7 +150,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
         yield from super().read(logger, config, filtered_catalog, state)
 
-    def discover(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteCatalog:
+    def discover(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteCatalog:  # noqa: ARG002  (unused)
         concurrent_streams = self._concurrent_streams or []
         synchronous_streams = self._synchronous_streams or []
         return AirbyteCatalog(
@@ -277,13 +278,13 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             declarative_stream.retriever.requester, HttpRequester
         ):
             http_requester = declarative_stream.retriever.requester
-            if "stream_state" in http_requester._path.string:
+            if "stream_state" in http_requester._path.string:  # noqa: SLF001  (private member)
                 self.logger.warning(
                     f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the HttpRequester which is not thread-safe. Defaulting to synchronous processing"
                 )
                 return False
 
-            request_options_provider = http_requester._request_options_provider
+            request_options_provider = http_requester._request_options_provider  # noqa: SLF001  (private member)
             if request_options_provider.request_options_contain_stream_state():
                 self.logger.warning(
                     f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the HttpRequester which is not thread-safe. Defaulting to synchronous processing"

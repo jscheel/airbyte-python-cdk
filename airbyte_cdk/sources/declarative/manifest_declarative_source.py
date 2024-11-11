@@ -61,6 +61,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
     def __init__(
         self,
         source_config: ConnectionDefinition,
+        *,
         debug: bool = False,
         emit_connector_builder_messages: bool = False,
         component_factory: ModelToComponentFactory | None = None,
@@ -229,7 +230,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
         except FileNotFoundError as e:
             raise FileNotFoundError(
                 f"Failed to read manifest component json schema required for validation: {e}"
-            )
+            ) from None
 
         streams = self._source_config.get("streams")
         if not streams:
@@ -263,7 +264,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
                 f"The manifest version {manifest_version} is greater than the airbyte-cdk package version ({cdk_version}). Your "
                 f"manifest may contain features that are not in the current CDK version."
             )
-        if manifest_major == 0 and manifest_minor < 29:
+        if manifest_major == 0 and manifest_minor < 29:  # noqa: PLR2004  (magic number)
             raise ValidationError(
                 f"The low-code framework was promoted to Beta in airbyte-cdk version 0.29.0 and contains many breaking changes to the "
                 f"language. The manifest version {manifest_version} is incompatible with the airbyte-cdk package version "
@@ -274,7 +275,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
     def _get_version_parts(version: str, version_type: str) -> tuple[int, int, int]:
         """Takes a semantic version represented as a string and splits it into a tuple of its major, minor, and patch versions."""
         version_parts = re.split(r"\.", version)
-        if len(version_parts) != 3 or not all(part.isdigit() for part in version_parts):
+        if len(version_parts) != 3 or not all(part.isdigit() for part in version_parts):  # noqa: PLR2004  (magic number)
             raise ValidationError(
                 f"The {version_type} version {version} specified is not a valid version format (ex. 1.2.3)"
             )

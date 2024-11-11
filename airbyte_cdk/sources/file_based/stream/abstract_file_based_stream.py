@@ -59,7 +59,7 @@ class AbstractFileBasedStream(Stream):
       by the stream.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917  (too many args)
         self,
         config: FileBasedStreamConfig,
         catalog_schema: Mapping[str, Any] | None,
@@ -86,7 +86,7 @@ class AbstractFileBasedStream(Stream):
     @abstractmethod
     def primary_key(self) -> PrimaryKeyType: ...
 
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def list_files(self) -> list[RemoteFile]:
         """List all files that belong to the stream.
 
@@ -103,10 +103,10 @@ class AbstractFileBasedStream(Stream):
 
     def read_records(
         self,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        stream_state: Mapping[str, Any] | None = None,
+        stream_state: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Iterable[Mapping[str, Any] | AirbyteMessage]:
         """Yield all records from all remote files in `list_files_for_this_sync`.
         This method acts as an adapter between the generic Stream interface and the file-based's
@@ -126,9 +126,9 @@ class AbstractFileBasedStream(Stream):
     def stream_slices(
         self,
         *,
-        sync_mode: SyncMode,
-        cursor_field: list[str] | None = None,
-        stream_state: Mapping[str, Any] | None = None,
+        sync_mode: SyncMode,  # noqa: ARG002  (unused)
+        cursor_field: list[str] | None = None,  # noqa: ARG002  (unused)
+        stream_state: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Iterable[Mapping[str, Any] | None]:
         """This method acts as an adapter between the generic Stream interface and the file-based's
         stream since file-based streams manage their own states.
@@ -143,7 +143,7 @@ class AbstractFileBasedStream(Stream):
         ...
 
     @abstractmethod
-    @cache
+    @cache  # noqa: B019  (cached class methods can cause memory leaks)
     def get_json_schema(self) -> Mapping[str, Any]:
         """Return the JSON Schema for a stream."""
         ...
@@ -161,7 +161,7 @@ class AbstractFileBasedStream(Stream):
                 FileBasedSourceError.UNDEFINED_PARSER,
                 stream=self.name,
                 format=type(self.config.format),
-            )
+            ) from None
 
     def record_passes_validation_policy(self, record: Mapping[str, Any]) -> bool:
         if self.validation_policy:

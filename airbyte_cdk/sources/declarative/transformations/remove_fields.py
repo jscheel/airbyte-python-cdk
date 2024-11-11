@@ -58,15 +58,15 @@ class RemoveFields(RecordTransformation):
         self,
         record: dict[str, Any],
         config: Config | None = None,
-        stream_state: StreamState | None = None,
-        stream_slice: StreamSlice | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
+        stream_slice: StreamSlice | None = None,  # noqa: ARG002  (unused)
     ) -> None:
         """:param record: The record to be transformed
         :return: the input record with the requested fields removed
         """
         for pointer in self.field_pointers:
             # the dpath library by default doesn't delete fields from arrays
-            try:
+            try:  # noqa: SIM105  (suppressible exception)
                 dpath.delete(
                     record,
                     pointer,

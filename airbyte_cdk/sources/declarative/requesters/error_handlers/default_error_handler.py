@@ -123,7 +123,7 @@ class DefaultErrorHandler(ErrorHandler):
                 )
                 if matched_error_resolution:
                     return matched_error_resolution
-        if isinstance(response_or_exception, requests.Response):
+        if isinstance(response_or_exception, requests.Response):  # noqa: SIM102  (collapsible-if)
             if response_or_exception.ok:
                 return SUCCESS_RESOLUTION
 

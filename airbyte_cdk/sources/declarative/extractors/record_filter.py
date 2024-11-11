@@ -67,7 +67,7 @@ class ClientSideIncrementalRecordFilterDecorator(RecordFilter):
         self,
         date_time_based_cursor: DatetimeBasedCursor,
         substream_cursor: PerPartitionWithGlobalCursor | GlobalSubstreamCursor | None,
-        **kwargs: Any,
+        **kwargs: Any,  # noqa: ANN401  (any-type)
     ) -> None:
         super().__init__(**kwargs)
         self._date_time_based_cursor = date_time_based_cursor
@@ -79,7 +79,7 @@ class ClientSideIncrementalRecordFilterDecorator(RecordFilter):
 
     @property
     def _start_date_from_config(self) -> datetime.datetime:
-        return self._date_time_based_cursor._start_datetime.get_datetime(
+        return self._date_time_based_cursor._start_datetime.get_datetime(  # noqa: SLF001  (private member)
             self._date_time_based_cursor.config
         )
 
@@ -114,7 +114,7 @@ class ClientSideIncrementalRecordFilterDecorator(RecordFilter):
             )
         yield from records
 
-    def _get_state_value(self, stream_state: StreamState, stream_slice: StreamSlice) -> str | None:
+    def _get_state_value(self, stream_state: StreamState, stream_slice: StreamSlice) -> str | None:  # noqa: ARG002  (unused)
         """Return cursor_value or None in case it was not found.
         Cursor_value may be empty if:
             1. It is an initial sync => no stream_state exist at all.

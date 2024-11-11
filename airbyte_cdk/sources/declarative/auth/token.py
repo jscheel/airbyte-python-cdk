@@ -1,7 +1,7 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
-# ruff: noqa: A005  (shadows built-in 'token' module)
+# ruff: noqa: A005  # Shadows built-in 'token' module
 
 from __future__ import annotations
 

@@ -160,13 +160,13 @@ class AsyncHttpJobRepository(AsyncJobRepository):
                 lazy_log(
                     LOGGER,
                     logging.DEBUG,
-                    lambda: f"Status of job {job.api_job_id()} changed from {job.status()} to {job_status}",
+                    lambda: f"Status of job {job.api_job_id()} changed from {job.status()} to {job_status}",  # noqa: B023  (function uses loop var)
                 )
             else:
                 lazy_log(
                     LOGGER,
                     logging.DEBUG,
-                    lambda: f"Status of job {job.api_job_id()} is still {job.status()}",
+                    lambda: f"Status of job {job.api_job_id()} is still {job.status()}",  # noqa: B023  (function uses loop var)
                 )
 
             job.update_status(job_status)

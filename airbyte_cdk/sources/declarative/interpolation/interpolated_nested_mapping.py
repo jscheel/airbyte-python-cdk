@@ -36,12 +36,15 @@ class InterpolatedNestedMapping:
         self._interpolation = JinjaInterpolation()
         self._parameters = parameters
 
-    def eval(self, config: Config, **additional_parameters: Any) -> Any:
+    def eval(self, config: Config, **additional_parameters: Any) -> Any:  # noqa: ANN401  (any-type)
         return self._eval(self.mapping, config, **additional_parameters)
 
     def _eval(
-        self, value: NestedMapping | NestedMappingEntry, config: Config, **kwargs: Any
-    ) -> Any:
+        self,
+        value: NestedMapping | NestedMappingEntry,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401  (any-type)
+    ) -> Any:  # noqa: ANN401  (any-type)
         # Recursively interpolate dictionaries and lists
         if isinstance(value, str):
             return self._interpolation.eval(value, config, parameters=self._parameters, **kwargs)

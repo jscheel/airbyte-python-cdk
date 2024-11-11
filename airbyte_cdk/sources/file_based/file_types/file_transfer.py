@@ -26,13 +26,13 @@ class FileTransfer:
     def __init__(self) -> None:
         self._local_directory = (
             AIRBYTE_STAGING_DIRECTORY
-            if os.path.exists(AIRBYTE_STAGING_DIRECTORY)
+            if os.path.exists(AIRBYTE_STAGING_DIRECTORY)  # noqa: PTH110  (prefer pathlib)
             else DEFAULT_LOCAL_DIRECTORY
         )
 
     def get_file(
         self,
-        config: FileBasedStreamConfig,
+        config: FileBasedStreamConfig,  # noqa: ARG002  (unused)
         file: RemoteFile,
         stream_reader: AbstractFileBasedStreamReader,
         logger: logging.Logger,

@@ -37,7 +37,7 @@ class InterpolatedString:  # noqa: PLW1641  # Ignore missing __hash__()
         # This allows for optimization, but we do not know it yet at this stage
         self._is_plain_string = None
 
-    def eval(self, config: Config, **kwargs: Any) -> Any:
+    def eval(self, config: Config, **kwargs: Any) -> Any:  # noqa: ANN401  (any-type)
         """Interpolates the input string using the config and other optional arguments passed as parameter.
 
         :param config: The user-provided configuration as specified by the source's spec

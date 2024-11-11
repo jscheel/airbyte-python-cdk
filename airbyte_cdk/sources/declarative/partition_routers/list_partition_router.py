@@ -52,36 +52,36 @@ class ListPartitionRouter(PartitionRouter):
 
     def get_request_params(
         self,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.request_parameter, stream_slice)
 
     def get_request_headers(
         self,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.header, stream_slice)
 
     def get_request_body_data(
         self,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.body_data, stream_slice)
 
     def get_request_body_json(
         self,
-        stream_state: StreamState | None = None,
+        stream_state: StreamState | None = None,  # noqa: ARG002  (unused)
         stream_slice: StreamSlice | None = None,
-        next_page_token: Mapping[str, Any] | None = None,
+        next_page_token: Mapping[str, Any] | None = None,  # noqa: ARG002  (unused)
     ) -> Mapping[str, Any]:
         # Pass the stream_slice from the argument, not the cursor because the cursor is updated after processing the response
         return self._get_request_option(RequestOptionType.body_json, stream_slice)

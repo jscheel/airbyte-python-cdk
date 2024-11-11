@@ -42,25 +42,28 @@ class PageIncrement(PaginationStrategy):
         else:
             page_size = InterpolatedString(self.page_size, parameters=parameters).eval(self.config)
             if not isinstance(page_size, int):
-                raise Exception(f"{page_size} is of type {type(page_size)}. Expected {int}")
+                raise Exception(f"{page_size} is of type {type(page_size)}. Expected {int}")  # noqa: TRY002  (vanilla exception)
             self._page_size = page_size
 
     @property
-    def initial_token(self) -> Any | None:
+    def initial_token(self) -> Any | None:  # noqa: ANN401  (any-type)
         if self.inject_on_first_request:
             return self._page
         return None
 
     def next_page_token(
-        self, response: requests.Response, last_page_size: int, last_record: Record | None
-    ) -> Any | None:
+        self,
+        response: requests.Response,  # noqa: ARG002  (unused)
+        last_page_size: int,
+        last_record: Record | None,  # noqa: ARG002  (unused)
+    ) -> Any | None:  # noqa: ANN401  (any-type)
         # Stop paginating when there are fewer records than the page size or the current page has no records
         if (self._page_size and last_page_size < self._page_size) or last_page_size == 0:
             return None
         self._page += 1
         return self._page
 
-    def reset(self, reset_value: Any | None = None) -> None:
+    def reset(self, reset_value: Any | None = None) -> None:  # noqa: ANN401  (any-type)
         if reset_value is None:
             self._page = self.start_from_page
         elif not isinstance(reset_value, int):

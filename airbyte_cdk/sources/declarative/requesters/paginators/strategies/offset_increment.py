@@ -67,14 +67,17 @@ class OffsetIncrement(PaginationStrategy):
             self._page_size = None
 
     @property
-    def initial_token(self) -> Any | None:
+    def initial_token(self) -> Any | None:  # noqa: ANN401  (any-type)
         if self.inject_on_first_request:
             return self._offset
         return None
 
     def next_page_token(
-        self, response: requests.Response, last_page_size: int, last_record: Record | None
-    ) -> Any | None:
+        self,
+        response: requests.Response,
+        last_page_size: int,
+        last_record: Record | None,  # noqa: ARG002  (unused)
+    ) -> Any | None:  # noqa: ANN401  (any-type)
         decoded_response = next(self.decoder.decode(response))
 
         # Stop paginating when there are fewer records than the page size or the current page has no records
@@ -86,9 +89,9 @@ class OffsetIncrement(PaginationStrategy):
         self._offset += last_page_size
         return self._offset
 
-    def reset(self, reset_value: Any | None = 0) -> None:
+    def reset(self, reset_value: Any | None = 0) -> None:  # noqa: ANN401  (any-type)
         if not isinstance(reset_value, int):
-            raise ValueError(
+            raise ValueError(  # noqa: TRY004  (expected TypeError)
                 f"Reset value {reset_value} for OffsetIncrement pagination strategy was not an integer"
             )
         self._offset = reset_value
@@ -97,6 +100,6 @@ class OffsetIncrement(PaginationStrategy):
         if self._page_size:
             page_size = self._page_size.eval(self.config)
             if not isinstance(page_size, int):
-                raise Exception(f"{page_size} is of type {type(page_size)}. Expected {int}")
+                raise Exception(f"{page_size} is of type {type(page_size)}. Expected {int}")  # noqa: TRY002  (vanilla exception)
             return page_size
         return None

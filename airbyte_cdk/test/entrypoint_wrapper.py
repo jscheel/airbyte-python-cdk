@@ -93,7 +93,7 @@ class EntrypointOutput:
         return self._get_message_by_types([Type.STATE])
 
     @property
-    def most_recent_state(self) -> Any:
+    def most_recent_state(self) -> Any:  # noqa: ANN401  (any-type)
         state_messages = self._get_message_by_types([Type.STATE])
         if not state_messages:
             raise ValueError("Can't provide most recent state as there are no state messages")
@@ -154,7 +154,10 @@ class EntrypointOutput:
 
 
 def _run_command(
-    source: Source, args: list[str], expecting_exception: bool = False
+    source: Source,
+    args: list[str],
+    *,
+    expecting_exception: bool = False,
 ) -> EntrypointOutput:
     log_capture_buffer = StringIO()
     stream_handler = logging.StreamHandler(log_capture_buffer)
@@ -170,7 +173,7 @@ def _run_command(
     uncaught_exception = None
     try:
         for message in source_entrypoint.run(parsed_args):
-            messages.append(message)
+            messages.append(message)  # noqa: PERF402
     except Exception as exception:
         if not expecting_exception:
             print("Printing unexpected error from entrypoint_wrapper")
@@ -187,6 +190,7 @@ def _run_command(
 def discover(
     source: Source,
     config: Mapping[str, Any],
+    *,
     expecting_exception: bool = False,
 ) -> EntrypointOutput:
     """Config must be json serializable
@@ -207,6 +211,7 @@ def read(
     config: Mapping[str, Any],
     catalog: ConfiguredAirbyteCatalog,
     state: list[AirbyteStateMessage] | None = None,
+    *,
     expecting_exception: bool = False,
 ) -> EntrypointOutput:
     """Config and state must be json serializable

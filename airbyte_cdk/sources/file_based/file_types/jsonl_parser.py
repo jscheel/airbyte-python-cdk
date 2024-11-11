@@ -33,13 +33,13 @@ class JsonlParser(FileTypeParser):
     MAX_BYTES_PER_FILE_FOR_SCHEMA_INFERENCE = 1_000_000
     ENCODING = "utf8"
 
-    def check_config(self, config: FileBasedStreamConfig) -> tuple[bool, str | None]:
+    def check_config(self, config: FileBasedStreamConfig) -> tuple[bool, str | None]:  # noqa: ARG002  (unused)
         """JsonlParser does not require config checks, implicit pydantic validation is enough."""
         return True, None
 
     async def infer_schema(
         self,
-        config: FileBasedStreamConfig,
+        config: FileBasedStreamConfig,  # noqa: ARG002  (unused)
         file: RemoteFile,
         stream_reader: AbstractFileBasedStreamReader,
         logger: logging.Logger,
@@ -57,11 +57,11 @@ class JsonlParser(FileTypeParser):
 
     def parse_records(
         self,
-        config: FileBasedStreamConfig,
+        config: FileBasedStreamConfig,  # noqa: ARG002  (unused)
         file: RemoteFile,
         stream_reader: AbstractFileBasedStreamReader,
         logger: logging.Logger,
-        discovered_schema: Mapping[str, SchemaType] | None,
+        discovered_schema: Mapping[str, SchemaType] | None,  # noqa: ARG002  (unused)
     ) -> Iterable[dict[str, Any]]:
         """This code supports parsing json objects over multiple lines even though this does not align with the JSONL format. This is for
         backward compatibility reasons i.e. the previous source-s3 parser did support this. The drawback is:
@@ -94,6 +94,7 @@ class JsonlParser(FileTypeParser):
         file: RemoteFile,
         stream_reader: AbstractFileBasedStreamReader,
         logger: logging.Logger,
+        *,
         read_limit: bool = False,
     ) -> Iterable[dict[str, Any]]:
         with stream_reader.open_file(file, self.file_read_mode, self.ENCODING, logger) as fp:
