@@ -27,6 +27,7 @@ from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    from airbyte_cdk.connector_builder.models import StreamRead
     from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 
 
@@ -79,21 +80,31 @@ def read_stream(
     limits: TestReadLimits,
 ) -> AirbyteMessage:
     try:
-        handler = MessageGrouper(limits.max_pages_per_slice, limits.max_slices, limits.max_records)
-        stream_name = configured_catalog.streams[
+        handler = MessageGrouper(
+            max_pages_per_slice=limits.max_pages_per_slice,
+            max_slices=limits.max_slices,
+            max_record_limit=limits.max_records,
+        )
+        stream_name: str = configured_catalog.streams[
             0
         ].stream.name  # The connector builder only supports a single stream
-        stream_read = handler.get_message_groups(
-            source, config, configured_catalog, state, limits.max_records
+        stream_read: StreamRead = handler.get_message_groups(
+            source=source,
+            config=config,
+            configured_catalog=configured_catalog,
+            state=state,
+            record_limit=limits.max_records,
         )
         return AirbyteMessage(
             type=MessageType.RECORD,
             record=AirbyteRecordMessage(
-                data=dataclasses.asdict(stream_read), stream=stream_name, emitted_at=_emitted_at()
+                data=dataclasses.asdict(stream_read),
+                stream=stream_name,
+                emitted_at=_emitted_at(),
             ),
         )
     except Exception as exc:
-        error = AirbyteTracedException.from_exception(
+        error: AirbyteTracedException = AirbyteTracedException.from_exception(
             exc,
             message=filter_secrets(
                 f"Error reading stream with config={config} and catalog={configured_catalog}: {exc!s}"
@@ -113,7 +124,7 @@ def resolve_manifest(source: ManifestDeclarativeSource) -> AirbyteMessage:
             ),
         )
     except Exception as exc:
-        error = AirbyteTracedException.from_exception(
+        error: AirbyteTracedException = AirbyteTracedException.from_exception(
             exc, message=f"Error resolving manifest: {exc!s}"
         )
         return error.as_airbyte_message()

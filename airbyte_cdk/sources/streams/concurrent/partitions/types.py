@@ -22,8 +22,7 @@ class PartitionCompleteSentinel:  # noqa: PLW1641  # missing __hash__ method
     def __init__(
         self,
         partition: Partition,
-        *,
-        is_successful: bool = True,
+        is_successful: bool = True,  # noqa: FBT001, FBT002  (bool positional arg)
     ) -> None:
         """:param partition: The partition that was processed"""
         self.partition = partition
