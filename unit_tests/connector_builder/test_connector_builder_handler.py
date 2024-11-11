@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import json
+import logging
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -66,9 +67,6 @@ from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets, update_secre
 
 
 if TYPE_CHECKING:
-    import logging
-    from pathlib import Path
-
     from airbyte_cdk.sources.streams.core import Stream
 
 

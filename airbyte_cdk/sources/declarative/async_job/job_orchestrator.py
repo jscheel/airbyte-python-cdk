@@ -26,10 +26,9 @@ from airbyte_cdk.sources.declarative.async_job.status import AsyncJobStatus
 from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
+from collections.abc import Generator, Iterable, Mapping
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Mapping
-
     from airbyte_cdk import StreamSlice
     from airbyte_cdk.sources.declarative.async_job.repository import AsyncJobRepository
     from airbyte_cdk.sources.message import MessageRepository

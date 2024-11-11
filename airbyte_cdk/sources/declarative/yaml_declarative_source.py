@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import pkgutil
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import yaml
@@ -12,12 +13,7 @@ from airbyte_cdk.models import AirbyteStateMessage, ConfiguredAirbyteCatalog
 from airbyte_cdk.sources.declarative.concurrent_declarative_source import (
     ConcurrentDeclarativeSource,
 )
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from airbyte_cdk.sources.types import ConnectionDefinition
+from airbyte_cdk.sources.types import ConnectionDefinition
 
 
 class YamlDeclarativeSource(ConcurrentDeclarativeSource[list[AirbyteStateMessage]]):

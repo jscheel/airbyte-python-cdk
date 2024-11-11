@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from airbyte_cdk.connector import TConfig
@@ -13,14 +14,9 @@ from airbyte_cdk.sources.embedded.catalog import (
     get_stream,
     get_stream_names,
 )
+from airbyte_cdk.sources.embedded.runner import SourceRunner
 from airbyte_cdk.sources.embedded.tools import get_defined_id
 from airbyte_cdk.sources.utils.schema_helpers import check_config_against_spec_or_exit
-
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable
-
-    from airbyte_cdk.sources.embedded.runner import SourceRunner
 
 
 TOutput = TypeVar("TOutput")

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -16,6 +17,7 @@ from airbyte_cdk.models import (
     Type,
 )
 from airbyte_cdk.models import Type as MessageType
+from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
     ModelToComponentFactory,
@@ -25,10 +27,7 @@ from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from airbyte_cdk.connector_builder.models import StreamRead
-    from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 
 
 DEFAULT_MAXIMUM_NUMBER_OF_PAGES_PER_SLICE = 5

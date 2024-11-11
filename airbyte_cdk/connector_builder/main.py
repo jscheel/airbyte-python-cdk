@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import orjson
@@ -24,16 +25,9 @@ from airbyte_cdk.models import (
     ConfiguredAirbyteCatalog,
     ConfiguredAirbyteCatalogSerializer,
 )
+from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.source import Source
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
-
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from airbyte_cdk.sources.declarative.manifest_declarative_source import (
-        ManifestDeclarativeSource,
-    )
 
 
 def get_config_and_catalog_from_args(

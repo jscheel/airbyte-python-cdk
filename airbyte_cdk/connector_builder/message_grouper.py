@@ -7,7 +7,7 @@ import json
 import logging
 from copy import deepcopy
 from json import JSONDecodeError
-from typing import TYPE_CHECKING, Any
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Union
 
 from airbyte_cdk.connector_builder.models import (
     AuxiliaryRequest,
@@ -30,17 +30,12 @@ from airbyte_cdk.models import (
     TraceType,
 )
 from airbyte_cdk.models import Type as MessageType
+from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 from airbyte_cdk.sources.utils.slice_logger import SliceLogger
+from airbyte_cdk.sources.utils.types import JsonType
 from airbyte_cdk.utils import AirbyteTracedException
 from airbyte_cdk.utils.datetime_format_inferrer import DatetimeFormatInferrer
 from airbyte_cdk.utils.schema_inferrer import SchemaInferrer, SchemaValidationException
-
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Mapping
-
-    from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
-    from airbyte_cdk.sources.utils.types import JsonType
 
 
 class MessageGrouper:

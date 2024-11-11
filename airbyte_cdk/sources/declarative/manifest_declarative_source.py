@@ -9,12 +9,28 @@ import pkgutil
 import re
 from copy import deepcopy
 from importlib import metadata
-from typing import TYPE_CHECKING, Any
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import yaml
 from jsonschema.exceptions import ValidationError
 from jsonschema.validators import validate
 
+from airbyte_cdk.models import (
+    AirbyteConnectionStatus,
+    AirbyteMessage,
+    AirbyteStateMessage,
+    ConfiguredAirbyteCatalog,
+    ConnectorSpecification,
+)
 from airbyte_cdk.sources.declarative.checks.connection_checker import ConnectionChecker
 from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -33,26 +49,14 @@ from airbyte_cdk.sources.declarative.parsers.manifest_reference_resolver import 
 from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
     ModelToComponentFactory,
 )
+from airbyte_cdk.sources.message import MessageRepository
+from airbyte_cdk.sources.streams.core import Stream
+from airbyte_cdk.sources.types import ConnectionDefinition
 from airbyte_cdk.sources.utils.slice_logger import (
     AlwaysLogSliceLogger,
     DebugSliceLogger,
     SliceLogger,
 )
-
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping
-
-    from airbyte_cdk.models import (
-        AirbyteConnectionStatus,
-        AirbyteMessage,
-        AirbyteStateMessage,
-        ConfiguredAirbyteCatalog,
-        ConnectorSpecification,
-    )
-    from airbyte_cdk.sources.message import MessageRepository
-    from airbyte_cdk.sources.streams.core import Stream
-    from airbyte_cdk.sources.types import ConnectionDefinition
 
 
 class ManifestDeclarativeSource(DeclarativeSource):
