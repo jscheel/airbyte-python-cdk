@@ -2167,13 +2167,13 @@ class ModelToComponentFactory:  # noqa: PLR0904  (too many public methods)
 
         return AsyncRetriever(
             job_orchestrator_factory=lambda stream_slices: AsyncJobOrchestrator(
-                job_repository,
-                stream_slices,
-                JobTracker(
-                    1
-                ),  # TODO: eventually make the number of concurrent jobs in the API configurable. Until then, we limit to 1  # noqa: FIX001, TD001, TD004
-                self._message_repository,
-                has_bulk_parent=False,  # TODO: work would need to be done here in order to detect if a stream as a parent stream that is bulk  # noqa: FIX001, TD001, TD004
+                job_repository=job_repository,
+                slices=stream_slices,
+                job_tracker=JobTracker(
+                    limit=1
+                ),  # TODO: eventually make the number of concurrent jobs in the API configurable. Until then, we limit to 1
+                message_repository=self._message_repository,
+                has_bulk_parent=False,  # TODO: work would need to be done here in order to detect if a stream as a parent stream that is bulk
             ),
             record_selector=record_selector,
             stream_slicer=stream_slicer,

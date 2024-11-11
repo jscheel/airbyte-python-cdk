@@ -593,7 +593,11 @@ class HttpStreamAdapterBackoffStrategy(BackoffStrategy):
     reason="You should set error_handler explicitly in HttpStream.get_error_handler() instead.",
 )
 class HttpStreamAdapterHttpStatusErrorHandler(HttpStatusErrorHandler):
-    def __init__(self, stream: HttpStream, **kwargs):  # type: ignore # noqa
+    def __init__(
+        self,
+        stream: HttpStream,
+        **kwargs: Any,  # noqa: ANN401  (any-type)
+    ) -> None:
         self.stream = stream
         super().__init__(**kwargs)
 

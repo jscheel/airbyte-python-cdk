@@ -81,7 +81,7 @@ class HttpClient:
     _DEFAULT_MAX_RETRY: int = 5
     _DEFAULT_MAX_TIME: int = 60 * 10
 
-    def __init__(
+    def __init__(  # noqa: PLR0913  (too-many-arguments)
         self,
         name: str,
         logger: logging.Logger,

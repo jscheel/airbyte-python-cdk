@@ -41,6 +41,7 @@ class InterpolatedBoolean:
     Attributes:
         condition (str): The string representing the condition to evaluate to a boolean
     """
+
     condition: str
     parameters: InitVar[Mapping[str, Any]]
 
