@@ -1,10 +1,9 @@
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry]
 name = "airbyte-cdk"
-version = "6.5.2"
 description = "A framework for writing Airbyte Connectors."
 authors = ["Airbyte <contact@airbyte.io>"]
 license = "MIT"
@@ -22,6 +21,11 @@ classifiers = [
 ]
 keywords = ["airbyte", "connector-development-kit", "cdk"]
 
+# Python CDK uses dynamic versioning: https://github.com/mtkennerly/poetry-dynamic-versioning
+version = "0.0.0"  # Version will be replaced by the version of the release tag during publish.
+
+[tool.poetry-dynamic-versioning]
+enable = true
 
 [tool.poetry.dependencies]
 python = "^3.10"
