@@ -16,7 +16,6 @@ updates:
     open-pull-requests-limit: 8  # default is 5
 
   - package-ecosystem: github-actions
-    applies-to: version-updates
     open-pull-requests-limit: 5  # default is 5
     directory: "/"
     commit-message:
@@ -28,17 +27,7 @@ updates:
     groups:
       # allow combining github-actions updates into a single PR
       minor-and-patch:
+        applies-to: version-updates
         update-types:
         - patch
         - minor
-
-  - package-ecosystem: github-actions
-    applies-to: security-updates
-    open-pull-requests-limit: 5  # default is 5
-    directory: "/"
-    commit-message:
-      prefix: "ci(deps): "
-    schedule:
-      interval: daily
-    labels:
-      - ci
