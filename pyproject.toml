@@ -108,7 +108,10 @@ sql = ["sqlalchemy"]
 skip = ["__init__.py"]  # TODO: Remove after this is fixed: https://github.com/airbytehq/airbyte-python-cdk/issues/12
 
 [tool.ruff]
-exclude = ["__init__.py"]  # TODO: Remove after this is fixed: https://github.com/airbytehq/airbyte-python-cdk/issues/12
+exclude = [
+  "__init__.py",  # TODO: Remove after this is fixed: https://github.com/airbytehq/airbyte-python-cdk/issues/12
+  "airbyte_cdk/sources/declarative/models/**",  # Generated
+]
 
 target-version = "py310"
 line-length = 100
