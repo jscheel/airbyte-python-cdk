@@ -75,9 +75,6 @@ jobs:
             cdk_extra: vector-db-based
           - connector: destination-motherduck
             cdk_extra: sql
-    if: >
-      ( github.event_name == 'pull_request' && needs.cdk_changes.outputs.src == 'true' && github.event.pull_request.head.repo.fork != true
-      ) || github.event_name == 'workflow_dispatch'
     name: "Check: '${{matrix.connector}}' (skip=${{needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
     steps:
       - name: Abort if extra not changed (${{matrix.cdk_extra}})
@@ -89,12 +86,18 @@ jobs:
           exit 1
         continue-on-error: true
       # Get the monorepo so we can test the connectors
+      - name: Checkout CDK
+        if: steps.no_changes.outcome != 'failure'
+        uses: actions/checkout@v4
+        with:
+          path: airbyte-python-cdk
       - name: Checkout Airbyte Monorepo
         uses: actions/checkout@v4
         if: steps.no_changes.outcome != 'failure'
         with:
           repository: airbytehq/airbyte
           ref: master
+          path: airbyte
       - name: Test Connector
         if: steps.no_changes.outcome != 'failure'
         timeout-minutes: 90

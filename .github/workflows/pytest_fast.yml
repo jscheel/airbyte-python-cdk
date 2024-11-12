@@ -16,7 +16,7 @@ on:
 
 jobs:
   pytest-fast:
-    name: Pytest (Fast)
+    name: Test
     runs-on: ubuntu-latest
     steps:
       # Common steps:
@@ -35,23 +35,11 @@ jobs:
         run: poetry install --all-extras
 
       - name: Run Pytest with Coverage (Fast Tests Only)
-        timeout-minutes: 60
-        env:
-          GCP_GSM_CREDENTIALS: ${{ secrets.GCP_GSM_CREDENTIALS }}
+        timeout-minutes: 20
         run: >
           poetry run coverage run -m pytest
           --durations=5 --exitfirst
-          -m "not slow and not requires_creds and not linting and not flaky"
-
-      - name: Run Pytest with Coverage (Flaky Tests Only)
-        timeout-minutes: 60
-        continue-on-error: true
-        env:
-          GCP_GSM_CREDENTIALS: ${{ secrets.GCP_GSM_CREDENTIALS }}
-        run: >
-          poetry run coverage run -m pytest
-          --durations=5 --exitfirst
-          -m "flaky and not slow and not requires_creds"
+          -m "not slow"
 
       - name: Print Coverage Report
         if: always()
