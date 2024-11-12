@@ -20,10 +20,10 @@ jobs:
     steps:
       # Common steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0    # Used for version detection
-          fetch-tags: true  # Used for version detection
+          # fetch-tags: true  # Used for version detection
       - name: Set up Poetry
         uses: Gr1N/setup-poetry@v9
         with:
