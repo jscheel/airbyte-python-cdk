@@ -1,4 +1,4 @@
-name: PyTest (Fast)
+name: PyTest Fast
 
 on:
   push:

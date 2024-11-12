@@ -2,7 +2,7 @@ name: Test Connectors
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: [PyTest (Fast)]
+    workflows: [PyTest Fast]
     types:
       - completed
 
