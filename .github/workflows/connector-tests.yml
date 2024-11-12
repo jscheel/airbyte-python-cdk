@@ -1,10 +1,15 @@
 name: Test Connectors
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: [PyTest Fast]
+  pull_request:
     types:
-      - completed
+      - opened
+      - synchronize
+  # TODO: Consider moving to run these only after the "PyTest (Fast)" workflow is successful.
+  # workflow_run:
+  #   workflows: [PyTest (Fast)]
+  #   types:
+  #     - completed
 
 concurrency:
   # This is the name of the concurrency group. It is used to prevent concurrent runs of the same workflow.
@@ -20,7 +25,6 @@ concurrency:
 jobs:
   cdk_changes:
     name: Get Changes
-    # if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       statuses: write
@@ -75,6 +79,7 @@ jobs:
             cdk_extra: vector-db-based
           - connector: destination-motherduck
             cdk_extra: sql
+
     name: "Check: '${{matrix.connector}}' (skip=${{needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
     steps:
       - name: Abort if extra not changed (${{matrix.cdk_extra}})

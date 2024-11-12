@@ -1,4 +1,4 @@
-name: PyTest Fast
+name: Pytest (Fast)
 
 on:
   push:
@@ -16,7 +16,7 @@ on:
 
 jobs:
   pytest-fast:
-    name: Test
+    name: Pytest (Fast)
     runs-on: ubuntu-latest
     steps:
       # Common steps:
