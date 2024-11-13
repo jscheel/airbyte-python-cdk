@@ -19,4 +19,6 @@ jobs:
       - run: |
           docker login
           docker build -t airbyte/source-declarative-manifest:${{ github.sha }} .
-          docker push airbyte/source-declarative-manifest:${{ github.sha }}
+          docker run airbyte/source-declarative-manifest:${{ github.sha }} --help
+          docker run airbyte/source-declarative-manifest:${{ github.sha }} spec
+          # docker push airbyte/source-declarative-manifest:${{ github.sha }}
