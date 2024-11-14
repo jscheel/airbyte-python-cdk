@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Dict, Iterable, Mapping, Optional
-
+from copy import deepcopy
 import requests
 from airbyte_cdk import AirbyteMessage
 from airbyte_cdk.logger import lazy_log
@@ -188,7 +188,10 @@ class AsyncHttpJobRepository(AsyncJobRepository):
         for url in self.urls_extractor.extract_records(
             self._polling_job_response_by_id[job.api_job_id()]
         ):
-            stream_slice: StreamSlice = StreamSlice(partition={"url": url}, cursor_slice={})
+            # stream_slice: StreamSlice = StreamSlice(partition={"url": url}, cursor_slice={})
+            # TODO: refactor ??
+            stream_slice = deepcopy(job._job_parameters)
+            stream_slice.extra_fields.update({"url": url})
             for message in self.download_retriever.read_records({}, stream_slice):
                 if isinstance(message, Record):
                     yield message.data

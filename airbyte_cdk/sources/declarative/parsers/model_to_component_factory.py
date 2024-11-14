@@ -1284,7 +1284,10 @@ class ModelToComponentFactory:
         stream_slicer = None
         if (
             hasattr(model.retriever, "partition_router")
-            and isinstance(model.retriever, SimpleRetrieverModel)
+            and (
+                isinstance(model.retriever, SimpleRetrieverModel)
+                or isinstance(model.retriever, AsyncRetrieverModel) # TODO: check
+            )
             and model.retriever.partition_router
         ):
             stream_slicer_model = model.retriever.partition_router
@@ -2057,6 +2060,8 @@ class ModelToComponentFactory:
                 config=config,
                 parameters={},
             ),
+            # TODO: remove
+            cursor=stream_slicer,
             primary_key=None,
             name=job_download_components_name,
             paginator=(
@@ -2116,6 +2121,8 @@ class ModelToComponentFactory:
                 self._message_repository,
                 has_bulk_parent=False,  # FIXME work would need to be done here in order to detect if a stream as a parent stream that is bulk
             ),
+            # TODO: check this # TODO: remove
+            cursor = stream_slicer,
             record_selector=record_selector,
             stream_slicer=stream_slicer,
             config=config,
