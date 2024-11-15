@@ -3055,14 +3055,16 @@ def test_create_concurrent_cursor_from_datetime_based_cursor_all_fields(
         "lookback_window": "P3D",
     }
 
-    concurrent_cursor = connector_builder_factory.create_concurrent_cursor_from_datetime_based_cursor(
-        state_manager=connector_state_manager,
-        model_type=DatetimeBasedCursorModel,
-        component_definition=cursor_component_definition,
-        stream_name=stream_name,
-        stream_namespace=None,
-        config=config,
-        stream_state=stream_state,
+    concurrent_cursor = (
+        connector_builder_factory.create_concurrent_cursor_from_datetime_based_cursor(
+            state_manager=connector_state_manager,
+            model_type=DatetimeBasedCursorModel,
+            component_definition=cursor_component_definition,
+            stream_name=stream_name,
+            stream_namespace=None,
+            config=config,
+            stream_state=stream_state,
+        )
     )
 
     assert concurrent_cursor._stream_name == stream_name
@@ -3186,14 +3188,16 @@ def test_create_concurrent_cursor_from_datetime_based_cursor(
                 stream_state={},
             )
     else:
-        concurrent_cursor = connector_builder_factory.create_concurrent_cursor_from_datetime_based_cursor(
-            state_manager=connector_state_manager,
-            model_type=DatetimeBasedCursorModel,
-            component_definition=cursor_component_definition,
-            stream_name=stream_name,
-            stream_namespace=None,
-            config=config,
-            stream_state={},
+        concurrent_cursor = (
+            connector_builder_factory.create_concurrent_cursor_from_datetime_based_cursor(
+                state_manager=connector_state_manager,
+                model_type=DatetimeBasedCursorModel,
+                component_definition=cursor_component_definition,
+                stream_name=stream_name,
+                stream_namespace=None,
+                config=config,
+                stream_state={},
+            )
         )
 
         assert getattr(concurrent_cursor, assertion_field) == expected_value
@@ -3241,14 +3245,16 @@ def test_create_concurrent_cursor_uses_min_max_datetime_format_if_defined():
         "lookback_window": "P3D",
     }
 
-    concurrent_cursor = connector_builder_factory.create_concurrent_cursor_from_datetime_based_cursor(
-        state_manager=connector_state_manager,
-        model_type=DatetimeBasedCursorModel,
-        component_definition=cursor_component_definition,
-        stream_name=stream_name,
-        stream_namespace=None,
-        config=config,
-        stream_state={},
+    concurrent_cursor = (
+        connector_builder_factory.create_concurrent_cursor_from_datetime_based_cursor(
+            state_manager=connector_state_manager,
+            model_type=DatetimeBasedCursorModel,
+            component_definition=cursor_component_definition,
+            stream_name=stream_name,
+            stream_namespace=None,
+            config=config,
+            stream_state={},
+        )
     )
 
     assert concurrent_cursor.start == expected_start

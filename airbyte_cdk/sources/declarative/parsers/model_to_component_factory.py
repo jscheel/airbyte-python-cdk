@@ -17,7 +17,6 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
-    Tuple,
     Type,
     Union,
     get_args,

@@ -190,28 +190,48 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             # these legacy Python streams the way we do low-code streams to determine if they are concurrent compatible,
             # so we need to treat them as synchronous
             if isinstance(declarative_stream, DeclarativeStream):
-                datetime_based_cursor_component_definition = name_to_stream_mapping[declarative_stream.name].get("incremental_sync")
+                datetime_based_cursor_component_definition = name_to_stream_mapping[
+                    declarative_stream.name
+                ].get("incremental_sync")
 
-                is_without_partition_router_nor_cursor = not bool(datetime_based_cursor_component_definition) and not(name_to_stream_mapping[declarative_stream.name].get("retriever", {}).get("partition_router"))
-                is_datetime_incremental_with_partition_routing = self._is_datetime_incremental_with_partition_routing(datetime_based_cursor_component_definition,
-                                                                               declarative_stream)
-                if is_without_partition_router_nor_cursor or is_datetime_incremental_with_partition_routing:
+                is_without_partition_router_nor_cursor = not bool(
+                    datetime_based_cursor_component_definition
+                ) and not (
+                    name_to_stream_mapping[declarative_stream.name]
+                    .get("retriever", {})
+                    .get("partition_router")
+                )
+                is_datetime_incremental_with_partition_routing = (
+                    self._is_datetime_incremental_with_partition_routing(
+                        datetime_based_cursor_component_definition, declarative_stream
+                    )
+                )
+                if (
+                    is_without_partition_router_nor_cursor
+                    or is_datetime_incremental_with_partition_routing
+                ):
                     stream_state = state_manager.get_stream_state(
                         stream_name=declarative_stream.name, namespace=declarative_stream.namespace
                     )
 
                     if is_datetime_incremental_with_partition_routing:
-                        cursor: Cursor = self._constructor.create_concurrent_cursor_from_datetime_based_cursor(
-                            state_manager=state_manager,
-                            model_type=DatetimeBasedCursorModel,
-                            component_definition=datetime_based_cursor_component_definition,
-                            stream_name=declarative_stream.name,
-                            stream_namespace=declarative_stream.namespace,
-                            config=config or {},
-                            stream_state=stream_state,
+                        cursor: Cursor = (
+                            self._constructor.create_concurrent_cursor_from_datetime_based_cursor(
+                                state_manager=state_manager,
+                                model_type=DatetimeBasedCursorModel,
+                                component_definition=datetime_based_cursor_component_definition,
+                                stream_name=declarative_stream.name,
+                                stream_namespace=declarative_stream.namespace,
+                                config=config or {},
+                                stream_state=stream_state,
+                            )
                         )
                     else:
-                        cursor = FinalStateCursor(declarative_stream.name, declarative_stream.namespace, self.message_repository)
+                        cursor = FinalStateCursor(
+                            declarative_stream.name,
+                            declarative_stream.namespace,
+                            self.message_repository,
+                        )
 
                     partition_generator = StreamSlicerPartitionGenerator(
                         DeclarativePartitionFactory(
@@ -234,7 +254,9 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             json_schema=declarative_stream.get_json_schema(),
                             availability_strategy=AlwaysAvailableAvailabilityStrategy(),
                             primary_key=get_primary_key_from_stream(declarative_stream.primary_key),
-                            cursor_field=cursor.cursor_field.cursor_field_key if hasattr(cursor, "cursor_field") else None,
+                            cursor_field=cursor.cursor_field.cursor_field_key
+                            if hasattr(cursor, "cursor_field")
+                            else None,
                             logger=self.logger,
                             cursor=cursor,
                         )
@@ -246,8 +268,21 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
         return concurrent_streams, synchronous_streams
 
-    def _is_datetime_incremental_with_partition_routing(self, datetime_based_cursor_component_definition: Mapping[str, Any], declarative_stream: DeclarativeStream) -> bool:
-        return bool(datetime_based_cursor_component_definition) and datetime_based_cursor_component_definition.get("type", "") == DatetimeBasedCursorModel.__name__ and self._stream_supports_concurrent_partition_processing(declarative_stream=declarative_stream) and hasattr(declarative_stream.retriever, "stream_slicer") and isinstance(declarative_stream.retriever.stream_slicer, DatetimeBasedCursor)
+    def _is_datetime_incremental_with_partition_routing(
+        self,
+        datetime_based_cursor_component_definition: Mapping[str, Any],
+        declarative_stream: DeclarativeStream,
+    ) -> bool:
+        return (
+            bool(datetime_based_cursor_component_definition)
+            and datetime_based_cursor_component_definition.get("type", "")
+            == DatetimeBasedCursorModel.__name__
+            and self._stream_supports_concurrent_partition_processing(
+                declarative_stream=declarative_stream
+            )
+            and hasattr(declarative_stream.retriever, "stream_slicer")
+            and isinstance(declarative_stream.retriever.stream_slicer, DatetimeBasedCursor)
+        )
 
     def _stream_supports_concurrent_partition_processing(
         self, declarative_stream: DeclarativeStream
