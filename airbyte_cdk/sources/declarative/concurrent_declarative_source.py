@@ -201,20 +201,20 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     .get("retriever", {})
                     .get("partition_router")
                 )
-                is_datetime_incremental_with_partition_routing = (
-                    self._is_datetime_incremental_with_partition_routing(
+                is_datetime_incremental_without_partition_routing = (
+                    self._is_datetime_incremental_without_partition_routing(
                         datetime_based_cursor_component_definition, declarative_stream
                     )
                 )
                 if (
                     is_without_partition_router_nor_cursor
-                    or is_datetime_incremental_with_partition_routing
+                    or is_datetime_incremental_without_partition_routing
                 ):
                     stream_state = state_manager.get_stream_state(
                         stream_name=declarative_stream.name, namespace=declarative_stream.namespace
                     )
 
-                    if is_datetime_incremental_with_partition_routing:
+                    if is_datetime_incremental_without_partition_routing:
                         cursor: Cursor = (
                             self._constructor.create_concurrent_cursor_from_datetime_based_cursor(
                                 state_manager=state_manager,
@@ -268,7 +268,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
         return concurrent_streams, synchronous_streams
 
-    def _is_datetime_incremental_with_partition_routing(
+    def _is_datetime_incremental_without_partition_routing(
         self,
         datetime_based_cursor_component_definition: Mapping[str, Any],
         declarative_stream: DeclarativeStream,
