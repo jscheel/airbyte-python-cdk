@@ -58,6 +58,7 @@ jobs:
           echo "Determined Version: $VERSION"
 
       - name: Attach Wheel to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') # Only runs for tag events
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
