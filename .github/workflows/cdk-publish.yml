@@ -82,9 +82,10 @@ jobs:
 
       - name: Get CDK version
         run: |
-          sudo poetry install --only main
-          sudo poetry self add "poetry-dynamic-versioning[plugin]"
-          sudo poetry dynamic-versioning
+          export PATH="/home/runner/.local/bin:$PATH"
+          poetry install --only main
+          poetry self add "poetry-dynamic-versioning[plugin]"
+          poetry dynamic-versioning
           cdk_version="$(poetry version --short | tr -d '[:space:]')"
           if [ -z "$cdk_version" ]; then
             echo "Failed to get CDK version"
