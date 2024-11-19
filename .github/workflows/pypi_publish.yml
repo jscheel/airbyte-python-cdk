@@ -48,11 +48,11 @@ jobs:
           echo "Package files in 'dist/':"
           ls -lh dist/
 
-      # - name: Publish to PyPI (${{vars.PYPI_PUBLISH_URL}})
-      #   uses: pypa/gh-action-pypi-publish@v1.12.2
-      #   with:
-      #     # Can be toggled at the repository level between `https://upload.pypi.org/legacy/` and `https://test.pypi.org/legacy/`
-      #     repository-url: ${{vars.PYPI_PUBLISH_URL}}
+      - name: Publish to PyPI (${{vars.PYPI_PUBLISH_URL}})
+        uses: pypa/gh-action-pypi-publish@v1.12.2
+        with:
+          # Can be toggled at the repository level between `https://upload.pypi.org/legacy/` and `https://test.pypi.org/legacy/`
+          repository-url: ${{vars.PYPI_PUBLISH_URL}}
 
   publish_sdm:
     name: Publish SDM to DockerHub
@@ -66,7 +66,9 @@ jobs:
 
       - name: Extract version from tag
         id: extract_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          ecgi "Extracted CDK version from tag: $VERSION"
 
       - name: Debug SDM Environment
         run: |
@@ -86,13 +88,19 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      # - name: Check for existing tag
-      #   run: |
-      #     tag="airbyte/source-declarative-manifest:${{ env.VERSION }}"
-      #     if DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect "$tag" > /dev/null 2>&1; then
-      #       echo "The tag $tag already exists on Dockerhub. Skipping publish to prevent overwrite."
-      #       exit 1
-      #     fi
+      - name: Check for existing tag
+        run: |
+          tag="airbyte/source-declarative-manifest:${{ env.VERSION }}"
+          if [ -z "$tag" ]; then
+            echo "Error: VERSION is not set. Ensure the tag follows the format 'refs/tags/vX.Y.Z'."
+            exit 1
+          fi
+          echo "Checking if tag '$tag' exists on DockerHub..."
+          if DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect "$tag" > /dev/null 2>&1; then
+            echo "The tag '$tag' already exists on DockerHub. Skipping publish to prevent overwrite."
+            exit 1
+          fi
+          echo "No existing tag '$tag' found. Proceeding with publish."
 
       - name: Build and push
         uses: docker/build-push-action@v5
