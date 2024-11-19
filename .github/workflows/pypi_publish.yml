@@ -68,7 +68,7 @@ jobs:
         id: extract_version
         run: |
           echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-          ecgi "Extracted CDK version from tag: $VERSION"
+          echo "Extracted CDK version from tag: $VERSION"
 
       - name: Debug SDM Environment
         run: |
