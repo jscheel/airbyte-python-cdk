@@ -106,7 +106,7 @@ jobs:
           fi
 
           # Check if the version is a stable SemVer
-          is_valid_semver=$(python -c "import semver; print(semver.VersionInfo.isvalid('$cdk_version'))")
+          is_valid_semver=$(python -c "import semver; print(semver.VersionInfo.is_valid('$cdk_version'))")
           is_prerelease=$(python -c "import semver; print(semver.VersionInfo.parse('$cdk_version').prerelease is not None)")
 
           if [ "$is_valid_semver" = "False" ] || [ "$is_prerelease" = "True" ]; then
