@@ -42,7 +42,7 @@ jobs:
         continue-on-error: true # Prevent security scan from failing the build
         with:
           image-ref: airbyte/source-declarative-manifest:build-test
-          format: 'table,sarif'
+          format: 'sarif'
           output: 'trivy-results.sarif'
           exit-code: 1
           severity: 'CRITICAL,HIGH'
