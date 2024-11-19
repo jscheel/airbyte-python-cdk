@@ -2,8 +2,11 @@ name: Packaging and Publishing
 
 on:
   push:
-
   workflow_dispatch:
+    inputs:
+      version:
+        description: "The version to publish (e.g., v6.7.0dev4)"
+        required: false
 
 jobs:
   build:
@@ -22,82 +25,61 @@ jobs:
     permissions:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
       contents: write # Needed to upload artifacts to the release
-    environment:
-      name: PyPI
-      url: "https://pypi.org/p/airbyte-cdk"
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
 
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: Packages
-          path: dist
-
       - name: Debug Reference
         run: |
           echo "Event Name: $GITHUB_EVENT_NAME"
           echo "GitHub Ref: $GITHUB_REF"
 
-      - name: Validate Tag Reference
+      - name: Validate Tag or Version Input
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            echo "Workflow triggered via dispatch."
-            if [[ ! "$GITHUB_REF" =~ ^refs/tags/v ]]; then
-              echo "Error: This workflow requires a valid tag (refs/tags/vX.Y.Z) to run."
+            if [ -z "${{ github.event.inputs.version }}" ]; then
+              echo "Error: No version input provided for workflow_dispatch."
               exit 1
             fi
-          else
-            echo "Workflow triggered by tag push."
-          fi
-
-      - name: Extract and Validate Version
-        id: extract_version
-        run: |
-          if [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          elif [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
             VERSION=${BASH_REMATCH[1]}
             echo "VERSION=$VERSION" >> $GITHUB_ENV
-            echo "Extracted version: $VERSION"
           else
-            echo "Error: GITHUB_REF does not point to a valid tag. Found: $GITHUB_REF"
+            echo "Error: This workflow requires a valid tag (refs/tags/vX.Y.Z) to run."
             exit 1
           fi
+          echo "Validated Version: $VERSION"
 
       - name: Attach Wheel to GitHub Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: dist/*.whl
-          tag: ${{ github.ref_name }}
+          tag: ${{ env.VERSION }}
           overwrite: true
           file_glob: true
 
-      - name: Publish to PyPI (${{vars.PYPI_PUBLISH_URL}})
+      - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
         uses: pypa/gh-action-pypi-publish@v1.12.2
         with:
-          # Can be toggled at the repository level between `https://upload.pypi.org/legacy/` and `https://test.pypi.org/legacy/`
-          repository-url: ${{vars.PYPI_PUBLISH_URL}}
+          repository-url: ${{ vars.PYPI_PUBLISH_URL }}
 
   publish_sdm:
     name: Publish SDM to DockerHub
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: [publish]
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract version from tag
-        id: extract_version
-        run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-          echo "Extracted CDK version from tag: $VERSION"
-
       - name: Debug SDM Environment
         run: |
           echo "Simulating SDM flow for branch: $GITHUB_REF"
           echo "Current SHA: $GITHUB_SHA"
-          echo "Target Version: $VERSION"
+          echo "Target Version: ${{ env.VERSION }}"
 
       - name: Set up QEMU for multi-platform builds
         uses: docker/setup-qemu-action@v3
