@@ -1,6 +1,9 @@
 name: Publish CDK and Source Declarative Manifest
 on:
   push:
+    branches:
+      - main
+      - christo/cdk-publish-fix
     paths:
       - 'airbyte_cdk/pyproject.toml' # To only publish on CDK version change
       - 'Dockerfile'
@@ -69,10 +72,26 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
+      - name: Set up Poetry
+        run: |
+          pip install poetry==1.6.1
+          poetry config virtualenvs.create false
+          poetry config virtualenvs.in-project false
+          poetry config no-interaction true
+
       - name: Get CDK version
         run: |
           cdk_version="$(poetry version --short | tr -d '[:space:]')"
-          echo "CDK_VERSION=$cdk_version" >> $GITHUB_ENV
+          if [ -z "$cdk_version" ]; then
+            echo "Failed to get CDK version"
+          if [ "$version" === "0.0.0" ]; then
+            echo "Error: Failed to resolve dynamic CDK version"
+            exit 1
+          fi
+          echo "Found CDK version: $cdk_version"
+
+            exit 1
+          fi
 
       - name: Check if tag already exists
         run: |
