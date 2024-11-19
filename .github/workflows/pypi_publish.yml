@@ -31,6 +31,7 @@ jobs:
         with:
           name: Packages
           path: dist
+
       - name: Attach Wheel to GitHub Release
         uses: svenstaro/upload-release-action@v2
         with:
@@ -40,18 +41,17 @@ jobs:
           overwrite: true
           file_glob: true
 
-      - name: Debug Publish Environment
+      - name: Debug PyPI Publish Step
         run: |
-          echo "Publishing to PyPI"
-          echo "GITHUB_REF: $GITHUB_REF"
-          echo "GITHUB_SHA: $GITHUB_SHA"
-          echo "PYPI_PUBLISH_URL: ${{ vars.PYPI_PUBLISH_URL }}"
+          echo "This is where PyPI publishing would occur."
+          echo "Package files in 'dist/':"
+          ls -lh dist/
 
-      - name: Publish to PyPI (${{vars.PYPI_PUBLISH_URL}})
-        uses: pypa/gh-action-pypi-publish@v1.12.2
-        with:
-          # Can be toggled at the repository level between `https://upload.pypi.org/legacy/` and `https://test.pypi.org/legacy/`
-          repository-url: ${{vars.PYPI_PUBLISH_URL}}
+      # - name: Publish to PyPI (${{vars.PYPI_PUBLISH_URL}})
+      #   uses: pypa/gh-action-pypi-publish@v1.12.2
+      #   with:
+      #     # Can be toggled at the repository level between `https://upload.pypi.org/legacy/` and `https://test.pypi.org/legacy/`
+      #     repository-url: ${{vars.PYPI_PUBLISH_URL}}
 
   publish_sdm:
     name: Publish SDM to DockerHub
