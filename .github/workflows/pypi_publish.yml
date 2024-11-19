@@ -77,11 +77,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
 
+      - name: Debug Poetry Search
+        run: poetry search airbyte-cdk
+
       - name: Fetch Latest CDK Version
         run: |
-          cdk_version=$(poetry search airbyte-cdk | grep -oP '^airbyte-cdk \K([0-9]+\.[0-9]+\.[0-9]+)')
+          poetry search airbyte-cdk
+          cdk_version=$(poetry search airbyte-cdk | grep -oP '^airbyte-cdk \K([0-9]+\.[0-9]+\.[0-9]+)' || echo "0.0.0")
           echo "CDK_VERSION=$cdk_version" >> $GITHUB_ENV
           echo "Fetched CDK Version: $cdk_version"
+
 
       - name: Simulate Main Branch Variables
         if: github.ref != 'refs/heads/main'
