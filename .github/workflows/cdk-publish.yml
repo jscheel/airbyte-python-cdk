@@ -3,11 +3,9 @@ on:
   push:
     branches:
       - main
-      - christo/cdk-publish-fix
     paths:
       - 'airbyte_cdk/pyproject.toml' # To only publish on CDK version change
       - 'Dockerfile'
-      - ".github/workflows/cdk-publish.yml"
   workflow_dispatch:
 
 jobs:
