@@ -84,14 +84,14 @@ jobs:
           cdk_version="$(poetry version --short | tr -d '[:space:]')"
           if [ -z "$cdk_version" ]; then
             echo "Failed to get CDK version"
-          if [ "$version" === "0.0.0" ]; then
+            exit 1
+          fi
+          if [ "$cdk_version" = "0.0.0" ]; then
             echo "Error: Failed to resolve dynamic CDK version"
             exit 1
           fi
           echo "Found CDK version: $cdk_version"
-
-            exit 1
-          fi
+          echo "CDK_VERSION=$cdk_version" >> $GITHUB_ENV  # Don't forget to set the environment variable
 
       - name: Check if tag already exists
         run: |
@@ -107,6 +107,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            airbyte/source-declarative-manifest:latest
-            airbyte/source-declarative-manifest:${{ env.CDK_VERSION }}
-            airbyte/source-declarative-manifest:${{ env.CDK_VERSION }}-${{ github.run_number }}
+            airbyte/source-declarative-manifest:test
+            airbyte/source-declarative-manifest:test-${{ env.CDK_VERSION }}
+            airbyte/source-declarative-manifest:test-${{ env.CDK_VERSION }}-${{ github.run_number }}
