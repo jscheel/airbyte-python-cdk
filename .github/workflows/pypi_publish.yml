@@ -18,20 +18,16 @@ jobs:
           fetch-depth: 0
       - uses: hynek/build-and-inspect-python-package@v2
 
-      - name: Verify dist/ Directory After Build
+      - name: Debug Build Output
         run: |
-          ls -lh dist/ || echo "dist/ directory not found or empty after build step"
+          echo "Checking /tmp/baipp/dist directory:"
+          ls -lh /tmp/baipp/dist || echo "/tmp/baipp/dist not found"
 
-      - name: Build Python Package
-        run: |
-          python setup.py sdist bdist_wheel
-          ls -lh dist/
-
-      - name: Upload dist/ artifact
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Packages
-          path: dist/
+          path: /tmp/baipp/dist/
 
   publish:
     name: Publish CDK to PyPI
@@ -48,6 +44,17 @@ jobs:
           echo "Event Name: $GITHUB_EVENT_NAME"
           echo "GitHub Ref: $GITHUB_REF"
           echo "GitHub Ref Name: ${{ github.ref_name }}"
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Packages
+          path: /tmp/baipp/dist/
+
+      - name: Debug Downloaded Artifacts
+        run: |
+          echo "Checking /tmp/baipp/dist directory after download:"
+          ls -lh /tmp/baipp/dist || echo "/tmp/baipp/dist not found"
 
       - name: Determine Version
         run: |
@@ -81,16 +88,6 @@ jobs:
           tag: ${{ env.VERSION }}
           overwrite: true
           file_glob: true
-
-      - name: Download dist/ artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: Packages
-          path: dist/
-
-      - name: Debug dist/ Directory
-        run: |
-          ls -lh dist/ || echo "dist/ directory is missing or empty after download"
 
       - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
         uses: pypa/gh-action-pypi-publish@v1.12.2
