@@ -1,4 +1,4 @@
-name: Python Packaging
+name: Packaging and Publishing
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
       - uses: hynek/build-and-inspect-python-package@v2
 
   publish:
-    name: Publish to PyPI
+    name: Publish CDK to PyPI
     runs-on: ubuntu-latest
     needs: [build]
     permissions:
