@@ -74,10 +74,11 @@ jobs:
           echo "Current SHA: $GITHUB_SHA"
           echo "Target Version: $VERSION"
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+      - name: Set up QEMU for multi-platform builds
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -85,36 +86,21 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      # - name: Install Poetry
+      # - name: Check for existing tag
       #   run: |
-      #     python -m pip install --upgrade pip
-      #     pip install poetry
+      #     tag="airbyte/source-declarative-manifest:${{ env.VERSION }}-${{ github.run_number }}"
+      #     if DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect "$tag" > /dev/null 2>&1; then
+      #       echo "The tag $tag already exists on Dockerhub. Skipping publish to prevent overwrite."
+      #       exit 1
+      #     fi
 
-      # - name: Debug Poetry Search
-      #   run: poetry search airbyte-cdk
-
-      # - name: Fetch Latest CDK Version
-      #   run: |
-      #     poetry search airbyte-cdk
-      #     cdk_version=$(poetry search airbyte-cdk | grep -oP '^airbyte-cdk \K([0-9]+\.[0-9]+\.[0-9]+)' || echo "0.0.0")
-      #     echo "CDK_VERSION=$cdk_version" >> $GITHUB_ENV
-      #     echo "Fetched CDK Version: $cdk_version"
-
-      # - name: Simulate Main Branch Variables
-      #   if: github.ref != 'refs/heads/main'
-      #   run: |
-      #     echo "Simulating main branch behavior"
-      #     echo "GITHUB_REF=refs/heads/main" >> $GITHUB_ENV
-      #     echo "Simulated GITHUB_REF: refs/heads/main"
-
-      # - name: Build and Publish SDM
-      #   run: |
-      #     tag="airbyte/source-declarative-manifest:testing-${{ env.CDK_VERSION }}-${{ github.run_number }}"
-      #     echo "Docker Tag: $tag"
-      #     docker build -t $tag .
-      #     docker push $tag
-
-      # - name: Debug Docker Push
-      #   run: |
-      #     docker images
-      #     echo "Pushed Docker image with tag $tag"
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            airbyte/source-declarative-manifest:test
+            airbyte/source-declarative-manifest:test-${{ env.VERSION }}
+            airbyte/source-declarative-manifest:test-${{ env.VERSION }}-${{ github.run_number }}
