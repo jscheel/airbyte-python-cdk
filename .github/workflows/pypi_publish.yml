@@ -32,23 +32,30 @@ jobs:
         run: |
           echo "Event Name: $GITHUB_EVENT_NAME"
           echo "GitHub Ref: $GITHUB_REF"
+          echo "GitHub Ref Name: ${{ github.ref_name }}"
 
-      - name: Validate Tag or Version Input
+      - name: Determine Version
         run: |
+          # Check if this is a workflow_dispatch event
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            if [ -z "${{ github.event.inputs.version }}" ]; then
+            # Use the input version if provided
+            if [ -n "${{ github.event.inputs.version }}" ]; then
+              VERSION="${{ github.event.inputs.version }}"
+              echo "Using version input from workflow_dispatch: $VERSION"
+            else
               echo "Error: No version input provided for workflow_dispatch."
               exit 1
             fi
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          elif [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
-            VERSION=${BASH_REMATCH[1]}
-            echo "VERSION=$VERSION" >> $GITHUB_ENV
+          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            # Use the tag name for tag-based workflows
+            VERSION="${{ github.ref_name }}"
+            echo "Using version from tag: $VERSION"
           else
-            echo "Error: This workflow requires a valid tag (refs/tags/vX.Y.Z) to run."
+            echo "Error: This workflow requires either a valid tag or a version input."
             exit 1
           fi
-          echo "Validated Version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Determined Version: $VERSION"
 
       - name: Attach Wheel to GitHub Release
         uses: svenstaro/upload-release-action@v2
