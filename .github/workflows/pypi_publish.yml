@@ -33,20 +33,43 @@ jobs:
           name: Packages
           path: dist
 
+      - name: Debug Reference
+        run: |
+          echo "Event Name: $GITHUB_EVENT_NAME"
+          echo "GitHub Ref: $GITHUB_REF"
+
+      - name: Validate Tag Reference
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "Workflow triggered via dispatch."
+            if [[ ! "$GITHUB_REF" =~ ^refs/tags/v ]]; then
+              echo "Error: This workflow requires a valid tag (refs/tags/vX.Y.Z) to run."
+              exit 1
+            fi
+          else
+            echo "Workflow triggered by tag push."
+          fi
+
+      - name: Extract and Validate Version
+        id: extract_version
+        run: |
+          if [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
+            VERSION=${BASH_REMATCH[1]}
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+            echo "Extracted version: $VERSION"
+          else
+            echo "Error: GITHUB_REF does not point to a valid tag. Found: $GITHUB_REF"
+            exit 1
+          fi
+
       - name: Attach Wheel to GitHub Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: dist/*.whl
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref#refs/tags/ }}
           overwrite: true
           file_glob: true
-
-      - name: Debug PyPI Publish Step
-        run: |
-          echo "This is where PyPI publishing would occur."
-          echo "Package files in 'dist/':"
-          ls -lh dist/
 
       - name: Publish to PyPI (${{vars.PYPI_PUBLISH_URL}})
         uses: pypa/gh-action-pypi-publish@v1.12.2
