@@ -18,6 +18,21 @@ jobs:
           fetch-depth: 0
       - uses: hynek/build-and-inspect-python-package@v2
 
+      - name: Verify dist/ Directory After Build
+        run: |
+          ls -lh dist/ || echo "dist/ directory not found or empty after build step"
+
+      - name: Build Python Package
+        run: |
+          python setup.py sdist bdist_wheel
+          ls -lh dist/
+
+      - name: Upload dist/ artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Packages
+          path: dist/
+
   publish:
     name: Publish CDK to PyPI
     runs-on: ubuntu-latest
@@ -66,6 +81,16 @@ jobs:
           tag: ${{ env.VERSION }}
           overwrite: true
           file_glob: true
+
+      - name: Download dist/ artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Packages
+          path: dist/
+
+      - name: Debug dist/ Directory
+        run: |
+          ls -lh dist/ || echo "dist/ directory is missing or empty after download"
 
       - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
         uses: pypa/gh-action-pypi-publish@v1.12.2
