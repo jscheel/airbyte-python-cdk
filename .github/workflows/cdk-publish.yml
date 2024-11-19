@@ -84,6 +84,9 @@ jobs:
 
       - name: Get CDK version
         run: |
+          poetry install --only main
+          poetry self add "poetry-dynamic-versioning[plugin]"
+          poetry dynamic-versioning
           cdk_version="$(poetry version --short | tr -d '[:space:]')"
           if [ -z "$cdk_version" ]; then
             echo "Failed to get CDK version"
@@ -94,7 +97,7 @@ jobs:
             exit 1
           fi
           echo "Found CDK version: $cdk_version"
-          echo "CDK_VERSION=$cdk_version" >> $GITHUB_ENV  # Don't forget to set the environment variable
+          echo "CDK_VERSION=$cdk_version" >> $GITHUB_ENV
 
       - name: Check if tag already exists
         run: |
