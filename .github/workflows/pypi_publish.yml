@@ -18,11 +18,6 @@ jobs:
           fetch-depth: 0
       - uses: hynek/build-and-inspect-python-package@v2
 
-      - name: Debug Build Output
-        run: |
-          echo "Checking /tmp/baipp/dist directory:"
-          ls -lh /tmp/baipp/dist || echo "/tmp/baipp/dist not found"
-
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -88,6 +83,13 @@ jobs:
           tag: ${{ env.VERSION }}
           overwrite: true
           file_glob: true
+
+      - name: Debug Token Claims
+        run: |
+          echo "Job URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          echo "Workflow: $GITHUB_WORKFLOW"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Repository Owner: $GITHUB_REPOSITORY_OWNER"
 
       - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
         uses: pypa/gh-action-pypi-publish@v1.12.2
