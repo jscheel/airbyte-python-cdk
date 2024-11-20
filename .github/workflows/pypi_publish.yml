@@ -47,10 +47,22 @@ jobs:
           name: BuildArtifact-build
           path: /tmp/baipp/dist/
 
-      - name: Debug Downloaded Artifacts
+      - name: Debug Path After Download
         run: |
-          echo "Checking /tmp/baipp/dist directory after download:"
-          ls -lh /tmp/baipp/dist || echo "/tmp/baipp/dist not found"
+          echo "Current directory:"
+          pwd
+          echo "Listing current directory:"
+          ls -la
+          echo "Listing /tmp:"
+          ls -la /tmp
+          echo "Listing /tmp/baipp (if exists):"
+          ls -la /tmp/baipp || echo "Directory doesn't exist"
+          echo "Listing /tmp/baipp/dist (if exists):"
+          ls -la /tmp/baipp/dist || echo "Directory doesn't exist"
+          echo "Creating directories if they don't exist:"
+          mkdir -p /tmp/baipp/dist
+          echo "Final listing of /tmp/baipp/dist:"
+          ls -la /tmp/baipp/dist
 
       - name: Determine Version
         run: |
@@ -84,13 +96,6 @@ jobs:
           tag: ${{ env.VERSION }}
           overwrite: true
           file_glob: true
-
-      - name: Debug Token Claims
-        run: |
-          echo "Job URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          echo "Workflow: $GITHUB_WORKFLOW"
-          echo "Repository: $GITHUB_REPOSITORY"
-          echo "Repository Owner: $GITHUB_REPOSITORY_OWNER"
 
       - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
         uses: pypa/gh-action-pypi-publish@v1.12.2
