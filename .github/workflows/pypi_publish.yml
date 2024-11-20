@@ -5,8 +5,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "The version to publish (e.g., 6.7.0dev4)"
-        required: false
+        description: "The version to publish (examples: [6.7.0, 6.7.0dev1])"
+        required: true
 
 jobs:
   build:
@@ -16,7 +16,34 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Determine Version
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [ -n "${{ github.event.inputs.version }}" ]; then
+              VERSION="${{ github.event.inputs.version }}"
+              # Export for both steps and build
+              echo "VERSION=$VERSION" >> $GITHUB_ENV
+              echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+              echo "Using version input from workflow_dispatch: $VERSION"
+            else
+              echo "Error: No version input provided for workflow_dispatch."
+              exit 1
+            fi
+          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+            echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+            echo "Using version from tag: $VERSION"
+          else
+            echo "Error: This workflow requires either a valid tag or a version input."
+            exit 1
+          fi
+          echo "Determined Version: $VERSION"
+
       - uses: hynek/build-and-inspect-python-package@v2
+        env:
+          PACKAGE_VERSION: ${{ env.VERSION }}
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -53,10 +80,6 @@ jobs:
           pwd
           echo "Listing current directory:"
           ls -la
-          echo "Listing /tmp:"
-          ls -la /tmp
-          echo "Listing /tmp/baipp (if exists):"
-          ls -la /tmp/baipp || echo "Directory doesn't exist"
           echo "Listing /tmp/baipp/dist (if exists):"
           ls -la /tmp/baipp/dist || echo "Directory doesn't exist"
           echo "Creating directories if they don't exist:"
@@ -64,55 +87,15 @@ jobs:
           echo "Final listing of /tmp/baipp/dist:"
           ls -la /tmp/baipp/dist
 
-      - name: Determine Version
-        run: |
-          # Check if this is a workflow_dispatch event
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            # Use the input version if provided
-            if [ -n "${{ github.event.inputs.version }}" ]; then
-              VERSION="${{ github.event.inputs.version }}"
-              echo "Using version input from workflow_dispatch: $VERSION"
-            else
-              echo "Error: No version input provided for workflow_dispatch."
-              exit 1
-            fi
-          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            # Use the tag name for tag-based workflows
-            VERSION="${{ github.ref_name }}"
-            echo "Using version from tag: $VERSION"
-          else
-            echo "Error: This workflow requires either a valid tag or a version input."
-            exit 1
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Determined Version: $VERSION"
-
       - name: Attach Wheel to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') # Only runs for tag events
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dist/*.whl
+          file: /tmp/baipp/dist/*.whl
           tag: ${{ env.VERSION }}
           overwrite: true
           file_glob: true
-
-      - name: Prepare files for publishing
-        run: |
-          # Create a clean directory
-          mkdir -p clean_dist
-          # Copy (don't move) the distribution files
-          cp /tmp/baipp/dist/*.whl clean_dist/ || echo "No wheel files found"
-          cp /tmp/baipp/dist/*.tar.gz clean_dist/ || echo "No tar.gz files found"
-          # Show what we got
-          echo "Contents of clean_dist directory:"
-          ls -la clean_dist/
-
-      - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
-        uses: pypa/gh-action-pypi-publish@v1.12.2
-        with:
-          repository-url: ${{ vars.PYPI_PUBLISH_URL }}
-          packages-dir: clean_dist
 
       - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
         uses: pypa/gh-action-pypi-publish@v1.12.2
