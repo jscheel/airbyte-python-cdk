@@ -24,7 +24,8 @@ jobs:
               VERSION="${{ github.event.inputs.version }}"
               # Export for both steps and build
               echo "VERSION=$VERSION" >> $GITHUB_ENV
-              echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+              # Create a _version.py file to force the version
+              echo "version = '${VERSION}'" > airbyte_cdk/_version.py
               echo "Using version input from workflow_dispatch: $VERSION"
             else
               echo "Error: No version input provided for workflow_dispatch."
@@ -33,7 +34,7 @@ jobs:
           elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
             echo "VERSION=$VERSION" >> $GITHUB_ENV
-            echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+            echo "version = '${VERSION}'" > airbyte_cdk/_version.py
             echo "Using version from tag: $VERSION"
           else
             echo "Error: This workflow requires either a valid tag or a version input."
