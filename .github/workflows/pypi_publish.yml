@@ -19,15 +19,6 @@ jobs:
 
       - uses: hynek/build-and-inspect-python-package@v2
 
-      - name: Debug Build Output
-        run: |
-          echo "Listing /tmp/baipp/dist contents:"
-          ls -la /tmp/baipp/dist/
-          echo "Listing contents of /tmp/baipp/dist/out:"
-          ls -la /tmp/baipp/dist/out/
-          echo "Showing all files recursively:"
-          find /tmp/baipp/dist/ -type f
-
       - uses: actions/upload-artifact@v4
         with:
           name: Packages-${{ github.run_id }}
@@ -78,17 +69,15 @@ jobs:
 
       - name: Set Version (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch'
-        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        run: |
+          echo "Version set to ${{ github.event.inputs.version }}"
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
       - name: Set Version (tag)
         if: startsWith(github.ref, 'refs/tags/v')
-        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
-
-      - name: Debug SDM Environment
         run: |
-          echo "Simulating SDM flow for branch: $GITHUB_REF"
-          echo "Current SHA: $GITHUB_SHA"
-          echo "Target Version: ${{ env.VERSION }}"
+          echo "Version set to ${{ github.ref_name }}"
+          echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Set up QEMU for multi-platform builds
         uses: docker/setup-qemu-action@v3
@@ -123,5 +112,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
+            airbyte/source-declarative-manifest:latest
             airbyte/source-declarative-manifest:${{ env.VERSION }}
             airbyte/source-declarative-manifest:${{ github.sha }}
