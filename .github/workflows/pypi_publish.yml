@@ -97,6 +97,15 @@ jobs:
           overwrite: true
           file_glob: true
 
+      - name: Prepare files for publishing
+        run: |
+          # Move any files from subdirectories to the main dist directory
+          find /tmp/baipp/dist -type f -name "*.whl" -o -name "*.tar.gz" -exec mv {} /tmp/baipp/dist/ \;
+          # Ensure permissions are correct
+          chmod -R 644 /tmp/baipp/dist/*
+          echo "Contents of dist directory:"
+          ls -la /tmp/baipp/dist/
+
       - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
         uses: pypa/gh-action-pypi-publish@v1.12.2
         with:
