@@ -99,12 +99,20 @@ jobs:
 
       - name: Prepare files for publishing
         run: |
-          # Move any files from subdirectories to the main dist directory
-          find /tmp/baipp/dist -type f -name "*.whl" -o -name "*.tar.gz" -exec mv {} /tmp/baipp/dist/ \;
-          # Ensure permissions are correct
-          chmod -R 644 /tmp/baipp/dist/*
-          echo "Contents of dist directory:"
-          ls -la /tmp/baipp/dist/
+          # Create a clean directory
+          mkdir -p clean_dist
+          # Copy (don't move) the distribution files
+          cp /tmp/baipp/dist/*.whl clean_dist/ || echo "No wheel files found"
+          cp /tmp/baipp/dist/*.tar.gz clean_dist/ || echo "No tar.gz files found"
+          # Show what we got
+          echo "Contents of clean_dist directory:"
+          ls -la clean_dist/
+
+      - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
+        uses: pypa/gh-action-pypi-publish@v1.12.2
+        with:
+          repository-url: ${{ vars.PYPI_PUBLISH_URL }}
+          packages-dir: clean_dist
 
       - name: Publish to PyPI (${{ vars.PYPI_PUBLISH_URL }})
         uses: pypa/gh-action-pypi-publish@v1.12.2
