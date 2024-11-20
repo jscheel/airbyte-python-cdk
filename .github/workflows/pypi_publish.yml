@@ -23,13 +23,17 @@ jobs:
         run: |
           echo "Listing /tmp/baipp/dist contents:"
           ls -la /tmp/baipp/dist/
-          echo "Total files in directory:"
-          find /tmp/baipp/dist/ -type f | wc -l
+          echo "Listing contents of /tmp/baipp/dist/out:"
+          ls -la /tmp/baipp/dist/out/
+          echo "Showing all files recursively:"
+          find /tmp/baipp/dist/ -type f
 
       - uses: actions/upload-artifact@v4
         with:
           name: Packages
-          path: /tmp/baipp/dist/
+          path: |
+            /tmp/baipp/dist/*.whl
+            /tmp/baipp/dist/*.tar.gz
 
   publish:
     name: Publish CDK version to PyPI
