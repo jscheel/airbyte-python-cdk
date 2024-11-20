@@ -22,7 +22,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Packages
-          path: dist
+          path: /tmp/baipp/dist/
 
   publish:
     name: Publish CDK version to PyPI
