@@ -96,6 +96,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.12.2
         with:
           repository-url: ${{ vars.PYPI_PUBLISH_URL }}
+          packages-dir: /tmp/baipp/dist
 
   publish_sdm:
     name: Publish SDM to DockerHub
