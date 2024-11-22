@@ -134,6 +134,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            # airbyte/source-declarative-manifest:latest
             airbyte/source-declarative-manifest:${{ env.VERSION }}
-            # airbyte/source-declarative-manifest:${{ github.sha }}
