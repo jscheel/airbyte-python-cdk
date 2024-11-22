@@ -44,7 +44,7 @@ jobs:
           # Exit with success if both detected and input versions are empty
           if [ -z "${DETECTED_VERSION:-}" ] && [ -z "${INPUT_VERSION:-}" ]; then
             echo "No version detected or input. Will publish to SHA tag instead."
-            echo 'VERSION=""' >> $GITHUB_ENV
+            echo 'VERSION=' >> $GITHUB_ENV
             exit 0
           fi
           # Remove the 'v' prefix if it exists
