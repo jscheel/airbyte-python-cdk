@@ -16,4 +16,10 @@ COPY airbyte_cdk ./airbyte_cdk
 # Build and install the package
 RUN pip install dist/*.whl
 
-ENTRYPOINT ["poetry", "run", "source-declarative-manifest"]
+# Create main.py with the correct import
+RUN echo 'from airbyte_cdk.cli.source_declarative_manifest._run import run\n\nif __name__ == "__main__":\n    run()' > /airbyte/integration_code/main.py
+
+# Add debug step to verify file contents
+RUN echo "Verifying main.py contents:" && cat /airbyte/integration_code/main.py
+
+ENTRYPOINT ["python", "/airbyte/integration_code/main.py"]
