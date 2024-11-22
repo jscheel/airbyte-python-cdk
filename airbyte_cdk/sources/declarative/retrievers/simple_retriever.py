@@ -360,6 +360,9 @@ class SimpleRetriever(Retriever):
                 next_page_token = self._next_page_token(response)
                 if not next_page_token:
                     pagination_complete = True
+                # Closing the response to avoid memory issues. Note that this assumes the caller as completely consumed the response before
+                # iterating on another one
+                response.close()
 
         # Always return an empty generator just in case no records were ever yielded
         yield from []
