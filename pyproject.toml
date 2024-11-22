@@ -40,7 +40,7 @@ genson = "1.3.0"
 isodate = "~0.6.1"
 Jinja2 = "~3.1.2"
 jsonref = "~0.2"
-jsonschema = "~3.2.0"
+jsonschema = "~4.17.3"  # 4.18 has some significant breaking changes: https://github.com/python-jsonschema/jsonschema/releases/tag/v4.18.0
 pandas = "2.2.2"
 pendulum = "<3.0.0"
 psutil = "6.1.0"
@@ -49,6 +49,7 @@ pyrate-limiter = "~3.1.0"
 python-dateutil = "*"
 python-ulid = "^3.0.0"
 PyYAML = "^6.0.1"
+rapidfuzz = "^3.10.1"
 requests = "*"
 requests_cache = "*"
 wcmatch = "10.0"
@@ -103,6 +104,10 @@ file-based = ["avro", "fastavro", "pyarrow", "unstructured", "pdf2image", "pdfmi
 sphinx-docs = ["Sphinx", "sphinx-rtd-theme"]
 vector-db-based = ["langchain", "openai", "cohere", "tiktoken"]
 sql = ["sqlalchemy"]
+
+[tool.poetry.scripts]
+
+source-declarative-manifest = "airbyte_cdk.cli.source_declarative_manifest:run"
 
 [tool.isort]
 skip = ["__init__.py"]  # TODO: Remove after this is fixed: https://github.com/airbytehq/airbyte-python-cdk/issues/12
