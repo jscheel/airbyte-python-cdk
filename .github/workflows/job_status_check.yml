@@ -103,6 +103,7 @@ jobs:
           echo "failures=${failures[*]}" >> $GITHUB_ENV
           echo "not_reported=${not_reported[*]}" >> $GITHUB_ENV
 
+          echo "Evaluating step results."
           # Determine overall result
           if [[ ${#failures[@]} -gt 0 ]]; then
             echo "result=failure" >> $GITHUB_OUTPUT
