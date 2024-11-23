@@ -77,7 +77,7 @@ jobs:
           read -r -a required_checks <<< "${CONDITIONAL_CHECK_NAMES//\n/;}"
 
           # Loop through each check result
-          echo "$response" | jq -c '.check_runs[]' | while read -r check; do
+          for check in $(echo "$checks" | jq -c '.[]'); do
             # Debug: Print each check's raw JSON data for verification
             name=$(echo "$check" | jq -r '.name')
             if [[ " ${required_checks[@]} " =~ " $name " ]]; then
