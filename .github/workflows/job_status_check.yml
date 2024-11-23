@@ -79,13 +79,12 @@ jobs:
           # Loop through each check result
           echo "$response" | jq -c '.check_runs[]' | while read -r check; do
             # Debug: Print each check's raw JSON data for verification
-            echo "Processing check: $check"
             name=$(echo "$check" | jq -r '.name')
-            conclusion=$(echo "$check" | jq -r '.conclusion')
-
-            echo "$name status: $conclusion"
-
             if [[ " ${required_checks[@]} " =~ " $name " ]]; then
+                echo "Processing check: $check"
+                conclusion=$(echo "$check" | jq -r '.conclusion')
+                echo "$name status: $conclusion"
+
               if [[ "$conclusion" == "failure" ]]; then
                 failures+=("$name")
               elif [[ "$conclusion" == "success" ]]; then
@@ -93,8 +92,11 @@ jobs:
               else
                 not_reported+=("$name")
               fi
+            else
+              echo "Skipping check: $name"
             fi
           done
+          echo "Completed parsing check statuses."
 
           # Output statuses for debugging (delimited by commas to avoid issues with spaces in names)
           echo "successes=${successes[*]}" >> $GITHUB_ENV
