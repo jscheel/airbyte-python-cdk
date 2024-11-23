@@ -12,9 +12,11 @@ name: Test Check Governing Workflow
 
 on:
   workflow_run:
-    workflows: []  # Trigger for any workflow completion
     types:
       - completed
+  pull_request:
+    types:
+      - synchronize
   push:
     # This push.branches trigger can be used for testing.
     # Otherwise the workflow only runs against the default branch.
