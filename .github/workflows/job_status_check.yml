@@ -101,7 +101,9 @@ jobs:
             else
               echo "Skipping check: $name"
             fi
+            echo not_reported="${not_reported}"
           done
+          echo not_reported="${not_reported}"
           echo "Completed parsing check statuses."
 
           # Output statuses for debugging (delimited by commas to avoid issues with spaces in names)
