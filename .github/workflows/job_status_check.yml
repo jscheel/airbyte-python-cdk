@@ -105,6 +105,7 @@ jobs:
           # Output statuses for debugging (delimited by commas to avoid issues with spaces in names)
           echo "successes=${successes[*]}" >> $GITHUB_ENV
           echo "failures=${failures[*]}" >> $GITHUB_ENV
+          echo not_reported="${not_reported[*]}"
           echo not_reported="${not_reported[*]}" >> $GITHUB_ENV
 
           echo "Evaluating step results."
