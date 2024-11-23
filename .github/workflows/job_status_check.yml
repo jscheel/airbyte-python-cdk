@@ -111,6 +111,7 @@ jobs:
             echo "result=neutral" >> $GITHUB_OUTPUT
           else
             echo "result=success" >> $GITHUB_OUTPUT
+          fi
 
       # Step 4: Fail the job if any check has failed
       - name: Abort if failed
