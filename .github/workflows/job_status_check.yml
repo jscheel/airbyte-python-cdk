@@ -83,13 +83,17 @@ jobs:
             if [[ " ${required_checks[@]} " =~ " $name " ]]; then
                 echo "Processing check: $check"
                 conclusion=$(echo "$check" | jq -r '.conclusion')
-                echo "$name status: $conclusion"
+                status=$(echo "$check" | jq -r '.status')
+                echo "$name status: $conclusion ($status)"
 
               if [[ "$conclusion" == "failure" ]]; then
+                echo "Adding $name to failures."
                 failures+=("$name")
               elif [[ "$conclusion" == "success" ]]; then
+                echo "Adding $name to successes."
                 successes+=("$name")
               else
+                echo "Adding $name to not_reported."
                 not_reported+=("$name")
               fi
             else
