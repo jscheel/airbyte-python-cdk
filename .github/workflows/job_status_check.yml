@@ -35,7 +35,8 @@ jobs:
       IFS: ';'
       # These are only required when code file paths are modified
       CONDITIONAL_CHECK_NAMES: >
-        Pytest (Fast);Pytest (Ubuntu, Python 3.10)
+        Pytest (Fast)
+        Pytest (Ubuntu, Python 3.10)
     steps:
       # Step 1: Checkout the codebase
       - name: Checkout code
