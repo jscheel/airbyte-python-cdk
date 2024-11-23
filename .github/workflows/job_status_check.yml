@@ -14,6 +14,10 @@ on:
   workflow_run:
     types:
       - completed
+    # List all of the conditional workflows here and at
+    # least one non-conditional workflow that will always run.
+    workflows:
+      - 'Pytest (Fast)'
   pull_request:
     types:
       - synchronize
