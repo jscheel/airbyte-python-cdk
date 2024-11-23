@@ -95,6 +95,8 @@ jobs:
               else
                 echo "Adding $name to not_reported."
                 not_reported+=("$name")
+                echo not_reported="${not_reported}"
+                echo not_reported="${not_reported[*]}"
               fi
             else
               echo "Skipping check: $name"
