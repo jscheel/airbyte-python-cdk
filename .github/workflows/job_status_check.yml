@@ -65,6 +65,7 @@ jobs:
           successes=()
           failures=()
           not_reported=()
+          read -r -a required_checks <<< "${CONDITIONAL_CHECK_NAMES//\n/;}"
           # Debug: Print CONDITIONAL_CHECK_NAMES for verification
           echo "Conditional Check Names: ${CONDITIONAL_CHECK_NAMES}"
           # Debug: Print head SHA for verification
@@ -74,10 +75,8 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/commits/${SHA}/check-runs)
 
-          read -r -a required_checks <<< "${CONDITIONAL_CHECK_NAMES//\n/;}"
-
           # Loop through each check result
-          for check in $(echo "$checks" | jq -c '.[]'); do
+          for check in $(echo "$response" | jq -c '.check_runs[]'); do
             # Debug: Print each check's raw JSON data for verification
             name=$(echo "$check" | jq -r '.name')
             if [[ " ${required_checks[@]} " =~ " $name " ]]; then
