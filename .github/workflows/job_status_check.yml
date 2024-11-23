@@ -17,7 +17,7 @@ on:
     # List all of the conditional workflows here and at
     # least one non-conditional workflow that will always run.
     workflows:
-      - 'Pytest (Fast)'
+      - Pytest (Fast)
   pull_request:
     types:
       - synchronize
@@ -35,8 +35,8 @@ jobs:
       IFS: ';'
       # These are only required when code file paths are modified
       CONDITIONAL_CHECK_NAMES: |
-        Some Check
-        Some Other Check
+        Pytest (Fast)
+        Pytest (Ubuntu, Python 3.10)
     steps:
       # Step 1: Checkout the codebase
       - name: Checkout code
