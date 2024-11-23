@@ -129,6 +129,7 @@ jobs:
             echo "requires_integration_tests=true" >> $GITHUB_ENV
           else
             echo "requires_integration_tests=false" >> $GITHUB_ENV
+          fi
 
       # Step 6: Report neutral if integration tests are still waiting.
       - name: Report Neutral if Checks Still Waiting
