@@ -1,7 +1,11 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
 import logging
+import sys
+import time
 from datetime import timedelta
+from pympler import asizeof
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -23,6 +27,26 @@ from airbyte_cdk.sources.streams.http.exceptions import (
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 from requests_cache import CachedRequest
+from unit_tests.sources.file_based.scenarios.excel_scenarios import single_excel_scenario
+
+
+# def get_total_size(obj, seen=None):
+#     """Recursively calculates the total size of an object including inner objects."""
+#     if seen is None:
+#         seen = set()
+#     obj_id = id(obj)
+#     if obj_id in seen:  # Avoid counting the same object multiple times
+#         return 0
+#
+#     seen.add(obj_id)
+#     size = sys.getsizeof(obj)
+#
+#     if isinstance(obj, dict):
+#         size += sum(get_total_size(k, seen) + get_total_size(v, seen) for k, v in obj.items())
+#     elif isinstance(obj, (list, tuple, set, frozenset)):
+#         size += sum(get_total_size(i, seen) for i in obj)
+#
+#     return size
 
 
 def test_http_client():
@@ -372,6 +396,63 @@ def test_send_request_given_retry_response_action_retries_and_returns_valid_resp
 
     assert http_client._session.send.call_count == call_count
     assert returned_response == valid_response
+
+
+@pytest.mark.usefixtures("mock_sleep")
+def test_expiring_dictionary_for_request_count():
+    mocked_session = MagicMock(spec=requests.Session)
+    valid_response = MagicMock(spec=requests.Response)
+    valid_response.status_code = 200
+    valid_response.ok = True
+    valid_response.headers = {}
+    call_count = 3
+
+    def update_response(*args, **kwargs):
+        nonlocal call_count
+        if http_client._session.send.call_count == call_count:
+            call_count += 3
+            return valid_response
+        else:
+            retry_response = MagicMock(spec=requests.Response)
+            retry_response.ok = False
+            retry_response.status_code = 408
+            retry_response.headers = {}
+            return retry_response
+
+    mocked_session.send.side_effect = update_response
+
+    http_client = HttpClient(
+        name="test",
+        logger=MagicMock(),
+        error_handler=HttpStatusErrorHandler(
+            logger=MagicMock(),
+            error_mapping={
+                408: ErrorResolution(
+                    ResponseAction.RETRY, FailureType.system_error, "test retry message"
+                )
+            },
+            max_retries=call_count,
+        ),
+        session=mocked_session,
+    )
+
+    size_with_requests = 0
+    for requests_count in range(1001):
+        if requests_count == 1000:
+            size_with_requests = asizeof.asizeof(http_client._request_attempt_count._store)
+            # let max_time passes so next _send_with_retry will expire count keys
+            time.sleep(http_client._max_time + 1)
+        prepared_request = requests.PreparedRequest()
+        returned_response = http_client._send_with_retry(prepared_request, request_kwargs={})
+        assert returned_response == valid_response
+
+    assert len(http_client._request_attempt_count._store) == 1
+
+    reduced_size_after_requests_expired = asizeof.asizeof(http_client._request_attempt_count._store)
+
+    assert size_with_requests > 100_000
+    assert size_with_requests > reduced_size_after_requests_expired
+    assert reduced_size_after_requests_expired < 1_500
 
 
 def test_session_request_exception_raises_backoff_exception():

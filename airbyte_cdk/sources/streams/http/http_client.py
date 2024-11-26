@@ -1,12 +1,12 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
-
+import json
 import logging
 import os
 import urllib
 from pathlib import Path
-from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import orjson
 import requests
@@ -38,6 +38,7 @@ from airbyte_cdk.sources.streams.http.exceptions import (
     RequestBodyException,
     UserDefinedBackoffException,
 )
+from airbyte_cdk.sources.streams.http.expiring_dictionary import ExpiringDictionary
 from airbyte_cdk.sources.streams.http.rate_limiting import (
     http_client_default_backoff_handler,
     rate_limit_default_backoff_handler,
@@ -116,6 +117,7 @@ class HttpClient:
         else:
             self._backoff_strategies = [DefaultBackoffStrategy()]
         self._error_message_parser = error_message_parser or JsonErrorMessageParser()
+        self._request_attempt_count = ExpiringDictionary(self._max_time)
         self._disable_retries = disable_retries
         self._message_repository = message_repository
 
@@ -275,6 +277,14 @@ class HttpClient:
         log_formatter: Optional[Callable[[requests.Response], Any]] = None,
         exit_on_rate_limit: Optional[bool] = False,
     ) -> requests.Response:
+        if request not in self._request_attempt_count:
+            self._request_attempt_count[request] = 1
+        else:
+            self._request_attempt_count[request] += 1
+            if hasattr(self._session, "auth") and isinstance(self._session.auth, AuthBase):
+                self._session.auth(request)
+        self._request_attempt_count.remove_expired_keys()
+
         self._logger.debug(
             "Making outbound API request",
             extra={"headers": request.headers, "url": request.url, "request_body": request.body},
@@ -390,7 +400,7 @@ class HttpClient:
             for backoff_strategy in self._backoff_strategies:
                 backoff_time = backoff_strategy.backoff_time(
                     response_or_exception=response if response is not None else exc,
-                    attempt_count=0,
+                    attempt_count=self._request_attempt_count[request],
                 )
                 if backoff_time:
                     user_defined_backoff_time = backoff_time
