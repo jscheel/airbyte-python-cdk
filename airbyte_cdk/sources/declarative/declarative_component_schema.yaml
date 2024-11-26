@@ -2787,8 +2787,7 @@ definitions:
       components_resolver:
         title: Components Resolver
         description: Component resolve and populates stream templates with components values.
-        anyOf:
-          - "$ref": "#/definitions/HttpComponentsResolver"
+        "$ref": "#/definitions/HttpComponentsResolver"
 interpolation:
   variables:
     - title: config
