@@ -1031,6 +1031,44 @@ class WaitUntilTimeFromHeader(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class ComponentMappingDefinition(BaseModel):
+    type: Literal["ComponentMappingDefinition"]
+    key: str = Field(
+        ...,
+        description="The target key in the stream template where the value will be added or updated.",
+        title="Key",
+    )
+    value: str = Field(
+        ...,
+        description="The dynamic or static value to assign to the key. Interpolated values can be used to dynamically determine the value during runtime.",
+        examples=[
+            "{{ components_values['updates'] }}",
+            "{{ components_values['MetaData']['LastUpdatedTime'] }}",
+            "{{ config['segment_id'] }}",
+        ],
+        title="Value",
+    )
+    value_type: Optional[ValueType] = Field(
+        None,
+        description="The expected data type of the value. If omitted, the type will be inferred from the value provided.",
+        title="Value Type",
+    )
+    condition: Optional[str] = Field(
+        "",
+        description="An optional condition that must evaluate to `true` for the mapping to be applied. This can use interpolation for dynamic evaluation.",
+        examples=[
+            "{{ components_values['created_at'] >= stream_interval['start_time'] }}",
+            "{{ components_values.status in ['active', 'expired'] }}",
+        ],
+        title="Condition",
+    )
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class ConfigDrivenComponentsParser(BaseModel):
+    __root__: Any
+
+
 class AddedFieldDefinition(BaseModel):
     type: Literal["AddedFieldDefinition"]
     path: List[str] = Field(
@@ -1737,6 +1775,26 @@ class SubstreamPartitionRouter(BaseModel):
         title="Parent Stream Configs",
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class HttpComponentsResolver(BaseModel):
+    type: Literal["HttpComponentsResolver"]
+    retriever: Union[AsyncRetriever, CustomRetriever, SimpleRetriever] = Field(
+        ...,
+        description="Component used to coordinate how records are extracted across stream slices and request pages.",
+        title="Retriever",
+    )
+    components_mapping: List[ComponentMappingDefinition]
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class DynamicDeclarativeStream(BaseModel):
+    stream_template: Optional[DeclarativeStream] = Field(
+        None, description="Reference to the stream template.", title="Stream Template"
+    )
+    components_resolver: Optional[Union[HttpComponentsResolver, ConfigDrivenComponentsParser]] = (
+        None
+    )
 
 
 CompositeErrorHandler.update_forward_refs()
