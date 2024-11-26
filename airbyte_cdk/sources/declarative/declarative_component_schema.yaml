@@ -19,6 +19,10 @@ properties:
     type: array
     items:
       "$ref": "#/definitions/DeclarativeStream"
+  dynamic_streams:
+    type: array
+    items:
+      "$ref": "#/definitions/DynamicDeclarativeStream"
   version:
     type: string
     description: The version of the Airbyte CDK used to build and test the source.
@@ -2702,7 +2706,7 @@ definitions:
         additionalProperties: true
   ComponentMappingDefinition:
     title: Component Mapping Definition
-    description: Specifies a mapping definition to update or add fields in a record or configuration. This allows dynamic mapping of data by interpolating values into the template based on provided contexts.
+    description: Specifies a mapping definition to update or add fields in a record or configuration. This allows dynamic mapping of data by interpolating values into the template based on provided contexts. (This component is experimental. Use at your own risk.)
     type: object
     required:
       - type
@@ -2749,6 +2753,7 @@ definitions:
         additionalProperties: true
   HttpComponentsResolver:
     type: object
+    description: Component resolve and populates stream templates with components fetched via an HTTP retriever. (This component is experimental. Use at your own risk.)
     properties:
       type:
         type: string
@@ -2773,15 +2778,17 @@ definitions:
       - components_mapping
   DynamicDeclarativeStream:
     type: object
+    description: A component that described how will be created declarative streams based on stream template. (This component is experimental. Use at your own risk.)
     properties:
       stream_template:
         title: Stream Template
         description: Reference to the stream template.
         "$ref": "#/definitions/DeclarativeStream"
       components_resolver:
+        title: Components Resolver
+        description: Component resolve and populates stream templates with components values.
         anyOf:
           - "$ref": "#/definitions/HttpComponentsResolver"
-          - "$ref": "#/definitions/ConfigDrivenComponentsParser"
 interpolation:
   variables:
     - title: config

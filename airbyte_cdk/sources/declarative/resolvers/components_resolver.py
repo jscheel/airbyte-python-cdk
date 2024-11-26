@@ -5,8 +5,9 @@
 from abc import abstractmethod
 from dataclasses import InitVar, dataclass
 from typing import Any, Dict, Mapping, Optional, Type, Union, Iterable
-
+from airbyte_cdk.sources.source import ExperimentalClassWarning
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedBoolean, InterpolatedString
+from deprecated.classic import deprecated
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ class ResolvedComponentMappingDefinition:
     condition: Optional[Union["InterpolatedBoolean", str]] = ""
 
 
+@deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
 @dataclass
 class ComponentsResolver:
     """

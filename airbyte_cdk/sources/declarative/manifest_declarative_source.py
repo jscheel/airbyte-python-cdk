@@ -30,6 +30,8 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.parsers.manifest_component_transformer import (
     ManifestComponentTransformer,
 )
+from airbyte_cdk.sources.declarative.resolvers import COMPONENTS_RESOLVER_TYPE_MAPPING
+
 from airbyte_cdk.sources.declarative.parsers.manifest_reference_resolver import (
     ManifestReferenceResolver,
 )
@@ -119,7 +121,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
         self._emit_manifest_debug_message(
             extra_args={"source_name": self.name, "parsed_config": json.dumps(self._source_config)}
         )
-        stream_configs = self._stream_configs(self._source_config)
+        stream_configs = self._stream_configs(self._source_config, config)
 
         source_streams = [
             self._constructor.create_component(
@@ -294,13 +296,61 @@ class ManifestDeclarativeSource(DeclarativeSource):
             # No exception
             return parsed_version
 
-    def _stream_configs(self, manifest: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    def _stream_configs(
+        self, manifest: Mapping[str, Any], config: Mapping[str, Any]
+    ) -> List[Dict[str, Any]]:
         # This has a warning flag for static, but after we finish part 4 we'll replace manifest with self._source_config
         stream_configs: List[Dict[str, Any]] = manifest.get("streams", [])
+
+        # Add dynamic stream configs to the common stream configs
+        stream_configs.extend(self._dynamic_stream_configs(manifest, config))
+
         for s in stream_configs:
             if "type" not in s:
                 s["type"] = "DeclarativeStream"
         return stream_configs
+
+    def _dynamic_stream_configs(
+        self, manifest: Mapping[str, Any], config: Mapping[str, Any]
+    ) -> List[Dict[str, Any]]:
+        dynamic_stream_definitions: List[Dict[str, Any]] = manifest.get("dynamic_streams", [])
+        dynamic_stream_configs: List[Dict[str, Any]] = []
+
+        for dynamic_definition in dynamic_stream_definitions:
+            components_resolver_config = dynamic_definition["components_resolver"]
+
+            if not components_resolver_config:
+                raise ValueError(
+                    f"Missing 'components_resolver' in dynamic definition: {dynamic_definition}"
+                )
+
+            resolver_type = components_resolver_config.get("type")
+            if not resolver_type:
+                raise ValueError(
+                    f"Missing 'type' in components resolver configuration: {components_resolver_config}"
+                )
+
+            if resolver_type not in COMPONENTS_RESOLVER_TYPE_MAPPING:
+                raise ValueError(
+                    f"Invalid components resolver type '{resolver_type}'. "
+                    f"Expected one of {list(COMPONENTS_RESOLVER_TYPE_MAPPING.keys())}."
+                )
+
+            # Create a resolver for dynamic components based on type
+            components_resolver = self._constructor.create_component(
+                COMPONENTS_RESOLVER_TYPE_MAPPING[resolver_type], components_resolver_config, config
+            )
+
+            stream_template_config = dynamic_definition["stream_template"]
+            dynamic_stream_configs.extend(
+                list(
+                    components_resolver.resolve_components(
+                        stream_template_config=stream_template_config
+                    )
+                )
+            )
+
+        return dynamic_stream_configs
 
     def _emit_manifest_debug_message(self, extra_args: dict[str, Any]) -> None:
         self.logger.debug("declarative source created from manifest", extra=extra_args)

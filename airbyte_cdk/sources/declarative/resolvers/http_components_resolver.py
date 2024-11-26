@@ -8,14 +8,17 @@ from typing import Any, Dict, List, Mapping, Optional, Iterable
 
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedBoolean, InterpolatedString
 from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
+from airbyte_cdk.sources.source import ExperimentalClassWarning
 from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.declarative.resolvers.components_resolver import (
     ComponentsResolver,
     ComponentMappingDefinition,
     ResolvedComponentMappingDefinition,
 )
+from deprecated.classic import deprecated
 
 
+@deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
 @dataclass
 class HttpComponentsResolver(ComponentsResolver):
     """
