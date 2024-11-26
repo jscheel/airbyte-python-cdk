@@ -4,7 +4,7 @@
 
 from copy import deepcopy
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Iterable, Union
+from typing import Any, Dict, List, Mapping, Optional, Iterable
 
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedBoolean, InterpolatedString
 from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
