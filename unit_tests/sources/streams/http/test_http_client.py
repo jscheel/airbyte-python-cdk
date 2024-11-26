@@ -30,25 +30,6 @@ from requests_cache import CachedRequest
 from unit_tests.sources.file_based.scenarios.excel_scenarios import single_excel_scenario
 
 
-# def get_total_size(obj, seen=None):
-#     """Recursively calculates the total size of an object including inner objects."""
-#     if seen is None:
-#         seen = set()
-#     obj_id = id(obj)
-#     if obj_id in seen:  # Avoid counting the same object multiple times
-#         return 0
-#
-#     seen.add(obj_id)
-#     size = sys.getsizeof(obj)
-#
-#     if isinstance(obj, dict):
-#         size += sum(get_total_size(k, seen) + get_total_size(v, seen) for k, v in obj.items())
-#     elif isinstance(obj, (list, tuple, set, frozenset)):
-#         size += sum(get_total_size(i, seen) for i in obj)
-#
-#     return size
-
-
 def test_http_client():
     return HttpClient(name="StubHttpClient", logger=MagicMock())
 
