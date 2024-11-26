@@ -44,7 +44,7 @@ class HttpComponentsResolver(ComponentsResolver):
             parameters (Mapping[str, Any]): Parameters for interpolation.
         """
         for component_mapping in self.components_mapping:
-            condition = component_mapping.condition or True
+            condition = component_mapping.condition or "True"
 
             if isinstance(component_mapping.value, (str, InterpolatedString)):
                 interpolated_value = (
@@ -71,8 +71,8 @@ class HttpComponentsResolver(ComponentsResolver):
         component_config: Dict[str, Any],
         key: str,
         value: Any,
-        condition: Optional[Union[InterpolatedBoolean, str]],
-        **kwargs,
+        condition: Optional[InterpolatedBoolean],
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
         Recursively updates the configuration dictionary for a specific key.
@@ -120,7 +120,7 @@ class HttpComponentsResolver(ComponentsResolver):
 
         for components_values in self.retriever.read_records({}):
             updated_config = deepcopy(stream_template_config)
-            kwargs["components_values"] = components_values
+            kwargs["components_values"] = components_values  # type: ignore[assignment] # component_values will always be of type Mapping[str, Any]
 
             for resolved_component in self._resolved_components:
                 valid_types = (
@@ -133,7 +133,7 @@ class HttpComponentsResolver(ComponentsResolver):
                     updated_config,
                     key=resolved_component.key,
                     value=value,
-                    condition=resolved_component.condition,
+                    condition=resolved_component.condition,  # type: ignore[arg-type]  # The condition in resolved_component always has the type InterpolatedBoolean if it exists.
                     **kwargs,
                 )
 

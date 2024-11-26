@@ -25,7 +25,7 @@ class ResolvedComponentMappingDefinition:
     """Represents a parsed and resolved component mapping for a stream configuration."""
 
     key: str
-    value: Union["InterpolatedString", str]
+    value: "InterpolatedString"
     value_type: Optional[Type[Any]]
     parameters: InitVar[Mapping[str, Any]]
     condition: Optional[Union["InterpolatedBoolean", str]] = ""
