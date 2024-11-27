@@ -341,6 +341,13 @@ class HttpClient:
         return response  # type: ignore # will either return a valid response of type requests.Response or raise an exception
 
     def _evict_key(self, prepared_request: requests.PreparedRequest) -> None:
+        """
+        Addresses high memory consumption when enabling concurrency in https://github.com/airbytehq/oncall/issues/6821.
+
+        The `_request_attempt_count` attribute keeps growing as multiple requests are made using the same `http_client`.
+        To mitigate this issue, we evict keys for completed requests once we confirm that no further retries are needed.
+        This helps manage memory usage more efficiently while maintaining the necessary logic for retry attempts.
+        """
         if prepared_request in self._request_attempt_count:
             del self._request_attempt_count[prepared_request]
 
