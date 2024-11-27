@@ -2,7 +2,7 @@ import time
 
 
 class ExpiringDictionary:
-    def __init__(self, expiration_time: int=2):
+    def __init__(self, expiration_time: int = 2):
         self._store = {}
         self._expiration_time = expiration_time
 

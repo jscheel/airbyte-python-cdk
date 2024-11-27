@@ -378,6 +378,7 @@ def test_send_request_given_retry_response_action_retries_and_returns_valid_resp
     assert http_client._session.send.call_count == call_count
     assert returned_response == valid_response
 
+
 @pytest.mark.slow
 @pytest.mark.limit_memory("160 MB")
 @pytest.mark.usefixtures("mock_sleep")
@@ -436,6 +437,7 @@ def test_expiring_dictionary_for_request_count():
     assert size_with_requests > 100_000
     assert reduced_size_after_requests_expired < 1_500
 
+
 @pytest.mark.slow
 @pytest.mark.limit_memory("160 MB")
 @pytest.mark.usefixtures("mock_sleep")
@@ -489,7 +491,9 @@ def test_expiring_dictionary_for_request_count_between_expiration_times():
             requests_expired = True
         prepared_request = requests.PreparedRequest()
         returned_response = http_client._send_with_retry(prepared_request, request_kwargs={})
-        max_size_of_requests_count = max(asizeof.asizeof(http_client._request_attempt_count._store), max_size_of_requests_count)
+        max_size_of_requests_count = max(
+            asizeof.asizeof(http_client._request_attempt_count._store), max_size_of_requests_count
+        )
         if requests_expired:
             requests_expired = False
             assert len(http_client._request_attempt_count._store) == 1
