@@ -9,11 +9,16 @@ class ExpiringDictionary:
     def remove_expired_keys(self):
         """Remove expired keys from the dictionary."""
         current_time = time.time()
-        self._store = {
-            key: (value, timestamp)
-            for key, (value, timestamp) in self._store.items()
-            if current_time - timestamp <= self._expiration_time
-        }
+        expired_keys = []
+        for key, (value, timestamp) in self._store.items():
+            if current_time - timestamp >= self._expiration_time:
+                expired_keys.append(key)
+            else:
+                # After Python 3.7, items will be presented in the order they were added.
+                break
+        for key in expired_keys:
+            del self._store[key]
+        self._store = dict(self._store)
 
     def set(self, key, value):
         self._store[key] = (value, time.time())
