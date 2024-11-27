@@ -234,12 +234,6 @@ class ManifestDeclarativeSource(DeclarativeSource):
                 f"Failed to read manifest component json schema required for validation: {e}"
             )
 
-        streams = self._source_config.get("streams")
-        if not streams:
-            raise ValidationError(
-                f"A valid manifest should have at least one stream defined. Got {streams}"
-            )
-
         try:
             validate(self._source_config, declarative_component_schema)
         except ValidationError as e:
@@ -300,7 +294,7 @@ class ManifestDeclarativeSource(DeclarativeSource):
         self, manifest: Mapping[str, Any], config: Mapping[str, Any]
     ) -> List[Dict[str, Any]]:
         # This has a warning flag for static, but after we finish part 4 we'll replace manifest with self._source_config
-        stream_configs: List[Dict[str, Any]] = manifest.get("streams", [])
+        stream_configs: List[Dict[str, Any]] = deepcopy(manifest.get("streams", []))
 
         # Add dynamic stream configs to the common stream configs
         stream_configs.extend(self._dynamic_stream_configs(manifest, config))

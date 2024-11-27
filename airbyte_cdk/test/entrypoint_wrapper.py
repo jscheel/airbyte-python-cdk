@@ -173,6 +173,16 @@ def _run_command(
     return EntrypointOutput(messages + captured_logs, uncaught_exception)
 
 
+def _run_command_with_config(source: Source, command: str, config: Mapping[str, Any], expecting_exception: bool = False) -> EntrypointOutput:
+    with tempfile.TemporaryDirectory() as tmp_directory:
+        tmp_directory_path = Path(tmp_directory)
+        config_file = make_file(tmp_directory_path / "config.json", config)
+
+        return _run_command(
+            source, [command, "--config", config_file, "--debug"], expecting_exception
+        )
+
+
 def discover(
     source: Source,
     config: Mapping[str, Any],
@@ -183,14 +193,21 @@ def discover(
     :param expecting_exception: By default if there is an uncaught exception, the exception will be printed out. If this is expected, please
         provide expecting_exception=True so that the test output logs are cleaner
     """
+    return _run_command_with_config(source, "discover", config, expecting_exception)
 
-    with tempfile.TemporaryDirectory() as tmp_directory:
-        tmp_directory_path = Path(tmp_directory)
-        config_file = make_file(tmp_directory_path / "config.json", config)
 
-        return _run_command(
-            source, ["discover", "--config", config_file, "--debug"], expecting_exception
-        )
+def check(
+    source: Source,
+    config: Mapping[str, Any],
+    expecting_exception: bool = False,
+) -> EntrypointOutput:
+    """
+    config must be json serializable
+    :param expecting_exception: By default if there is an uncaught exception, the exception will be printed out. If this is expected, please
+        provide expecting_exception=True so that the test output logs are cleaner
+    """
+    return _run_command_with_config(source, "check", config, expecting_exception)
+
 
 
 def read(
