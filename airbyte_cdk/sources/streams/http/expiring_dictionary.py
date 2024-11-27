@@ -29,6 +29,11 @@ class ExpiringDictionary:
             del self._store[key]
         self._store = dict(self._store)
 
+    def remove_evicted_key(self, key):
+        if key in self._store:
+            del self._store[key]
+        self._store = dict(self._store)
+
     def set(self, key, value):
         self._set_key_for_expiration(key, value)
 

@@ -75,6 +75,7 @@ class MessageRepresentationAirbyteTracedErrors(AirbyteTracedException):
 class HttpClient:
     _DEFAULT_MAX_RETRY: int = 5
     _DEFAULT_MAX_TIME: int = 60 * 10
+    _ACTIONS_TO_RETRY_ON = {ResponseAction.RETRY, ResponseAction.RATE_LIMITED}
 
     def __init__(
         self,
@@ -351,6 +352,9 @@ class HttpClient:
         exit_on_rate_limit: Optional[bool] = False,
     ) -> None:
         # Emit stream status RUNNING with the reason RATE_LIMITED to log that the rate limit has been reached
+        if error_resolution.response_action not in self._ACTIONS_TO_RETRY_ON:
+            self._request_attempt_count.remove_evicted_key(request)
+
         if error_resolution.response_action == ResponseAction.RATE_LIMITED:
             # TODO: Update to handle with message repository when concurrent message repository is ready
             reasons = [AirbyteStreamStatusReason(type=AirbyteStreamStatusReasonType.RATE_LIMITED)]
