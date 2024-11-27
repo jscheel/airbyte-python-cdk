@@ -72,8 +72,8 @@ class HttpComponentsResolver(ComponentsResolver):
     def _update_config(
         self,
         component_config: Dict[str, Any],
-        key: str,
-        value: Any,
+        target_key: str,
+        target_value: Any,
         condition: Optional[InterpolatedBoolean],
         **kwargs: Any,
     ) -> Dict[str, Any]:
@@ -93,8 +93,8 @@ class HttpComponentsResolver(ComponentsResolver):
         should_update = condition.eval(self.config, **kwargs) if condition else True
 
         for key, value in component_config.items():
-            if key == key and should_update:
-                component_config[key] = value
+            if key == target_key and should_update:
+                component_config[key] = target_value
             elif isinstance(value, dict):
                 component_config[key] = self._update_config(value, key, value, condition, **kwargs)
             elif isinstance(value, list):
@@ -134,8 +134,8 @@ class HttpComponentsResolver(ComponentsResolver):
                 )
                 updated_config = self._update_config(
                     updated_config,
-                    key=resolved_component.key,
-                    value=value,
+                    target_key=resolved_component.key,
+                    target_value=value,
                     condition=resolved_component.condition,  # type: ignore[arg-type]  # The condition in resolved_component always has the type InterpolatedBoolean if it exists.
                     **kwargs,
                 )
