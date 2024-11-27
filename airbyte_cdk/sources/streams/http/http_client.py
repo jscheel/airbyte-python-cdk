@@ -117,7 +117,7 @@ class HttpClient:
         else:
             self._backoff_strategies = [DefaultBackoffStrategy()]
         self._error_message_parser = error_message_parser or JsonErrorMessageParser()
-        self._request_attempt_count = ExpiringDictionary(self._max_time)
+        self._request_attempt_count = ExpiringDictionary()
         self._disable_retries = disable_retries
         self._message_repository = message_repository
 

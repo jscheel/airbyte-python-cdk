@@ -2,7 +2,7 @@ import time
 
 
 class ExpiringDictionary:
-    def __init__(self, expiration_time: int):
+    def __init__(self, expiration_time: int=2):
         self._store = {}
         self._expiration_time = expiration_time
 
@@ -45,5 +45,4 @@ class ExpiringDictionary:
         return len(self._store)
 
     def __repr__(self):
-        with self._lock:
-            return repr({key: value for key, (value, _) in self._store.items()})
+        return repr({key: value for key, (value, _) in self._store.items()})

@@ -378,7 +378,8 @@ def test_send_request_given_retry_response_action_retries_and_returns_valid_resp
     assert http_client._session.send.call_count == call_count
     assert returned_response == valid_response
 
-
+@pytest.mark.slow
+@pytest.mark.limit_memory("160 MB")
 @pytest.mark.usefixtures("mock_sleep")
 def test_expiring_dictionary_for_request_count():
     mocked_session = MagicMock(spec=requests.Session)
@@ -417,12 +418,13 @@ def test_expiring_dictionary_for_request_count():
         session=mocked_session,
     )
 
+    http_client._request_attempt_count._expiration_time = 600
     size_with_requests = 0
     for requests_count in range(1001):
         if requests_count == 1000:
             size_with_requests = asizeof.asizeof(http_client._request_attempt_count._store)
             # let max_time passes so next _send_with_retry will expire count keys
-            time.sleep(http_client._max_time)
+            time.sleep(http_client._request_attempt_count._expiration_time)
         prepared_request = requests.PreparedRequest()
         returned_response = http_client._send_with_retry(prepared_request, request_kwargs={})
         assert returned_response == valid_response
@@ -435,7 +437,8 @@ def test_expiring_dictionary_for_request_count():
     assert size_with_requests > reduced_size_after_requests_expired
     assert reduced_size_after_requests_expired < 1_500
 
-
+@pytest.mark.slow
+@pytest.mark.limit_memory("160 MB")
 @pytest.mark.usefixtures("mock_sleep")
 def test_expiring_dictionary_for_request_count_between_expiration_times():
     mocked_session = MagicMock(spec=requests.Session)
@@ -477,11 +480,12 @@ def test_expiring_dictionary_for_request_count_between_expiration_times():
     size_with_requests = 0
     step = 100
     requests_expired = False
+    http_client._request_attempt_count._expiration_time = 600
     for requests_count in range(1001):
         if requests_count == step:
             assert len(http_client._request_attempt_count._store) == 100
             # let max_time passes so next _send_with_retry will expire count keys
-            time.sleep(http_client._max_time)
+            time.sleep(http_client._request_attempt_count._expiration_time)
             step += 100
             requests_expired = True
         prepared_request = requests.PreparedRequest()
