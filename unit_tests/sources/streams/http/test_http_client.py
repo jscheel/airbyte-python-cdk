@@ -434,7 +434,6 @@ def test_expiring_dictionary_for_request_count():
     reduced_size_after_requests_expired = asizeof.asizeof(http_client._request_attempt_count._store)
 
     assert size_with_requests > 100_000
-    assert size_with_requests > reduced_size_after_requests_expired
     assert reduced_size_after_requests_expired < 1_500
 
 @pytest.mark.slow
@@ -477,7 +476,7 @@ def test_expiring_dictionary_for_request_count_between_expiration_times():
         session=mocked_session,
     )
 
-    size_with_requests = 0
+    max_size_of_requests_count = 0
     step = 100
     requests_expired = False
     http_client._request_attempt_count._expiration_time = 600
@@ -490,10 +489,13 @@ def test_expiring_dictionary_for_request_count_between_expiration_times():
             requests_expired = True
         prepared_request = requests.PreparedRequest()
         returned_response = http_client._send_with_retry(prepared_request, request_kwargs={})
+        max_size_of_requests_count = max(asizeof.asizeof(http_client._request_attempt_count._store), max_size_of_requests_count)
         if requests_expired:
             requests_expired = False
             assert len(http_client._request_attempt_count._store) == 1
         assert returned_response == valid_response
+
+    assert max_size_of_requests_count < 62_000
 
 
 def test_session_request_exception_raises_backoff_exception():
