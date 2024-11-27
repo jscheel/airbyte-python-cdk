@@ -6,6 +6,15 @@ class ExpiringDictionary:
         self._store = {}
         self._expiration_time = expiration_time
 
+    def _set_key_for_expiration(self, key, value):
+        if key in self._store:
+            # reinsert with updated at time
+            del self._store[key]
+            self._store[key] = (value, time.time())
+        else:
+            # insert with creation time
+            self._store[key] = (value, time.time())
+
     def remove_expired_keys(self):
         """Remove expired keys from the dictionary."""
         current_time = time.time()
@@ -21,7 +30,7 @@ class ExpiringDictionary:
         self._store = dict(self._store)
 
     def set(self, key, value):
-        self._store[key] = (value, time.time())
+        self._set_key_for_expiration(key, value)
 
     def get(self, key):
         if key in self._store:
@@ -30,7 +39,7 @@ class ExpiringDictionary:
         return None
 
     def __setitem__(self, key, value):
-        self._store[key] = (value, time.time())
+        self._set_key_for_expiration(key, value)
 
     def __getitem__(self, key):
         if key in self._store:

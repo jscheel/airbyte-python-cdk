@@ -502,6 +502,61 @@ def test_expiring_dictionary_for_request_count_between_expiration_times():
     assert max_size_of_requests_count < 62_000
 
 
+@pytest.mark.usefixtures("mock_sleep")
+def test_expiring_dictionary_for_request_count_when_prepared_request_is_retried():
+    """
+    This test is intended to prove that a request that is retried will go to the top
+    of the _request_attempt_count store with an updated value
+    """
+    mocked_session = MagicMock(spec=requests.Session)
+    valid_response = MagicMock(spec=requests.Response)
+    valid_response.status_code = 200
+    valid_response.ok = True
+    valid_response.headers = {}
+    call_count = 3
+
+    def update_response(*args, **kwargs):
+        return valid_response
+
+    mocked_session.send.side_effect = update_response
+
+    http_client = HttpClient(
+        name="test",
+        logger=MagicMock(),
+        error_handler=HttpStatusErrorHandler(
+            logger=MagicMock(),
+            max_retries=call_count,
+        ),
+        session=mocked_session,
+    )
+
+    request_to_retry = requests.PreparedRequest()
+    http_client._send_with_retry(request_to_retry, request_kwargs={})
+    for requests_count in range(9):
+        prepared_request = requests.PreparedRequest()
+        returned_response = http_client._send_with_retry(prepared_request, request_kwargs={})
+        time.sleep(0.1)
+        assert returned_response == valid_response
+    oldest_entry_in_store = list(http_client._request_attempt_count._store.items())[0]
+    newest_entry_in_store = list(http_client._request_attempt_count._store.items())[-1]
+    assert oldest_entry_in_store[0] is request_to_retry
+    assert newest_entry_in_store[0] is not request_to_retry
+    retry_request_original_value, retry_request_creation_time = oldest_entry_in_store[1]
+    assert retry_request_original_value == 1
+
+    # retry same request
+    http_client._send_with_retry(request_to_retry, request_kwargs={})
+    oldest_entry_in_store = list(http_client._request_attempt_count._store.items())[0]
+    newest_entry_in_store = list(http_client._request_attempt_count._store.items())[-1]
+    assert oldest_entry_in_store[0] is not request_to_retry
+    assert newest_entry_in_store[0] is request_to_retry
+    retry_request_new_value, retry_request_updated_time = newest_entry_in_store[1]
+
+    assert retry_request_updated_time > retry_request_creation_time
+    assert retry_request_new_value > retry_request_original_value
+    assert retry_request_new_value == 2
+
+
 def test_session_request_exception_raises_backoff_exception():
     error_handler = HttpStatusErrorHandler(
         logger=MagicMock(),
