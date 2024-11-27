@@ -38,7 +38,6 @@ from airbyte_cdk.sources.streams.http.exceptions import (
     RequestBodyException,
     UserDefinedBackoffException,
 )
-from airbyte_cdk.sources.streams.http.expiring_dictionary import ExpiringDictionary
 from airbyte_cdk.sources.streams.http.rate_limiting import (
     http_client_default_backoff_handler,
     rate_limit_default_backoff_handler,
@@ -118,7 +117,7 @@ class HttpClient:
         else:
             self._backoff_strategies = [DefaultBackoffStrategy()]
         self._error_message_parser = error_message_parser or JsonErrorMessageParser()
-        self._request_attempt_count = ExpiringDictionary()
+        self._request_attempt_count: Dict[requests.PreparedRequest, int] = {}
         self._disable_retries = disable_retries
         self._message_repository = message_repository
 
@@ -284,7 +283,6 @@ class HttpClient:
             self._request_attempt_count[request] += 1
             if hasattr(self._session, "auth") and isinstance(self._session.auth, AuthBase):
                 self._session.auth(request)
-        self._request_attempt_count.remove_expired_keys()
 
         self._logger.debug(
             "Making outbound API request",
@@ -343,6 +341,10 @@ class HttpClient:
 
         return response  # type: ignore # will either return a valid response of type requests.Response or raise an exception
 
+    def _evict_key(self, prepared_request: requests.PreparedRequest):
+        if prepared_request in self._request_attempt_count:
+            del self._request_attempt_count[prepared_request]
+
     def _handle_error_resolution(
         self,
         response: Optional[requests.Response],
@@ -351,10 +353,10 @@ class HttpClient:
         error_resolution: ErrorResolution,
         exit_on_rate_limit: Optional[bool] = False,
     ) -> None:
-        # Emit stream status RUNNING with the reason RATE_LIMITED to log that the rate limit has been reached
         if error_resolution.response_action not in self._ACTIONS_TO_RETRY_ON:
-            self._request_attempt_count.remove_evicted_key(request)
+            self._evict_key(request)
 
+        # Emit stream status RUNNING with the reason RATE_LIMITED to log that the rate limit has been reached
         if error_resolution.response_action == ResponseAction.RATE_LIMITED:
             # TODO: Update to handle with message repository when concurrent message repository is ready
             reasons = [AirbyteStreamStatusReason(type=AirbyteStreamStatusReasonType.RATE_LIMITED)]

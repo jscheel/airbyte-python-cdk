@@ -1,10 +1,8 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
 import logging
-import sys
-import time
 from datetime import timedelta
-
+from pympler import asizeof
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -26,7 +24,6 @@ from airbyte_cdk.sources.streams.http.exceptions import (
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 from requests_cache import CachedRequest
-from unit_tests.sources.file_based.scenarios.excel_scenarios import single_excel_scenario
 
 
 def test_http_client():
@@ -376,6 +373,55 @@ def test_send_request_given_retry_response_action_retries_and_returns_valid_resp
 
     assert http_client._session.send.call_count == call_count
     assert returned_response == valid_response
+
+
+@pytest.mark.usefixtures("mock_sleep")
+def test_evicting_requests_for_request_count():
+    mocked_session = MagicMock(spec=requests.Session)
+    valid_response = MagicMock(spec=requests.Response)
+    valid_response.status_code = 200
+    valid_response.ok = True
+    valid_response.headers = {}
+    call_count = 3
+
+    def update_response(*args, **kwargs):
+        nonlocal call_count
+        if http_client._session.send.call_count == call_count:
+            call_count += 3
+            return valid_response
+        else:
+            retry_response = MagicMock(spec=requests.Response)
+            retry_response.ok = False
+            retry_response.status_code = 408
+            retry_response.headers = {}
+            return retry_response
+
+    mocked_session.send.side_effect = update_response
+
+    http_client = HttpClient(
+        name="test",
+        logger=MagicMock(),
+        error_handler=HttpStatusErrorHandler(
+            logger=MagicMock(),
+            error_mapping={
+                408: ErrorResolution(
+                    ResponseAction.RETRY, FailureType.system_error, "test retry message"
+                )
+            },
+            max_retries=call_count,
+        ),
+        session=mocked_session,
+    )
+
+    requests_to_make = 1000
+    for requests_count in range(requests_to_make):
+        prepared_request = requests.PreparedRequest()
+        returned_response = http_client._send_with_retry(prepared_request, request_kwargs={})
+        assert returned_response == valid_response
+
+    # for the number of requests_to_make if we didn't evict the requests we could see increase the value ~0.5 MB
+    size_of_request_count_store = asizeof.asizeof(http_client._request_attempt_count)
+    assert size_of_request_count_store < 250
 
 
 def test_session_request_exception_raises_backoff_exception():
