@@ -91,11 +91,9 @@ class HttpClient:
     ):
         self._name = name
         self._api_budget: APIBudget = api_budget or APIBudget(policies=[])
-        self._is_session_owner = False
         if session:
             self._session = session
         else:
-            self._is_session_owner = True
             self._use_cache = use_cache
             self._session = self._request_session()
             self._session.mount(
@@ -119,10 +117,6 @@ class HttpClient:
         self._request_attempt_count: Dict[requests.PreparedRequest, int] = {}
         self._disable_retries = disable_retries
         self._message_repository = message_repository
-
-    def __del__(self) -> None:
-        if self._is_session_owner:
-            self._session.close()
 
     @property
     def cache_filename(self) -> str:
