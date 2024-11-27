@@ -120,7 +120,7 @@ class HttpClient:
         self._disable_retries = disable_retries
         self._message_repository = message_repository
 
-    def __del__(self):
+    def __del__(self) -> None:
         if self._is_session_owner:
             self._session.close()
 
@@ -340,7 +340,7 @@ class HttpClient:
 
         return response  # type: ignore # will either return a valid response of type requests.Response or raise an exception
 
-    def _evict_key(self, prepared_request: requests.PreparedRequest):
+    def _evict_key(self, prepared_request: requests.PreparedRequest) -> None:
         if prepared_request in self._request_attempt_count:
             del self._request_attempt_count[prepared_request]
 
