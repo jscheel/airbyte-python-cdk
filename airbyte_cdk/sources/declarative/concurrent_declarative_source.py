@@ -194,7 +194,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     declarative_stream.name
                 ].get("incremental_sync")
 
-                is_without_partition_router_nor_cursor = not bool(
+                is_without_partition_router_or_cursor = not bool(
                     datetime_based_cursor_component_definition
                 ) and not (
                     name_to_stream_mapping[declarative_stream.name]
@@ -207,7 +207,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     )
                 )
                 if (
-                    is_without_partition_router_nor_cursor
+                    is_without_partition_router_or_cursor
                     or is_datetime_incremental_without_partition_routing
                 ):
                     stream_state = state_manager.get_stream_state(
@@ -256,6 +256,9 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             primary_key=get_primary_key_from_stream(declarative_stream.primary_key),
                             cursor_field=cursor.cursor_field.cursor_field_key
                             if hasattr(cursor, "cursor_field")
+                            and hasattr(
+                                cursor.cursor_field, "cursor_field_key"
+                            )  # FIXME this will need to be updated once we do the per partition
                             else None,
                             logger=self.logger,
                             cursor=cursor,

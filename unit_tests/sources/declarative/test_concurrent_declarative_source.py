@@ -478,7 +478,7 @@ def test_group_streams():
     concurrent_streams = source._concurrent_streams
     synchronous_streams = source._synchronous_streams
 
-    # 2 incremental streams
+    # 1 substream, 2 incremental streams
     assert len(concurrent_streams) == 3
     concurrent_stream_0, concurrent_stream_1, concurrent_stream_2 = concurrent_streams
     assert isinstance(concurrent_stream_0, DefaultStream)
@@ -488,7 +488,7 @@ def test_group_streams():
     assert isinstance(concurrent_stream_2, DefaultStream)
     assert concurrent_stream_2.name == "locations"
 
-    # 1 full refresh stream, 1 substream
+    # 1 full refresh stream
     assert len(synchronous_streams) == 1
     assert isinstance(synchronous_streams[0], DeclarativeStream)
     assert synchronous_streams[0].name == "party_members_skills"
@@ -1274,7 +1274,9 @@ def test_streams_with_stream_state_interpolation_should_be_synchronous():
         state=None,
     )
 
+    # 1 stream with parent stream
     assert len(source._concurrent_streams) == 1
+    # 1 full refresh stream, 2 incremental stream with interpolation on state
     assert len(source._synchronous_streams) == 3
 
 
