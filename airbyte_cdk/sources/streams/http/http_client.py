@@ -376,7 +376,7 @@ class HttpClient:
 
         if error_resolution.response_action == ResponseAction.FAIL:
             if response is not None:
-                error_message = f"'{request.method}' request to '{request.url}' failed with status code '{response.status_code}' and error message '{response.content}'"
+                error_message = f"'{request.method}' request to '{request.url}' failed with status code '{response.status_code}' and error message '{response.content.decode('utf-8', errors='replace')}'"
             else:
                 error_message = (
                     f"'{request.method}' request to '{request.url}' failed with exception: '{exc}'"
