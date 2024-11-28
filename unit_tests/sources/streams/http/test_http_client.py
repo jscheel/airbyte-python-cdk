@@ -7,6 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+from requests_cache import CachedRequest
+
 from airbyte_cdk.models import FailureType
 from airbyte_cdk.sources.streams.call_rate import CachedLimiterSession, LimiterSession
 from airbyte_cdk.sources.streams.http import HttpClient
@@ -23,7 +25,6 @@ from airbyte_cdk.sources.streams.http.exceptions import (
 )
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
-from requests_cache import CachedRequest
 
 
 def test_http_client():
