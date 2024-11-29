@@ -2756,7 +2756,7 @@ definitions:
         additionalProperties: true
   HttpComponentsResolver:
     type: object
-    description: Component resolve and populates stream templates with components fetched via an HTTP retriever. (This component is experimental. Use at your own risk.)
+    description: (This component is experimental. Use at your own risk.) Component resolve and populates stream templates with components fetched via an HTTP retriever.
     properties:
       type:
         type: string
@@ -2781,7 +2781,7 @@ definitions:
       - components_mapping
   DynamicDeclarativeStream:
     type: object
-    description: A component that described how will be created declarative streams based on stream template. (This component is experimental. Use at your own risk.)
+    description: (This component is experimental. Use at your own risk.) A component that described how will be created declarative streams based on stream template.
     properties:
       type:
         type: string
