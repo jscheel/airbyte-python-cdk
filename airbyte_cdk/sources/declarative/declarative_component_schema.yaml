@@ -1329,7 +1329,7 @@ definitions:
         type: array
         items:
           - type: string
-        interpolation_content:
+        interpolation_context:
           - config
         examples:
           - ["data"]
@@ -2726,7 +2726,7 @@ definitions:
         type: array
         items:
           - type: string
-        interpolation_content:
+        interpolation_context:
           - config
           - components_values
           - stream_template_config
