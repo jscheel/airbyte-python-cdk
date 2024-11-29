@@ -2771,7 +2771,7 @@ definitions:
       components_mapping:
         type: array
         items:
-          - "$ref": "#/definitions/ComponentMappingDefinition"
+          "$ref": "#/definitions/ComponentMappingDefinition"
       $parameters:
         type: object
         additionalProperties: true
@@ -2791,6 +2791,9 @@ definitions:
         title: Components Resolver
         description: Component resolve and populates stream templates with components values.
         "$ref": "#/definitions/HttpComponentsResolver"
+    required:
+      - stream_template
+      - components_resolver
 interpolation:
   variables:
     - title: config
