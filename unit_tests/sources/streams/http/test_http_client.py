@@ -2,11 +2,11 @@
 
 import logging
 from datetime import timedelta
-from pympler import asizeof
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+from pympler import asizeof
 from requests_cache import CachedRequest
 
 from airbyte_cdk.models import FailureType
