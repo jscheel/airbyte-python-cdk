@@ -2,8 +2,13 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 #
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
+from airbyte_cdk.models import Type
+from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
+from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.declarative.resolvers import (
     ComponentMappingDefinition,
     HttpComponentsResolver,
@@ -12,9 +17,6 @@ from airbyte_cdk.sources.embedded.catalog import (
     to_configured_catalog,
     to_configured_stream,
 )
-from airbyte_cdk.models import Type
-from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
-from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
 
 _MANIFEST = {
     "version": "5.0.0",

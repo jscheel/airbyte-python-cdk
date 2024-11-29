@@ -4,10 +4,12 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import InitVar, dataclass
-from typing import Any, Dict, Mapping, Optional, Type, Union, Iterable, List
-from airbyte_cdk.sources.source import ExperimentalClassWarning
-from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Type, Union
+
 from deprecated.classic import deprecated
+
+from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
+from airbyte_cdk.sources.source import ExperimentalClassWarning
 
 
 @dataclass(frozen=True)

@@ -4,19 +4,20 @@
 
 from copy import deepcopy
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Dict, List, Mapping, Iterable
+from typing import Any, Dict, Iterable, List, Mapping
 
 import dpath
+from deprecated.classic import deprecated
+
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
+from airbyte_cdk.sources.declarative.resolvers.components_resolver import (
+    ComponentMappingDefinition,
+    ComponentsResolver,
+    ResolvedComponentMappingDefinition,
+)
 from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
 from airbyte_cdk.sources.source import ExperimentalClassWarning
 from airbyte_cdk.sources.types import Config
-from airbyte_cdk.sources.declarative.resolvers.components_resolver import (
-    ComponentsResolver,
-    ComponentMappingDefinition,
-    ResolvedComponentMappingDefinition,
-)
-from deprecated.classic import deprecated
 
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)

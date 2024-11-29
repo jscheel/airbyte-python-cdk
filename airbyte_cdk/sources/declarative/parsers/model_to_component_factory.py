@@ -33,10 +33,6 @@ from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.declarative.async_job.job_orchestrator import AsyncJobOrchestrator
 from airbyte_cdk.sources.declarative.async_job.job_tracker import JobTracker
 from airbyte_cdk.sources.declarative.async_job.repository import AsyncJobRepository
-from airbyte_cdk.sources.declarative.resolvers import (
-    HttpComponentsResolver,
-    ComponentMappingDefinition,
-)
 from airbyte_cdk.sources.declarative.async_job.status import AsyncJobStatus
 from airbyte_cdk.sources.declarative.auth import DeclarativeOauth2Authenticator, JwtAuthenticator
 from airbyte_cdk.sources.declarative.auth.declarative_authenticator import (
@@ -125,6 +121,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     CheckStream as CheckStreamModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    ComponentMappingDefinition as ComponentMappingDefinitionModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     CompositeErrorHandler as CompositeErrorHandlerModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -195,6 +194,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     GzipJsonDecoder as GzipJsonDecoderModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    HttpComponentsResolver as HttpComponentsResolverModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpRequester as HttpRequesterModel,
@@ -285,12 +287,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import Spec as SpecModel
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    HttpComponentsResolver as HttpComponentsResolverModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    ComponentMappingDefinition as ComponentMappingDefinitionModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SubstreamPartitionRouter as SubstreamPartitionRouterModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import ValueType
@@ -304,9 +300,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     XmlDecoder as XmlDecoderModel,
 )
 from airbyte_cdk.sources.declarative.partition_routers import (
-    PartitionRouter,
     CartesianProductStreamSlicer,
     ListPartitionRouter,
+    PartitionRouter,
     SinglePartitionRouter,
     SubstreamPartitionRouter,
 )
@@ -347,6 +343,10 @@ from airbyte_cdk.sources.declarative.requesters.request_options import (
 )
 from airbyte_cdk.sources.declarative.requesters.request_path import RequestPath
 from airbyte_cdk.sources.declarative.requesters.requester import HttpMethod
+from airbyte_cdk.sources.declarative.resolvers import (
+    ComponentMappingDefinition,
+    HttpComponentsResolver,
+)
 from airbyte_cdk.sources.declarative.retrievers import (
     AsyncRetriever,
     SimpleRetriever,
