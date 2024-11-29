@@ -1838,6 +1838,7 @@ class HttpComponentsResolver(BaseModel):
 
 
 class DynamicDeclarativeStream(BaseModel):
+    type: Literal["DynamicDeclarativeStream"]
     stream_template: DeclarativeStream = Field(
         ..., description="Reference to the stream template.", title="Stream Template"
     )

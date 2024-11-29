@@ -2783,6 +2783,9 @@ definitions:
     type: object
     description: A component that described how will be created declarative streams based on stream template. (This component is experimental. Use at your own risk.)
     properties:
+      type:
+        type: string
+        enum: [ DynamicDeclarativeStream ]
       stream_template:
         title: Stream Template
         description: Reference to the stream template.
@@ -2792,6 +2795,7 @@ definitions:
         description: Component resolve and populates stream templates with components values.
         "$ref": "#/definitions/HttpComponentsResolver"
     required:
+      - type
       - stream_template
       - components_resolver
 interpolation:
