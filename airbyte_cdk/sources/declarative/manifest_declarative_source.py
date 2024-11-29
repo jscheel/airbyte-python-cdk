@@ -334,6 +334,9 @@ class ManifestDeclarativeSource(DeclarativeSource):
                     f"Expected one of {list(COMPONENTS_RESOLVER_TYPE_MAPPING.keys())}."
                 )
 
+            if "retriever" in components_resolver_config:
+                components_resolver_config["retriever"]["requester"]["use_cache"] = True
+
             # Create a resolver for dynamic components based on type
             components_resolver = self._constructor.create_component(
                 COMPONENTS_RESOLVER_TYPE_MAPPING[resolver_type], components_resolver_config, config
