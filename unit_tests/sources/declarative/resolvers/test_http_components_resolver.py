@@ -16,38 +16,16 @@ from airbyte_cdk.sources.declarative.resolvers import (
         (
             [
                 ComponentMappingDefinition(
-                    key="key1",
+                    field_path=["key1"],
                     value="{{components_values['key1']}}",
                     value_type=str,
-                    condition="True",
-                    parameters={},
-                ),
-                ComponentMappingDefinition(
-                    key="key2",
-                    value="{{components_values['key2']}}",
-                    value_type=str,
-                    condition="False",
                     parameters={},
                 ),
             ],
             [{"key1": "updated_value1", "key2": "updated_value2"}],
             {"key1": None, "key2": None},
             [{"key1": "updated_value1", "key2": None}],  # Only key1 is updated
-        ),
-        (
-            [
-                ComponentMappingDefinition(
-                    key="key3",
-                    value="{{components_values['key3']}}",
-                    value_type=str,
-                    condition="True",
-                    parameters={},
-                ),
-            ],
-            [{"key3": "updated_value3"}],
-            {"key3": None},
-            [{"key3": "updated_value3"}],  # key3 is updated
-        ),
+        )
     ],
 )
 def test_http_components_resolver(

@@ -2211,11 +2211,14 @@ class ModelToComponentFactory:
         interpolated_value = InterpolatedString.create(
             model.value, parameters=model.parameters or {}
         )
+        field_path = [
+            InterpolatedString.create(path, parameters=model.parameters or {})
+            for path in model.field_path
+        ]
         return ComponentMappingDefinition(
-            key=model.key,
+            field_path=field_path,
             value=interpolated_value,
             value_type=ModelToComponentFactory._json_schema_type_name_to_type(model.value_type),
-            condition=model.condition or "",
             parameters=model.parameters or {},
         )
 

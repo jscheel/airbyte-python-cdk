@@ -7,8 +7,12 @@ version: 1.0.0
 required:
   - type
   - check
-  - streams
   - version
+anyOf:
+  - required:
+      - streams
+  - required:
+      - dynamic_streams
 properties:
   type:
     type: string
@@ -2706,20 +2710,31 @@ definitions:
         additionalProperties: true
   ComponentMappingDefinition:
     title: Component Mapping Definition
-    description: Specifies a mapping definition to update or add fields in a record or configuration. This allows dynamic mapping of data by interpolating values into the template based on provided contexts. (This component is experimental. Use at your own risk.)
+    description: (This component is experimental. Use at your own risk.) Specifies a mapping definition to update or add fields in a record or configuration. This allows dynamic mapping of data by interpolating values into the template based on provided contexts.
     type: object
     required:
       - type
-      - key
+      - field_path
       - value
     properties:
       type:
         type: string
         enum: [ComponentMappingDefinition]
-      key:
-        title: Key
-        description: The target key in the stream template where the value will be added or updated.
-        type: string
+      field_path:
+        title: Field Path
+        description: A list of potentially nested fields indicating the full path where value will be added or updated.
+        type: array
+        items:
+          - type: string
+        interpolation_content:
+          - config
+          - components_values
+          - stream_template_config
+        examples:
+          - ["data"]
+          - ["data", "records"]
+          - ["data", "{{ parameters.name }}"]
+          - ["data", "*", "record"]
       value:
         title: Value
         description: The dynamic or static value to assign to the key. Interpolated values can be used to dynamically determine the value during runtime.
@@ -2736,18 +2751,6 @@ definitions:
         title: Value Type
         description: The expected data type of the value. If omitted, the type will be inferred from the value provided.
         "$ref": "#/definitions/ValueType"
-      condition:
-        title: Condition
-        description: An optional condition that must evaluate to `true` for the mapping to be applied. This can use interpolation for dynamic evaluation.
-        type: string
-        default: ""
-        interpolation_context:
-          - config
-          - stream_template_config
-          - components_values
-        examples:
-          - "{{ components_values['created_at'] >= stream_interval['start_time'] }}"
-          - "{{ components_values.status in ['active', 'expired'] }}"
       $parameters:
         type: object
         additionalProperties: true

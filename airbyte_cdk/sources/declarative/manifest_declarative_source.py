@@ -121,7 +121,10 @@ class ManifestDeclarativeSource(DeclarativeSource):
         self._emit_manifest_debug_message(
             extra_args={"source_name": self.name, "parsed_config": json.dumps(self._source_config)}
         )
-        stream_configs = self._stream_configs(self._source_config, config)
+
+        stream_configs = self._stream_configs(self._source_config) + self._dynamic_stream_configs(
+            self._source_config, config
+        )
 
         source_streams = [
             self._constructor.create_component(
@@ -235,7 +238,8 @@ class ManifestDeclarativeSource(DeclarativeSource):
             )
 
         streams = self._source_config.get("streams")
-        if not streams:
+        dynamic_streams = self._source_config.get("dynamic_streams")
+        if not (streams or dynamic_streams):
             raise ValidationError(
                 f"A valid manifest should have at least one stream defined. Got {streams}"
             )
@@ -296,15 +300,9 @@ class ManifestDeclarativeSource(DeclarativeSource):
             # No exception
             return parsed_version
 
-    def _stream_configs(
-        self, manifest: Mapping[str, Any], config: Mapping[str, Any]
-    ) -> List[Dict[str, Any]]:
+    def _stream_configs(self, manifest: Mapping[str, Any]) -> List[Dict[str, Any]]:
         # This has a warning flag for static, but after we finish part 4 we'll replace manifest with self._source_config
         stream_configs: List[Dict[str, Any]] = manifest.get("streams", [])
-
-        # Add dynamic stream configs to the common stream configs
-        stream_configs.extend(self._dynamic_stream_configs(manifest, config))
-
         for s in stream_configs:
             if "type" not in s:
                 s["type"] = "DeclarativeStream"
@@ -342,13 +340,14 @@ class ManifestDeclarativeSource(DeclarativeSource):
             )
 
             stream_template_config = dynamic_definition["stream_template"]
-            dynamic_stream_configs.extend(
-                list(
-                    components_resolver.resolve_components(
-                        stream_template_config=stream_template_config
-                    )
-                )
-            )
+
+            for dynamic_stream in components_resolver.resolve_components(
+                stream_template_config=stream_template_config
+            ):
+                if "type" not in dynamic_stream:
+                    dynamic_stream["type"] = "DeclarativeStream"
+
+                dynamic_stream_configs.append(dynamic_stream)
 
         return dynamic_stream_configs
 

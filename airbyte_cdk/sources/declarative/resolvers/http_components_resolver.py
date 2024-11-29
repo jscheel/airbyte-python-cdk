@@ -4,9 +4,10 @@
 
 from copy import deepcopy
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Iterable
+from typing import Any, Dict, List, Mapping, Iterable
 
-from airbyte_cdk.sources.declarative.interpolation import InterpolatedBoolean, InterpolatedString
+import dpath
+from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
 from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
 from airbyte_cdk.sources.source import ExperimentalClassWarning
 from airbyte_cdk.sources.types import Config
@@ -47,20 +48,23 @@ class HttpComponentsResolver(ComponentsResolver):
             parameters (Mapping[str, Any]): Parameters for interpolation.
         """
         for component_mapping in self.components_mapping:
-            condition = component_mapping.condition or "True"
-
             if isinstance(component_mapping.value, (str, InterpolatedString)):
                 interpolated_value = (
                     InterpolatedString.create(component_mapping.value, parameters=parameters)
                     if isinstance(component_mapping.value, str)
                     else component_mapping.value
                 )
+
+                field_path = [
+                    InterpolatedString.create(path, parameters=parameters)
+                    for path in component_mapping.field_path
+                ]
+
                 self._resolved_components.append(
                     ResolvedComponentMappingDefinition(
-                        key=component_mapping.key,
+                        field_path=field_path,
                         value=interpolated_value,
                         value_type=component_mapping.value_type,
-                        condition=InterpolatedBoolean(condition=condition, parameters=parameters),
                         parameters=parameters,
                     )
                 )
@@ -68,44 +72,6 @@ class HttpComponentsResolver(ComponentsResolver):
                 raise ValueError(
                     f"Expected a string or InterpolatedString for value in mapping: {component_mapping}"
                 )
-
-    def _update_config(
-        self,
-        component_config: Dict[str, Any],
-        target_key: str,
-        target_value: Any,
-        condition: Optional[InterpolatedBoolean],
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
-        """
-        Recursively updates the configuration dictionary for a specific key.
-
-        Args:
-            component_config (Dict[str, Any]): Component config to update.
-            key (str): Target key to update.
-            value (Any): Value to assign to the target key.
-            condition (Optional[InterpolatedBoolean]): Condition for applying the update.
-
-        Returns:
-            Dict[str, Any]: Updated configuration dictionary.
-        """
-        kwargs["current_component_config"] = component_config
-        should_update = condition.eval(self.config, **kwargs) if condition else True
-
-        for key, value in component_config.items():
-            if key == target_key and should_update:
-                component_config[key] = target_value
-            elif isinstance(value, dict):
-                component_config[key] = self._update_config(value, key, value, condition, **kwargs)
-            elif isinstance(value, list):
-                component_config[key] = [
-                    self._update_config(item, key, value, condition, **kwargs)
-                    if isinstance(item, dict)
-                    else item
-                    for item in value
-                ]
-
-        return component_config
 
     def resolve_components(
         self, stream_template_config: Dict[str, Any]
@@ -132,12 +98,8 @@ class HttpComponentsResolver(ComponentsResolver):
                 value = resolved_component.value.eval(
                     self.config, valid_types=valid_types, **kwargs
                 )
-                updated_config = self._update_config(
-                    updated_config,
-                    target_key=resolved_component.key,
-                    target_value=value,
-                    condition=resolved_component.condition,  # type: ignore[arg-type]  # The condition in resolved_component always has the type InterpolatedBoolean if it exists.
-                    **kwargs,
-                )
+
+                path = [path.eval(self.config, **kwargs) for path in resolved_component.field_path]
+                dpath.set(updated_config, path, value)
 
             yield updated_config

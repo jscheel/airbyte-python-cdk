@@ -1033,10 +1033,16 @@ class WaitUntilTimeFromHeader(BaseModel):
 
 class ComponentMappingDefinition(BaseModel):
     type: Literal["ComponentMappingDefinition"]
-    key: str = Field(
+    field_path: List[str] = Field(
         ...,
-        description="The target key in the stream template where the value will be added or updated.",
-        title="Key",
+        description="A list of potentially nested fields indicating the full path where value will be added or updated.",
+        examples=[
+            ["data"],
+            ["data", "records"],
+            ["data", "{{ parameters.name }}"],
+            ["data", "*", "record"],
+        ],
+        title="Field Path",
     )
     value: str = Field(
         ...,
@@ -1052,15 +1058,6 @@ class ComponentMappingDefinition(BaseModel):
         None,
         description="The expected data type of the value. If omitted, the type will be inferred from the value provided.",
         title="Value Type",
-    )
-    condition: Optional[str] = Field(
-        "",
-        description="An optional condition that must evaluate to `true` for the mapping to be applied. This can use interpolation for dynamic evaluation.",
-        examples=[
-            "{{ components_values['created_at'] >= stream_interval['start_time'] }}",
-            "{{ components_values.status in ['active', 'expired'] }}",
-        ],
-        title="Condition",
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
@@ -1362,7 +1359,7 @@ class CompositeErrorHandler(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
-class DeclarativeSource(BaseModel):
+class DeclarativeSource1(BaseModel):
     class Config:
         extra = Extra.forbid
 
@@ -1385,6 +1382,43 @@ class DeclarativeSource(BaseModel):
     description: Optional[str] = Field(
         None,
         description="A description of the connector. It will be presented on the Source documentation page.",
+    )
+
+
+class DeclarativeSource2(BaseModel):
+    class Config:
+        extra = Extra.forbid
+
+    type: Literal["DeclarativeSource"]
+    check: CheckStream
+    streams: Optional[List[DeclarativeStream]] = None
+    dynamic_streams: List[DynamicDeclarativeStream]
+    version: str = Field(
+        ...,
+        description="The version of the Airbyte CDK used to build and test the source.",
+    )
+    schemas: Optional[Schemas] = None
+    definitions: Optional[Dict[str, Any]] = None
+    spec: Optional[Spec] = None
+    concurrency_level: Optional[ConcurrencyLevel] = None
+    metadata: Optional[Dict[str, Any]] = Field(
+        None,
+        description="For internal Airbyte use only - DO NOT modify manually. Used by consumers of declarative manifests for storing related metadata.",
+    )
+    description: Optional[str] = Field(
+        None,
+        description="A description of the connector. It will be presented on the Source documentation page.",
+    )
+
+
+class DeclarativeSource(BaseModel):
+    class Config:
+        extra = Extra.forbid
+
+    __root__: Union[DeclarativeSource1, DeclarativeSource2] = Field(
+        ...,
+        description="An API source that extracts data according to its declarative components.",
+        title="DeclarativeSource",
     )
 
 
@@ -1797,7 +1831,8 @@ class DynamicDeclarativeStream(BaseModel):
 
 
 CompositeErrorHandler.update_forward_refs()
-DeclarativeSource.update_forward_refs()
+DeclarativeSource1.update_forward_refs()
+DeclarativeSource2.update_forward_refs()
 SelectiveAuthenticator.update_forward_refs()
 DeclarativeStream.update_forward_refs()
 SessionTokenAuthenticator.update_forward_refs()

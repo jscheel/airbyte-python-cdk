@@ -2,11 +2,11 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 #
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import InitVar, dataclass
-from typing import Any, Dict, Mapping, Optional, Type, Union, Iterable
+from typing import Any, Dict, Mapping, Optional, Type, Union, Iterable, List
 from airbyte_cdk.sources.source import ExperimentalClassWarning
-from airbyte_cdk.sources.declarative.interpolation import InterpolatedBoolean, InterpolatedString
+from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
 from deprecated.classic import deprecated
 
 
@@ -14,27 +14,25 @@ from deprecated.classic import deprecated
 class ComponentMappingDefinition:
     """Defines the key-value mapping configuration for a stream component."""
 
-    key: str
+    field_path: List["InterpolatedString"]
     value: Union["InterpolatedString", str]
     value_type: Optional[Type[Any]]
     parameters: InitVar[Mapping[str, Any]]
-    condition: str = ""
 
 
 @dataclass(frozen=True)
 class ResolvedComponentMappingDefinition:
     """Represents a parsed and resolved component mapping for a stream configuration."""
 
-    key: str
+    field_path: List["InterpolatedString"]
     value: "InterpolatedString"
     value_type: Optional[Type[Any]]
     parameters: InitVar[Mapping[str, Any]]
-    condition: Optional[Union["InterpolatedBoolean", str]] = ""
 
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
 @dataclass
-class ComponentsResolver:
+class ComponentsResolver(ABC):
     """
     Abstract base class for resolving components in a stream template.
     """
