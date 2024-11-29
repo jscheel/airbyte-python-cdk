@@ -2216,7 +2216,7 @@ class ModelToComponentFactory:
             for path in model.field_path
         ]
         return ComponentMappingDefinition(
-            field_path=field_path,
+            field_path=field_path,  # type: ignore[arg-type] # field_path can be str and InterpolatedString
             value=interpolated_value,
             value_type=ModelToComponentFactory._json_schema_type_name_to_type(model.value_type),
             parameters=model.parameters or {},

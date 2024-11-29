@@ -2785,7 +2785,7 @@ definitions:
     properties:
       type:
         type: string
-        enum: [ DynamicDeclarativeStream ]
+        enum: [DynamicDeclarativeStream]
       stream_template:
         title: Stream Template
         description: Reference to the stream template.
