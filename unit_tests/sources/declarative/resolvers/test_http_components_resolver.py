@@ -2,13 +2,16 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 #
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
 
 from airbyte_cdk.models import Type
+from airbyte_cdk.sources.declarative.concurrent_declarative_source import (
+    ConcurrentDeclarativeSource,
+)
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
-from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.declarative.resolvers import (
     ComponentMappingDefinition,
     HttpComponentsResolver,
@@ -17,6 +20,9 @@ from airbyte_cdk.sources.embedded.catalog import (
     to_configured_catalog,
     to_configured_stream,
 )
+from airbyte_cdk.test.mock_http import HttpMocker, HttpRequest, HttpResponse
+
+_CONFIG = {"start_date": "2024-07-01T00:00:00.000Z"}
 
 _MANIFEST = {
     "version": "5.0.0",
@@ -141,28 +147,41 @@ def test_http_components_resolver(
     assert result == expected_result
 
 
-def test_dynamic_streams_read(requests_mock):
+def test_dynamic_streams_read():
     expected_stream_names = ["item_1", "item_2"]
-    requests_mock.get(
-        "https://api.test.com/items",
-        json=[{"id": 1, "name": "item_1"}, {"id": 2, "name": "item_2"}],
-    )
-    requests_mock.get("https://api.test.com/items/1", json={"id": "1", "name": "item_1"})
-    requests_mock.get("https://api.test.com/items/2", json={"id": "2", "name": "item_2"})
+    with HttpMocker() as http_mocker:
+        http_mocker.get(
+            HttpRequest(url="https://api.test.com/items"),
+            HttpResponse(
+                body=json.dumps([{"id": 1, "name": "item_1"}, {"id": 2, "name": "item_2"}])
+            ),
+        )
+        http_mocker.get(
+            HttpRequest(url="https://api.test.com/items/1"),
+            HttpResponse(body=json.dumps({"id": "1", "name": "item_1"})),
+        )
+        http_mocker.get(
+            HttpRequest(url="https://api.test.com/items/2"),
+            HttpResponse(body=json.dumps({"id": "2", "name": "item_2"})),
+        )
 
-    source = ManifestDeclarativeSource(source_config=_MANIFEST)
-    actual_catalog = source.discover(logger=source.logger, config={})
+        source = ConcurrentDeclarativeSource(
+            source_config=_MANIFEST, config=_CONFIG, catalog=None, state=None
+        )
 
-    configured_streams = [
-        to_configured_stream(stream, primary_key=stream.source_defined_primary_key)
-        for stream in actual_catalog.streams
-    ]
-    configured_catalog = to_configured_catalog(configured_streams)
-    records = [
-        message.record
-        for message in source.read(MagicMock(), {}, configured_catalog)
-        if message.type == Type.RECORD
-    ]
+        actual_catalog = source.discover(logger=source.logger, config={})
+
+        configured_streams = [
+            to_configured_stream(stream, primary_key=stream.source_defined_primary_key)
+            for stream in actual_catalog.streams
+        ]
+        configured_catalog = to_configured_catalog(configured_streams)
+
+        records = [
+            message.record
+            for message in source.read(MagicMock(), {}, configured_catalog)
+            if message.type == Type.RECORD
+        ]
 
     assert len(actual_catalog.streams) == 2
     assert [stream.name for stream in actual_catalog.streams] == expected_stream_names

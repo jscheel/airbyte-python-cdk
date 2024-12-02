@@ -184,8 +184,8 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
         # Combine streams and dynamic_streams. Note: both cannot be empty at the same time,
         # and this is validated during the initialization of the source.
-        streams = self.resolved_manifest.get("streams", []) + self.resolved_manifest.get(
-            "dynamic_streams", []
+        streams = self._stream_configs(self._source_config) + self._dynamic_stream_configs(
+            self._source_config, config
         )
 
         name_to_stream_mapping = {stream["name"]: stream for stream in streams}
