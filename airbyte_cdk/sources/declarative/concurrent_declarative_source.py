@@ -24,6 +24,8 @@ from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
 from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ConcurrencyLevel as ConcurrencyLevelModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     DatetimeBasedCursor as DatetimeBasedCursorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
