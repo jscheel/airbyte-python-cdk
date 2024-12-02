@@ -197,7 +197,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             # these legacy Python streams the way we do low-code streams to determine if they are concurrent compatible,
             # so we need to treat them as synchronous
             if isinstance(declarative_stream, DeclarativeStream):
-                datetime_based_cursor_component_definition = name_to_stream_mapping[
+                incremental_sync_component_definition = name_to_stream_mapping[
                     declarative_stream.name
                 ].get("incremental_sync")
 
@@ -209,12 +209,12 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
                 is_substream_without_incremental = (
                     partition_router_component_definition
-                    and not datetime_based_cursor_component_definition
+                    and not incremental_sync_component_definition
                 )
 
                 if (
-                    datetime_based_cursor_component_definition
-                    and datetime_based_cursor_component_definition.get("type", "")
+                    incremental_sync_component_definition
+                    and incremental_sync_component_definition.get("type", "")
                     == DatetimeBasedCursorModel.__name__
                     and self._stream_supports_concurrent_partition_processing(
                         declarative_stream=declarative_stream
@@ -230,7 +230,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                         self._constructor.create_concurrent_cursor_from_datetime_based_cursor(
                             state_manager=state_manager,
                             model_type=DatetimeBasedCursorModel,
-                            component_definition=datetime_based_cursor_component_definition,
+                            component_definition=incremental_sync_component_definition,
                             stream_name=declarative_stream.name,
                             stream_namespace=declarative_stream.namespace,
                             config=config or {},
@@ -281,7 +281,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                         declarative_stream.retriever.stream_slicer,
                     )
 
-                    cursor = FinalStateCursor(
+                    final_state_cursor = FinalStateCursor(
                         stream_name=declarative_stream.name,
                         stream_namespace=declarative_stream.namespace,
                         message_repository=self.message_repository,
@@ -296,7 +296,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             primary_key=get_primary_key_from_stream(declarative_stream.primary_key),
                             cursor_field=None,
                             logger=self.logger,
-                            cursor=cursor,
+                            cursor=final_state_cursor,
                         )
                     )
                 else:
