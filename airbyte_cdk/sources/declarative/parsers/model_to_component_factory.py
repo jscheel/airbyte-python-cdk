@@ -1593,9 +1593,9 @@ class ModelToComponentFactory:
                     for types_pair in model.types_mapping
                 ]
             )
-        model_schema_pointer: List[Union[InterpolatedString, str]] = [
-            x for x in model.schema_pointer
-        ]
+        model_schema_pointer: List[Union[InterpolatedString, str]] = (
+            [x for x in model.schema_pointer] if model.schema_pointer else []
+        )
         model_key_pointer: List[Union[InterpolatedString, str]] = [x for x in model.key_pointer]
         model_type_pointer: Optional[List[Union[InterpolatedString, str]]] = (
             [x for x in model.type_pointer] if model.type_pointer else None

@@ -657,8 +657,8 @@ class TypesMap(BaseModel):
 
 class SchemaTypeIdentifier(BaseModel):
     type: Optional[Literal["SchemaTypeIdentifier"]] = None
-    schema_pointer: List[str] = Field(
-        ...,
+    schema_pointer: Optional[List[str]] = Field(
+        [],
         description="List of nested fields defining the schema field path to extract. Defaults to [].",
         title="Schema Path",
     )

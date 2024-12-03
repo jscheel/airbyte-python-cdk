@@ -1701,7 +1701,6 @@ definitions:
     description: (This component is experimental. Use at your own risk.) Identifies schema details for dynamic schema extraction and processing.
     type: object
     required:
-      - schema_pointer
       - key_pointer
     properties:
       type:

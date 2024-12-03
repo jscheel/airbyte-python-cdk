@@ -61,14 +61,16 @@ class SchemaTypeIdentifier:
     Identifies schema details for dynamic schema extraction and processing.
     """
 
-    schema_pointer: List[Union[InterpolatedString, str]]
     key_pointer: List[Union[InterpolatedString, str]]
     parameters: InitVar[Mapping[str, Any]]
     type_pointer: Optional[List[Union[InterpolatedString, str]]] = None
     types_map: Optional[List[TypesMap]] = None
+    schema_pointer: Optional[List[Union[InterpolatedString, str]]] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-        self.schema_pointer = self._update_pointer(self.schema_pointer, parameters)  # type: ignore[assignment]  # This is reqired field in model
+        self.schema_pointer = (
+            self._update_pointer(self.schema_pointer, parameters) if self.schema_pointer else []
+        )  # type: ignore[assignment]  # This is reqired field in model
         self.key_pointer = self._update_pointer(self.key_pointer, parameters)  # type: ignore[assignment]  # This is reqired field in model
         self.type_pointer = (
             self._update_pointer(self.type_pointer, parameters) if self.type_pointer else None
@@ -199,14 +201,14 @@ class DynamicSchemaLoader(SchemaLoader):
     def _extract_data(
         self,
         body: Mapping[str, Any],
-        extraction_path: List[Union[InterpolatedString, str]],
+        extraction_path: Optional[List[Union[InterpolatedString, str]]] = None,
         default: Any = None,
     ) -> Any:
         """
         Extracts data from the body based on the provided extraction path.
         """
 
-        if len(extraction_path) == 0:
+        if not extraction_path:
             return body
 
         path = [
