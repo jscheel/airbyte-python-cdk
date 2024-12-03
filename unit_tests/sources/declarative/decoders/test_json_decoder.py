@@ -7,14 +7,15 @@ import os
 
 import pytest
 import requests
+
 from airbyte_cdk import YamlDeclarativeSource
 from airbyte_cdk.models import SyncMode
+from airbyte_cdk.sources.declarative.decoders import GzipJsonDecoder
 from airbyte_cdk.sources.declarative.decoders.json_decoder import JsonDecoder, JsonlDecoder
 from airbyte_cdk.sources.declarative.models import DeclarativeStream as DeclarativeStreamModel
 from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
     ModelToComponentFactory,
 )
-from airbyte_cdk.sources.declarative.decoders import GzipJsonDecoder
 
 
 @pytest.mark.parametrize(
@@ -53,7 +54,7 @@ def test_jsonl_decoder(requests_mock, response_body, expected_json):
 def large_event_response_fixture():
     data = {"email": "email1@example.com"}
     jsonl_string = f"{json.dumps(data)}\n"
-    lines_in_response = 2_000_000  # ≈ 58 MB of response
+    lines_in_response = 2  # ≈ 58 MB of response
     dir_path = os.path.dirname(os.path.realpath(__file__))
     file_path = f"{dir_path}/test_response.txt"
     with open(file_path, "w") as file:

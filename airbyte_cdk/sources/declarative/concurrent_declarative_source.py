@@ -3,7 +3,7 @@
 #
 
 import logging
-from typing import Any, Generic, Iterator, List, Mapping, Optional, Tuple, Union, Callable
+from typing import Any, Callable, Generic, Iterator, List, Mapping, Optional, Tuple, Union
 
 from airbyte_cdk.models import (
     AirbyteCatalog,
@@ -27,14 +27,16 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     DatetimeBasedCursor as DatetimeBasedCursorModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     DeclarativeStream as DeclarativeStreamModel,
 )
 from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
-    ModelToComponentFactory,
     ComponentDefinition,
+    ModelToComponentFactory,
 )
 from airbyte_cdk.sources.declarative.requesters import HttpRequester
-from airbyte_cdk.sources.declarative.retrievers import SimpleRetriever, Retriever
+from airbyte_cdk.sources.declarative.retrievers import Retriever, SimpleRetriever
 from airbyte_cdk.sources.declarative.stream_slicers.declarative_partition_generator import (
     DeclarativePartitionFactory,
     StreamSlicerPartitionGenerator,
@@ -42,15 +44,15 @@ from airbyte_cdk.sources.declarative.stream_slicers.declarative_partition_genera
 from airbyte_cdk.sources.declarative.transformations.add_fields import AddFields
 from airbyte_cdk.sources.declarative.types import ConnectionDefinition
 from airbyte_cdk.sources.source import TState
-from airbyte_cdk.sources.types import Config, StreamState
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
 from airbyte_cdk.sources.streams.concurrent.availability_strategy import (
     AlwaysAvailableAvailabilityStrategy,
 )
-from airbyte_cdk.sources.streams.concurrent.cursor import Cursor, FinalStateCursor
+from airbyte_cdk.sources.streams.concurrent.cursor import FinalStateCursor
 from airbyte_cdk.sources.streams.concurrent.default_stream import DefaultStream
 from airbyte_cdk.sources.streams.concurrent.helpers import get_primary_key_from_stream
+from airbyte_cdk.sources.types import Config, StreamState
 
 
 class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
@@ -68,6 +70,15 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
         component_factory: Optional[ModelToComponentFactory] = None,
         **kwargs: Any,
     ) -> None:
+        # To reduce the complexity of the concurrent framework, we are not enabling RFR with synthetic
+        # cursors. We do this by no longer automatically instantiating RFR cursors when converting
+        # the declarative models into runtime components. Concurrent sources will continue to checkpoint
+        # incremental streams running in full refresh.
+        component_factory = component_factory or ModelToComponentFactory(
+            emit_connector_builder_messages=emit_connector_builder_messages,
+            disable_resumable_full_refresh=True,
+        )
+
         super().__init__(
             source_config=source_config,
             debug=debug,
@@ -190,48 +201,44 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             # these legacy Python streams the way we do low-code streams to determine if they are concurrent compatible,
             # so we need to treat them as synchronous
             if isinstance(declarative_stream, DeclarativeStream):
-                datetime_based_cursor_component_definition = name_to_stream_mapping[
+                incremental_sync_component_definition = name_to_stream_mapping[
                     declarative_stream.name
                 ].get("incremental_sync")
 
                 is_without_partition_router_or_cursor = not bool(
-                    datetime_based_cursor_component_definition
+                    incremental_sync_component_definition
                 ) and not (
                     name_to_stream_mapping[declarative_stream.name]
                     .get("retriever", {})
                     .get("partition_router")
                 )
-                is_datetime_incremental_without_partition_routing = (
-                    self._is_datetime_incremental_without_partition_routing(
-                        datetime_based_cursor_component_definition, declarative_stream
-                    )
+                partition_router_component_definition = (
+                    name_to_stream_mapping[declarative_stream.name]
+                    .get("retriever")
+                    .get("partition_router")
                 )
-                if (
-                    is_without_partition_router_or_cursor
-                    or is_datetime_incremental_without_partition_routing
+
+                is_substream_without_incremental = (
+                    partition_router_component_definition
+                    and not incremental_sync_component_definition
+                )
+
+                if self._is_datetime_incremental_without_partition_routing(
+                    declarative_stream, incremental_sync_component_definition
                 ):
                     stream_state = state_manager.get_stream_state(
                         stream_name=declarative_stream.name, namespace=declarative_stream.namespace
                     )
 
-                    if is_datetime_incremental_without_partition_routing:
-                        cursor: Cursor = (
-                            self._constructor.create_concurrent_cursor_from_datetime_based_cursor(
-                                state_manager=state_manager,
-                                model_type=DatetimeBasedCursorModel,
-                                component_definition=datetime_based_cursor_component_definition,
-                                stream_name=declarative_stream.name,
-                                stream_namespace=declarative_stream.namespace,
-                                config=config or {},
-                                stream_state=stream_state,
-                            )
-                        )
-                    else:
-                        cursor = FinalStateCursor(
-                            declarative_stream.name,
-                            declarative_stream.namespace,
-                            self.message_repository,
-                        )
+                    cursor = self._constructor.create_concurrent_cursor_from_datetime_based_cursor(
+                        state_manager=state_manager,
+                        model_type=DatetimeBasedCursorModel,
+                        component_definition=incremental_sync_component_definition,
+                        stream_name=declarative_stream.name,
+                        stream_namespace=declarative_stream.namespace,
+                        config=config or {},
+                        stream_state=stream_state,
+                    )
 
                     partition_generator = StreamSlicerPartitionGenerator(
                         DeclarativePartitionFactory(
@@ -264,6 +271,42 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             cursor=cursor,
                         )
                     )
+                elif (
+                    is_substream_without_incremental
+                    and hasattr(declarative_stream.retriever, "stream_slicer")
+                ) or is_without_partition_router_or_cursor:
+                    partition_generator = StreamSlicerPartitionGenerator(
+                        DeclarativePartitionFactory(
+                            declarative_stream.name,
+                            declarative_stream.get_json_schema(),
+                            self._retriever_factory(
+                                name_to_stream_mapping[declarative_stream.name],
+                                config,
+                                {},
+                            ),
+                            self.message_repository,
+                        ),
+                        declarative_stream.retriever.stream_slicer,
+                    )
+
+                    final_state_cursor = FinalStateCursor(
+                        stream_name=declarative_stream.name,
+                        stream_namespace=declarative_stream.namespace,
+                        message_repository=self.message_repository,
+                    )
+
+                    concurrent_streams.append(
+                        DefaultStream(
+                            partition_generator=partition_generator,
+                            name=declarative_stream.name,
+                            json_schema=declarative_stream.get_json_schema(),
+                            availability_strategy=AlwaysAvailableAvailabilityStrategy(),
+                            primary_key=get_primary_key_from_stream(declarative_stream.primary_key),
+                            cursor_field=None,
+                            logger=self.logger,
+                            cursor=final_state_cursor,
+                        )
+                    )
                 else:
                     synchronous_streams.append(declarative_stream)
             else:
@@ -272,13 +315,11 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
         return concurrent_streams, synchronous_streams
 
     def _is_datetime_incremental_without_partition_routing(
-        self,
-        datetime_based_cursor_component_definition: Mapping[str, Any],
-        declarative_stream: DeclarativeStream,
-    ) -> bool:
+        self, declarative_stream, incremental_sync_component_definition
+    ):
         return (
-            bool(datetime_based_cursor_component_definition)
-            and datetime_based_cursor_component_definition.get("type", "")
+            incremental_sync_component_definition
+            and incremental_sync_component_definition.get("type", "")
             == DatetimeBasedCursorModel.__name__
             and self._stream_supports_concurrent_partition_processing(
                 declarative_stream=declarative_stream
