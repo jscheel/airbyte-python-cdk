@@ -3,6 +3,8 @@
 #
 
 import logging
+from airbyte_cdk.sources.declarative.incremental.per_partition_cursor import PerPartitionCursor
+from airbyte_cdk.sources.declarative.incremental.per_partition_with_global import PerPartitionWithGlobalCursor
 from typing import Any, Generic, Iterator, List, Mapping, Optional, Tuple, Union, Callable
 
 from airbyte_cdk.models import (
@@ -37,6 +39,7 @@ from airbyte_cdk.sources.declarative.requesters import HttpRequester
 from airbyte_cdk.sources.declarative.retrievers import SimpleRetriever, Retriever
 from airbyte_cdk.sources.declarative.stream_slicers.declarative_partition_generator import (
     DeclarativePartitionFactory,
+    DeclarativePartitionFactory1,
     StreamSlicerPartitionGenerator,
 )
 from airbyte_cdk.sources.declarative.transformations.add_fields import AddFields
@@ -218,6 +221,61 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             stream_state=stream_state,
                         )
                     )
+
+                    partition_generator = StreamSlicerPartitionGenerator(
+                        DeclarativePartitionFactory(
+                            declarative_stream.name,
+                            declarative_stream.get_json_schema(),
+                            self._retriever_factory(
+                                name_to_stream_mapping[declarative_stream.name],
+                                config,
+                                stream_state,
+                            ),
+                            self.message_repository,
+                        ),
+                        cursor,
+                    )
+
+                    concurrent_streams.append(
+                        DefaultStream(
+                            partition_generator=partition_generator,
+                            name=declarative_stream.name,
+                            json_schema=declarative_stream.get_json_schema(),
+                            availability_strategy=AlwaysAvailableAvailabilityStrategy(),
+                            primary_key=get_primary_key_from_stream(declarative_stream.primary_key),
+                            cursor_field=cursor.cursor_field.cursor_field_key,
+                            logger=self.logger,
+                            cursor=cursor,
+                        )
+                    )
+                elif (
+                    datetime_based_cursor_component_definition
+                    and datetime_based_cursor_component_definition.get("type", "")
+                    == DatetimeBasedCursorModel.__name__
+                    and self._stream_supports_concurrent_partition_processing(
+                        declarative_stream=declarative_stream
+                    )
+                    and hasattr(declarative_stream.retriever, "stream_slicer")
+                    and isinstance(declarative_stream.retriever.stream_slicer, PerPartitionWithGlobalCursor)
+                ):
+                    stream_state = state_manager.get_stream_state(
+                        stream_name=declarative_stream.name, namespace=declarative_stream.namespace
+                    )
+                    partition_router = declarative_stream.retriever.stream_slicer._partition_router
+
+                    cursor, connector_state_converter = (
+                        self._constructor.create_concurrent_cursor_from_perpartition_cursor(
+                            state_manager=state_manager,
+                            model_type=DatetimeBasedCursorModel,
+                            component_definition=datetime_based_cursor_component_definition,
+                            stream_name=declarative_stream.name,
+                            stream_namespace=declarative_stream.namespace,
+                            config=config or {},
+                            stream_state=stream_state,
+                            partition_router=partition_router,
+                        )
+                    )
+
 
                     partition_generator = StreamSlicerPartitionGenerator(
                         DeclarativePartitionFactory(
