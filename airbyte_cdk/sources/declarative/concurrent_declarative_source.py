@@ -272,9 +272,8 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                         )
                     )
                 elif (
-                    is_substream_without_incremental
-                    and hasattr(declarative_stream.retriever, "stream_slicer")
-                ) or is_without_partition_router_or_cursor:
+                    is_substream_without_incremental or is_without_partition_router_or_cursor
+                ) and hasattr(declarative_stream.retriever, "stream_slicer"):
                     partition_generator = StreamSlicerPartitionGenerator(
                         DeclarativePartitionFactory(
                             declarative_stream.name,

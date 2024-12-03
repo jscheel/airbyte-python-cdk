@@ -14,7 +14,9 @@ def get_primary_key_from_stream(
         return [stream_primary_key]
     elif isinstance(stream_primary_key, list):
         are_all_elements_str = all(isinstance(k, str) for k in stream_primary_key)
-        are_all_elements_list_of_size_one = all(isinstance(k, list) and len(k) == 1 for k in stream_primary_key)
+        are_all_elements_list_of_size_one = all(
+            isinstance(k, list) and len(k) == 1 for k in stream_primary_key
+        )
 
         if are_all_elements_str:
             return stream_primary_key  # type: ignore # We verified all items in the list are strings
