@@ -58,6 +58,10 @@ DEFAULT_MODEL_TYPES: Mapping[str, str] = {
     "AddFields.fields": "AddedFieldDefinition",
     # CustomPartitionRouter
     "CustomPartitionRouter.parent_stream_configs": "ParentStreamConfig",
+    # DynamicSchemaLoader
+    "DynamicSchemaLoader.retriever": "SimpleRetriever",
+    # SchemaTypeIdentifier
+    "SchemaTypeIdentifier.types_map": "TypesPair",
 }
 
 # We retain a separate registry for custom components to automatically insert the type if it is missing. This is intended to

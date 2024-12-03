@@ -187,6 +187,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     DpathExtractor as DpathExtractorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    DynamicSchemaLoader as DynamicSchemaLoaderModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ExponentialBackoffStrategy as ExponentialBackoffStrategyModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -271,6 +274,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     RequestPath as RequestPathModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    SchemaTypeIdentifier as SchemaTypeIdentifierModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SelectiveAuthenticator as SelectiveAuthenticatorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -282,6 +288,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import Spec as SpecModel
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SubstreamPartitionRouter as SubstreamPartitionRouterModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    TypesPair as TypesPairModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import ValueType
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -296,6 +305,7 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.partition_routers import (
     CartesianProductStreamSlicer,
     ListPartitionRouter,
+    PartitionRouter,
     SinglePartitionRouter,
     SubstreamPartitionRouter,
 )
@@ -343,8 +353,11 @@ from airbyte_cdk.sources.declarative.retrievers import (
 )
 from airbyte_cdk.sources.declarative.schema import (
     DefaultSchemaLoader,
+    DynamicSchemaLoader,
     InlineSchemaLoader,
     JsonFileSchemaLoader,
+    SchemaTypeIdentifier,
+    TypesPair,
 )
 from airbyte_cdk.sources.declarative.spec import Spec
 from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
@@ -439,6 +452,9 @@ class ModelToComponentFactory:
             IterableDecoderModel: self.create_iterable_decoder,
             XmlDecoderModel: self.create_xml_decoder,
             JsonFileSchemaLoaderModel: self.create_json_file_schema_loader,
+            DynamicSchemaLoaderModel: self.create_dynamic_schema_loader,
+            SchemaTypeIdentifierModel: self.create_schema_type_identifier,
+            TypesPairModel: self.create_types_pair,
             JwtAuthenticatorModel: self.create_jwt_authenticator,
             LegacyToPerPartitionStateMigrationModel: self.create_legacy_to_per_partition_state_migration,
             ListPartitionRouterModel: self.create_list_partition_router,
@@ -1280,19 +1296,20 @@ class ModelToComponentFactory:
             parameters=model.parameters or {},
         )
 
-    def _merge_stream_slicers(
-        self, model: DeclarativeStreamModel, config: Config
-    ) -> Optional[StreamSlicer]:
-        stream_slicer = None
+    def _build_stream_slicer_from_partition_router(
+        self,
+        model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel],
+        config: Config,
+    ) -> Optional[PartitionRouter]:
         if (
-            hasattr(model.retriever, "partition_router")
-            and isinstance(model.retriever, SimpleRetrieverModel)
-            and model.retriever.partition_router
+            hasattr(model, "partition_router")
+            and isinstance(model, SimpleRetrieverModel)
+            and model.partition_router
         ):
-            stream_slicer_model = model.retriever.partition_router
+            stream_slicer_model = model.partition_router
 
             if isinstance(stream_slicer_model, list):
-                stream_slicer = CartesianProductStreamSlicer(
+                return CartesianProductStreamSlicer(
                     [
                         self._create_component_from_model(model=slicer, config=config)
                         for slicer in stream_slicer_model
@@ -1300,9 +1317,24 @@ class ModelToComponentFactory:
                     parameters={},
                 )
             else:
-                stream_slicer = self._create_component_from_model(
-                    model=stream_slicer_model, config=config
-                )
+                return self._create_component_from_model(model=stream_slicer_model, config=config)  # type: ignore[no-any-return]
+                # Will be created PartitionRouter as stream_slicer_model is model.partition_router
+        return None
+
+    def _build_resumable_cursor_from_paginator(
+        self,
+        model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel],
+        stream_slicer: Optional[StreamSlicer],
+    ) -> Optional[StreamSlicer]:
+        if hasattr(model, "paginator") and model.paginator and not stream_slicer:
+            # For the regular Full-Refresh streams, we use the high level `ResumableFullRefreshCursor`
+            return ResumableFullRefreshCursor(parameters={})
+        return None
+
+    def _merge_stream_slicers(
+        self, model: DeclarativeStreamModel, config: Config
+    ) -> Optional[StreamSlicer]:
+        stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
 
         if model.incremental_sync and stream_slicer:
             incremental_sync_model = model.incremental_sync
@@ -1343,15 +1375,7 @@ class ModelToComponentFactory:
                 ),
                 partition_router=stream_slicer,
             )
-        elif (
-            hasattr(model.retriever, "paginator")
-            and model.retriever.paginator
-            and not stream_slicer
-        ):
-            # For the regular Full-Refresh streams, we use the high level `ResumableFullRefreshCursor`
-            return ResumableFullRefreshCursor(parameters={})
-        else:
-            return None
+        return self._build_resumable_cursor_from_paginator(model.retriever, stream_slicer)
 
     def create_default_error_handler(
         self, model: DefaultErrorHandlerModel, config: Config, **kwargs: Any
@@ -1542,6 +1566,66 @@ class ModelToComponentFactory:
         model: InlineSchemaLoaderModel, config: Config, **kwargs: Any
     ) -> InlineSchemaLoader:
         return InlineSchemaLoader(schema=model.schema_ or {}, parameters={})
+
+    @staticmethod
+    def create_types_pair(model: TypesPairModel, **kwargs: Any) -> TypesPair:
+        return TypesPair(target_type=model.target_type, current_type=model.current_type)
+
+    def create_schema_type_identifier(
+        self, model: SchemaTypeIdentifierModel, config: Config, **kwargs: Any
+    ) -> SchemaTypeIdentifier:
+        types_map = []
+        if model.types_map:
+            types_map.extend(
+                [
+                    self._create_component_from_model(types_pair, config=config)
+                    for types_pair in model.types_map
+                ]
+            )
+        model_schema_pointer: List[Union[InterpolatedString, str]] = [
+            x for x in model.schema_pointer
+        ]
+        model_key_pointer: List[Union[InterpolatedString, str]] = [x for x in model.key_pointer]
+        model_type_pointer: Optional[List[Union[InterpolatedString, str]]] = (
+            [x for x in model.type_pointer] if model.type_pointer else None
+        )
+
+        assert model.is_nullable is not None  # for mypy
+
+        return SchemaTypeIdentifier(
+            schema_pointer=model_schema_pointer,
+            key_pointer=model_key_pointer,
+            type_pointer=model_type_pointer,
+            types_map=types_map,
+            is_nullable=model.is_nullable,
+            parameters=model.parameters or {},
+        )
+
+    def create_dynamic_schema_loader(
+        self, model: DynamicSchemaLoaderModel, config: Config, **kwargs: Any
+    ) -> DynamicSchemaLoader:
+        stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
+        combined_slicers = self._build_resumable_cursor_from_paginator(
+            model.retriever, stream_slicer
+        )
+
+        retriever = self._create_component_from_model(
+            model=model.retriever,
+            config=config,
+            name="",
+            primary_key=None,
+            stream_slicer=combined_slicers,
+            transformations=[],
+        )
+        schema_type_identifier = self._create_component_from_model(
+            model.schema_type_identifier, config=config, parameters=model.parameters or {}
+        )
+        return DynamicSchemaLoader(
+            retriever=retriever,
+            config=config,
+            schema_type_identifier=schema_type_identifier,
+            parameters=model.parameters or {},
+        )
 
     @staticmethod
     def create_json_decoder(model: JsonDecoderModel, config: Config, **kwargs: Any) -> JsonDecoder:
