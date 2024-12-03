@@ -25,6 +25,9 @@ from typing import (
     get_type_hints,
 )
 
+from isodate import parse_duration
+from pydantic.v1 import BaseModel
+
 from airbyte_cdk.models import FailureType, Level
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.declarative.async_job.job_orchestrator import AsyncJobOrchestrator
@@ -270,6 +273,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     RequestPath as RequestPathModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    ResponseToFileExtractor as ResponseToFileExtractorModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SelectiveAuthenticator as SelectiveAuthenticatorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -369,8 +375,6 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_sta
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction
 from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
-from isodate import parse_duration
-from pydantic.v1 import BaseModel
 
 ComponentDefinition = Mapping[str, Any]
 
@@ -385,6 +389,7 @@ class ModelToComponentFactory:
         emit_connector_builder_messages: bool = False,
         disable_retries: bool = False,
         disable_cache: bool = False,
+        disable_resumable_full_refresh: bool = False,
         message_repository: Optional[MessageRepository] = None,
     ):
         self._init_mappings()
@@ -393,6 +398,7 @@ class ModelToComponentFactory:
         self._emit_connector_builder_messages = emit_connector_builder_messages
         self._disable_retries = disable_retries
         self._disable_cache = disable_cache
+        self._disable_resumable_full_refresh = disable_resumable_full_refresh
         self._message_repository = message_repository or InMemoryMessageRepository(  # type: ignore
             self._evaluate_log_level(emit_connector_builder_messages)
         )
@@ -428,6 +434,7 @@ class ModelToComponentFactory:
             DefaultErrorHandlerModel: self.create_default_error_handler,
             DefaultPaginatorModel: self.create_default_paginator,
             DpathExtractorModel: self.create_dpath_extractor,
+            ResponseToFileExtractorModel: self.create_response_to_file_extractor,
             ExponentialBackoffStrategyModel: self.create_exponential_backoff_strategy,
             SessionTokenAuthenticatorModel: self.create_session_token_authenticator,
             HttpRequesterModel: self.create_http_requester,
@@ -1510,6 +1517,8 @@ class ModelToComponentFactory:
                 if model.incremental_sync
                 else None
             )
+        elif self._disable_resumable_full_refresh:
+            return stream_slicer
         elif stream_slicer:
             # For the Full-Refresh sub-streams, we use the nested `ChildPartitionResumableFullRefreshCursor`
             return PerPartitionCursor(
@@ -1621,6 +1630,13 @@ class ModelToComponentFactory:
             config=config,
             parameters=model.parameters or {},
         )
+
+    def create_response_to_file_extractor(
+        self,
+        model: ResponseToFileExtractorModel,
+        **kwargs: Any,
+    ) -> ResponseToFileExtractor:
+        return ResponseToFileExtractor(parameters=model.parameters or {})
 
     @staticmethod
     def create_exponential_backoff_strategy(
@@ -1956,6 +1972,7 @@ class ModelToComponentFactory:
         self,
         model: RecordSelectorModel,
         config: Config,
+        name: str,
         *,
         transformations: List[RecordTransformation],
         decoder: Optional[Decoder] = None,
@@ -1986,6 +2003,7 @@ class ModelToComponentFactory:
 
         return RecordSelector(
             extractor=extractor,
+            name=name,
             config=config,
             record_filter=record_filter,
             transformations=transformations,
@@ -2056,6 +2074,7 @@ class ModelToComponentFactory:
         )
         record_selector = self._create_component_from_model(
             model=model.record_selector,
+            name=name,
             config=config,
             decoder=decoder,
             transformations=transformations,
@@ -2183,6 +2202,7 @@ class ModelToComponentFactory:
             model=model.record_selector,
             config=config,
             decoder=decoder,
+            name=name,
             transformations=transformations,
             client_side_incremental_sync=client_side_incremental_sync,
         )
@@ -2200,16 +2220,37 @@ class ModelToComponentFactory:
             name=f"job polling - {name}",
         )
         job_download_components_name = f"job download - {name}"
+        download_decoder = (
+            self._create_component_from_model(model=model.download_decoder, config=config)
+            if model.download_decoder
+            else JsonDecoder(parameters={})
+        )
+        download_extractor = (
+            self._create_component_from_model(
+                model=model.download_extractor,
+                config=config,
+                decoder=download_decoder,
+                parameters=model.parameters,
+            )
+            if model.download_extractor
+            else DpathExtractor(
+                [],
+                config=config,
+                decoder=download_decoder,
+                parameters=model.parameters or {},
+            )
+        )
         download_requester = self._create_component_from_model(
             model=model.download_requester,
-            decoder=decoder,
+            decoder=download_decoder,
             config=config,
             name=job_download_components_name,
         )
         download_retriever = SimpleRetriever(
             requester=download_requester,
             record_selector=RecordSelector(
-                extractor=ResponseToFileExtractor(),
+                extractor=download_extractor,
+                name=name,
                 record_filter=None,
                 transformations=[],
                 schema_normalization=TypeTransformer(TransformConfig.NoTransform),
