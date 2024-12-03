@@ -1663,8 +1663,8 @@ definitions:
       $parameters:
         type: object
         additionalProperties: true
-  TypesPair:
-    title: Types Pair
+  TypesMap:
+    title: Types Map
     description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type.
     type: object
     required:
@@ -1696,15 +1696,16 @@ definitions:
         enum: [SchemaTypeIdentifier]
       schema_pointer:
         title: Schema Path
-        description: List of potentially nested fields describing the full path of the field to extract. Use "*" to extract all values from an array. See more info in the [docs](https://docs.airbyte.com/connector-development/config-based/understanding-the-yaml-file/record-selector).
+        description: List of nested fields defining the schema field path to extract. Defaults to [].
         type: array
+        default: []
         items:
           - type: string
         interpolation_content:
           - config
       key_pointer:
         title: Key Path
-        description: List of potentially nested fields describing the full path of the field to extract. Use "*" to extract all values from an array. See more info in the [docs](https://docs.airbyte.com/connector-development/config-based/understanding-the-yaml-file/record-selector).
+        description: List of potentially nested fields describing the full path of the field key to extract.
         type: array
         items:
           - type: string
@@ -1712,21 +1713,16 @@ definitions:
           - config
       type_pointer:
         title: Type Path
-        description: List of potentially nested fields describing the full path of the field to extract. Use "*" to extract all values from an array. See more info in the [docs](https://docs.airbyte.com/connector-development/config-based/understanding-the-yaml-file/record-selector).
+        description: List of potentially nested fields describing the full path of the field type to extract.
         type: array
         items:
           - type: string
         interpolation_content:
           - config
-      is_nullable:
-        title: Is Nullable
-        description: Add null to defined field type. This field is automatically set by the CDK.
-        type: boolean
-        default: true
-      types_map:
+      types_mapping:
         type: array
         items:
-          - "$ref": "#/definitions/TypesPair"
+          - "$ref": "#/definitions/TypesMap"
       $parameters:
         type: object
         additionalProperties: true

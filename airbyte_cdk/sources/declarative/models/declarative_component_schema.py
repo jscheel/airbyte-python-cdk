@@ -645,7 +645,7 @@ class HttpResponseFilter(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
-class TypesPair(BaseModel):
+class TypesMap(BaseModel):
     target_type: Union[str, List[str]]
     current_type: Union[str, List[str]]
 
@@ -654,25 +654,20 @@ class SchemaTypeIdentifier(BaseModel):
     type: Optional[Literal["SchemaTypeIdentifier"]] = None
     schema_pointer: List[str] = Field(
         ...,
-        description='List of potentially nested fields describing the full path of the field to extract. Use "*" to extract all values from an array. See more info in the [docs](https://docs.airbyte.com/connector-development/config-based/understanding-the-yaml-file/record-selector).',
+        description="List of nested fields defining the schema field path to extract. Defaults to [].",
         title="Schema Path",
     )
     key_pointer: List[str] = Field(
         ...,
-        description='List of potentially nested fields describing the full path of the field to extract. Use "*" to extract all values from an array. See more info in the [docs](https://docs.airbyte.com/connector-development/config-based/understanding-the-yaml-file/record-selector).',
+        description="List of potentially nested fields describing the full path of the field key to extract.",
         title="Key Path",
     )
     type_pointer: Optional[List[str]] = Field(
         None,
-        description='List of potentially nested fields describing the full path of the field to extract. Use "*" to extract all values from an array. See more info in the [docs](https://docs.airbyte.com/connector-development/config-based/understanding-the-yaml-file/record-selector).',
+        description="List of potentially nested fields describing the full path of the field type to extract.",
         title="Type Path",
     )
-    is_nullable: Optional[bool] = Field(
-        True,
-        description="Add null to defined field type. This field is automatically set by the CDK.",
-        title="Is Nullable",
-    )
-    types_map: Optional[List[TypesPair]] = None
+    types_mapping: Optional[List[TypesMap]] = None
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 

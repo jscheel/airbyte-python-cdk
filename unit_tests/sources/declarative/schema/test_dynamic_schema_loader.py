@@ -30,7 +30,6 @@ def mock_schema_type_identifier():
         schema_pointer=["schema"],
         key_pointer=["key"],
         type_pointer=["type"],
-        is_nullable=True,
         types_map=[],
         parameters={},
     )
@@ -53,14 +52,16 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
     [
         (
             # Test case: All fields with valid types
-            [
-                {
-                    "schema": [
-                        {"key": "name", "type": "string"},
-                        {"key": "age", "type": "integer"},
-                    ]
-                }
-            ],
+            iter(
+                [
+                    {
+                        "schema": [
+                            {"key": "name", "type": "string"},
+                            {"key": "age", "type": "integer"},
+                        ]
+                    }
+                ]
+            ),
             {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "type": "object",
@@ -72,14 +73,16 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
         ),
         (
             # Test case: Fields with missing type default to "string"
-            [
-                {
-                    "schema": [
-                        {"key": "name"},
-                        {"key": "email", "type": "string"},
-                    ]
-                }
-            ],
+            iter(
+                [
+                    {
+                        "schema": [
+                            {"key": "name"},
+                            {"key": "email", "type": "string"},
+                        ]
+                    }
+                ]
+            ),
             {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "type": "object",
@@ -91,13 +94,15 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
         ),
         (
             # Test case: Fields with nested types
-            [
-                {
-                    "schema": [
-                        {"key": "address", "type": ["string", "integer"]},
-                    ]
-                }
-            ],
+            iter(
+                [
+                    {
+                        "schema": [
+                            {"key": "address", "type": ["string", "integer"]},
+                        ]
+                    }
+                ]
+            ),
             {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "type": "object",
@@ -110,7 +115,7 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
         ),
         (
             # Test case: Empty record set
-            [],
+            iter([]),
             {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "type": "object",
@@ -120,7 +125,7 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
     ],
 )
 def test_dynamic_schema_loader(dynamic_schema_loader, retriever_data, expected_schema):
-    dynamic_schema_loader.retriever.read_records.return_value = retriever_data
+    dynamic_schema_loader.retriever.read_records = MagicMock(return_value=retriever_data)
 
     schema = dynamic_schema_loader.get_json_schema()
 
@@ -130,9 +135,9 @@ def test_dynamic_schema_loader(dynamic_schema_loader, retriever_data, expected_s
 
 def test_dynamic_schema_loader_invalid_key(dynamic_schema_loader):
     # Test case: Invalid key type
-    dynamic_schema_loader.retriever.read_records.return_value = [
-        {"schema": [{"field1": {"key": 123, "type": "string"}}]}
-    ]
+    dynamic_schema_loader.retriever.read_records.return_value = iter(
+        [{"schema": [{"field1": {"key": 123, "type": "string"}}]}]
+    )
 
     with pytest.raises(ValueError, match="Expected key to be a string"):
         dynamic_schema_loader.get_json_schema()
@@ -140,9 +145,9 @@ def test_dynamic_schema_loader_invalid_key(dynamic_schema_loader):
 
 def test_dynamic_schema_loader_invalid_type(dynamic_schema_loader):
     # Test case: Invalid type
-    dynamic_schema_loader.retriever.read_records.return_value = [
-        {"schema": [{"field1": {"key": "name", "type": "invalid_type"}}]}
-    ]
+    dynamic_schema_loader.retriever.read_records.return_value = iter(
+        [{"schema": [{"field1": {"key": "name", "type": "invalid_type"}}]}]
+    )
 
     with pytest.raises(ValueError, match="Expected key to be a string. Got None"):
         dynamic_schema_loader.get_json_schema()

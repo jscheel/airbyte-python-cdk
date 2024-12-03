@@ -16,36 +16,36 @@ from airbyte_cdk.sources.declarative.schema.schema_loader import SchemaLoader
 from airbyte_cdk.sources.source import ExperimentalClassWarning
 from airbyte_cdk.sources.types import Config
 
-AIRBYTE_DATA_TYPES = {
-    "string": {"type": "string"},
-    "boolean": {"type": "boolean"},
-    "date": {"type": "string", "format": "date"},
+AIRBYTE_DATA_TYPES: Mapping[str, Mapping[str, Any]] = {
+    "string": {"type": ["null", "string"]},
+    "boolean": {"type": ["null", "boolean"]},
+    "date": {"type": ["null", "string"], "format": "date"},
     "timestamp_without_timezone": {
-        "type": "string",
+        "type": ["null", "string"],
         "format": "date-time",
         "airbyte_type": "timestamp_without_timezone",
     },
-    "timestamp_with_timezone": {"type": "string", "format": "date-time"},
+    "timestamp_with_timezone": {"type": ["null", "string"], "format": "date-time"},
     "time_without_timezone": {
-        "type": "string",
+        "type": ["null", "string"],
         "format": "time",
         "airbyte_type": "time_without_timezone",
     },
     "time_with_timezone": {
-        "type": "string",
+        "type": ["null", "string"],
         "format": "time",
         "airbyte_type": "time_with_timezone",
     },
-    "integer": {"type": "integer"},
-    "number": {"type": "number"},
-    "array": {"type": "array"},
-    "object": {"type": "object"},
+    "integer": {"type": ["null", "integer"]},
+    "number": {"type": ["null", "number"]},
+    "array": {"type": ["null", "array"]},
+    "object": {"type": ["null", "object"]},
 }
 
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
 @dataclass(frozen=True)
-class TypesPair:
+class TypesMap:
     """
     Represents a mapping between a current type and its corresponding target type.
     """
@@ -65,8 +65,7 @@ class SchemaTypeIdentifier:
     key_pointer: List[Union[InterpolatedString, str]]
     parameters: InitVar[Mapping[str, Any]]
     type_pointer: Optional[List[Union[InterpolatedString, str]]] = None
-    types_map: Optional[List[TypesPair]] = None
-    is_nullable: bool = True
+    types_map: Optional[List[TypesMap]] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
         self.schema_pointer = self._update_pointer(self.schema_pointer, parameters)  # type: ignore[assignment]  # This is reqired field in model
@@ -108,19 +107,24 @@ class DynamicSchemaLoader(SchemaLoader):
         Constructs a JSON Schema based on retrieved data.
         """
         properties = {}
-        for retrieved_record in self.retriever.read_records({}):
-            raw_schema = self._extract_data(
+        retrieved_record = next(self.retriever.read_records({}), None)  # type: ignore[call-overload] # read_records return Iterable data type
+
+        raw_schema = (
+            self._extract_data(
                 retrieved_record,  # type: ignore[arg-type] # Expected that retrieved_record will be only Mapping[str, Any]
                 self.schema_type_identifier.schema_pointer,
             )
-            for property_definition in raw_schema:
-                key = self._get_key(property_definition, self.schema_type_identifier.key_pointer)
-                value = self._get_type(
-                    property_definition,
-                    self.schema_type_identifier.type_pointer,
-                    is_nullable=self.schema_type_identifier.is_nullable,
-                )
-                properties[key] = value
+            if retrieved_record
+            else []
+        )
+
+        for property_definition in raw_schema:
+            key = self._get_key(property_definition, self.schema_type_identifier.key_pointer)
+            value = self._get_type(
+                property_definition,
+                self.schema_type_identifier.type_pointer,
+            )
+            properties[key] = value
 
         return {
             "$schema": "http://json-schema.org/draft-07/schema#",
@@ -145,7 +149,6 @@ class DynamicSchemaLoader(SchemaLoader):
         self,
         raw_schema: MutableMapping[str, Any],
         field_type_path: Optional[List[Union[InterpolatedString, str]]],
-        is_nullable: bool = True,
     ) -> Union[Mapping[str, Any], List[Mapping[str, Any]]]:
         """
         Determines the JSON Schema type for a field, supporting nullable and combined types.
@@ -161,15 +164,11 @@ class DynamicSchemaLoader(SchemaLoader):
             and len(mapped_field_type) == 2
             and all(isinstance(item, str) for item in mapped_field_type)
         ):
-            first_type = self._make_field_nullable(
-                self._get_airbyte_type(mapped_field_type[0]), is_nullable
-            )
-            second_type = self._make_field_nullable(
-                self._get_airbyte_type(mapped_field_type[1]), is_nullable
-            )
+            first_type = self._get_airbyte_type(mapped_field_type[0])
+            second_type = self._get_airbyte_type(mapped_field_type[1])
             return {"oneOf": [first_type, second_type]}
         elif isinstance(mapped_field_type, str):
-            return self._make_field_nullable(self._get_airbyte_type(mapped_field_type), is_nullable)
+            return self._get_airbyte_type(mapped_field_type)
         else:
             raise ValueError(
                 f"Invalid data type. Available string or two items list of string. Got {mapped_field_type}."
@@ -186,18 +185,6 @@ class DynamicSchemaLoader(SchemaLoader):
                 if field_type == types_pair.current_type:
                     return types_pair.target_type
         return field_type
-
-    @staticmethod
-    def _make_field_nullable(
-        field_type: Mapping[str, Any], is_nullable: bool = True
-    ) -> Mapping[str, Any]:
-        """
-        Wraps a field type to allow null values if `is_nullable` is True.
-        """
-        updated_field_type = dict(deepcopy(field_type))
-        if is_nullable:
-            updated_field_type["type"] = ["null", updated_field_type["type"]]
-        return updated_field_type
 
     @staticmethod
     def _get_airbyte_type(field_type: str) -> Mapping[str, Any]:
@@ -227,9 +214,4 @@ class DynamicSchemaLoader(SchemaLoader):
             for path in extraction_path
         ]
 
-        if "*" in path:
-            extracted = dpath.values(body, path)  # type: ignore # extracted will be a MutableMapping, given input data structure
-        else:
-            extracted = dpath.get(body, path, default=default)  # type: ignore # extracted will be a MutableMapping, given input data structure
-
-        return extracted
+        return dpath.get(body, path, default=default)  # type: ignore # extracted will be a MutableMapping, given input data structure

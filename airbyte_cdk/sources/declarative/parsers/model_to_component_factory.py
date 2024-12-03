@@ -290,7 +290,7 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     SubstreamPartitionRouter as SubstreamPartitionRouterModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    TypesPair as TypesPairModel,
+    TypesMap as TypesMapModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import ValueType
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -357,7 +357,7 @@ from airbyte_cdk.sources.declarative.schema import (
     InlineSchemaLoader,
     JsonFileSchemaLoader,
     SchemaTypeIdentifier,
-    TypesPair,
+    TypesMap,
 )
 from airbyte_cdk.sources.declarative.spec import Spec
 from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
@@ -454,7 +454,7 @@ class ModelToComponentFactory:
             JsonFileSchemaLoaderModel: self.create_json_file_schema_loader,
             DynamicSchemaLoaderModel: self.create_dynamic_schema_loader,
             SchemaTypeIdentifierModel: self.create_schema_type_identifier,
-            TypesPairModel: self.create_types_pair,
+            TypesMapModel: self.create_types_map,
             JwtAuthenticatorModel: self.create_jwt_authenticator,
             LegacyToPerPartitionStateMigrationModel: self.create_legacy_to_per_partition_state_migration,
             ListPartitionRouterModel: self.create_list_partition_router,
@@ -1568,18 +1568,18 @@ class ModelToComponentFactory:
         return InlineSchemaLoader(schema=model.schema_ or {}, parameters={})
 
     @staticmethod
-    def create_types_pair(model: TypesPairModel, **kwargs: Any) -> TypesPair:
-        return TypesPair(target_type=model.target_type, current_type=model.current_type)
+    def create_types_map(model: TypesMapModel, **kwargs: Any) -> TypesMap:
+        return TypesMap(target_type=model.target_type, current_type=model.current_type)
 
     def create_schema_type_identifier(
         self, model: SchemaTypeIdentifierModel, config: Config, **kwargs: Any
     ) -> SchemaTypeIdentifier:
         types_map = []
-        if model.types_map:
+        if model.types_mapping:
             types_map.extend(
                 [
                     self._create_component_from_model(types_pair, config=config)
-                    for types_pair in model.types_map
+                    for types_pair in model.types_mapping
                 ]
             )
         model_schema_pointer: List[Union[InterpolatedString, str]] = [
@@ -1590,14 +1590,11 @@ class ModelToComponentFactory:
             [x for x in model.type_pointer] if model.type_pointer else None
         )
 
-        assert model.is_nullable is not None  # for mypy
-
         return SchemaTypeIdentifier(
             schema_pointer=model_schema_pointer,
             key_pointer=model_key_pointer,
             type_pointer=model_type_pointer,
             types_map=types_map,
-            is_nullable=model.is_nullable,
             parameters=model.parameters or {},
         )
 

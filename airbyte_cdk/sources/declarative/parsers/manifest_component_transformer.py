@@ -61,7 +61,7 @@ DEFAULT_MODEL_TYPES: Mapping[str, str] = {
     # DynamicSchemaLoader
     "DynamicSchemaLoader.retriever": "SimpleRetriever",
     # SchemaTypeIdentifier
-    "SchemaTypeIdentifier.types_map": "TypesPair",
+    "SchemaTypeIdentifier.types_map": "TypesMap",
 }
 
 # We retain a separate registry for custom components to automatically insert the type if it is missing. This is intended to
