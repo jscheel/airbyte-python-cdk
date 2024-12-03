@@ -14,7 +14,9 @@ from airbyte_cdk.sources.source import ExperimentalClassWarning
 
 @dataclass(frozen=True)
 class ComponentMappingDefinition:
-    """Defines the key-value mapping configuration for a stream component."""
+    """Defines the configuration for mapping a component in a stream. This class specifies
+    what field in the stream template should be updated with value, supporting dynamic interpolation
+    and type enforcement."""
 
     field_path: List["InterpolatedString"]
     value: Union["InterpolatedString", str]
@@ -24,7 +26,9 @@ class ComponentMappingDefinition:
 
 @dataclass(frozen=True)
 class ResolvedComponentMappingDefinition:
-    """Represents a parsed and resolved component mapping for a stream configuration."""
+    """Defines resolved configuration for mapping a component in a stream. This class specifies
+    what field in the stream template should be updated with value, supporting dynamic interpolation
+    and type enforcement."""
 
     field_path: List["InterpolatedString"]
     value: "InterpolatedString"
