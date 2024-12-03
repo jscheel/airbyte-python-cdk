@@ -314,10 +314,10 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
         return concurrent_streams, synchronous_streams
 
-    def _is_datetime_incremental_with_partition_routing(
+    def _is_datetime_incremental_without_partition_routing(
         self,
-        incremental_sync_component_definition: Mapping[str, Any],
         declarative_stream: DeclarativeStream,
+        incremental_sync_component_definition: Mapping[str, Any],
     ) -> bool:
         return (
             bool(incremental_sync_component_definition)
