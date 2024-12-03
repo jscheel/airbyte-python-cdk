@@ -314,11 +314,13 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
         return concurrent_streams, synchronous_streams
 
-    def _is_datetime_incremental_without_partition_routing(
-        self, declarative_stream, incremental_sync_component_definition
-    ):
+    def _is_datetime_incremental_with_partition_routing(
+        self,
+        incremental_sync_component_definition: Mapping[str, Any],
+        declarative_stream: DeclarativeStream,
+    ) -> bool:
         return (
-            incremental_sync_component_definition
+            bool(incremental_sync_component_definition)
             and incremental_sync_component_definition.get("type", "")
             == DatetimeBasedCursorModel.__name__
             and self._stream_supports_concurrent_partition_processing(
