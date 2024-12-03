@@ -173,9 +173,10 @@ class DynamicSchemaLoader(SchemaLoader):
         """
         Replaces a field type if it matches a type mapping in `types_map`.
         """
-        for types_pair in self.schema_type_identifier.types_map:
-            if field_type == types_pair.current_type:
-                return types_pair.target_type
+        if self.schema_type_identifier.types_map:
+            for types_pair in self.schema_type_identifier.types_map:
+                if field_type == types_pair.current_type:
+                    return types_pair.target_type
         return field_type
 
     @staticmethod
@@ -187,6 +188,7 @@ class DynamicSchemaLoader(SchemaLoader):
         """
 
         if is_nullable:
+            field_type = deepcopy(field_type)
             field_type["type"] = ["null", field_type["type"]]
         return field_type
 
