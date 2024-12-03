@@ -65,12 +65,12 @@ class SchemaTypeIdentifier:
     key_pointer: List[Union[InterpolatedString, str]]
     parameters: InitVar[Mapping[str, Any]]
     type_pointer: Optional[List[Union[InterpolatedString, str]]] = None
-    types_map: List[TypesPair] = None
+    types_map: Optional[List[TypesPair]] = None
     is_nullable: bool = True
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-        self.schema_pointer = self._update_pointer(self.schema_pointer, parameters)
-        self.key_pointer = self._update_pointer(self.key_pointer, parameters)
+        self.schema_pointer = self._update_pointer(self.schema_pointer, parameters)  # type: ignore[assignment]  # This is reqired field in model
+        self.key_pointer = self._update_pointer(self.key_pointer, parameters)  # type: ignore[assignment]  # This is reqired field in model
         self.type_pointer = (
             self._update_pointer(self.type_pointer, parameters) if self.type_pointer else None
         )
@@ -110,7 +110,8 @@ class DynamicSchemaLoader(SchemaLoader):
         properties = {}
         for retrieved_record in self.retriever.read_records({}):
             raw_schema = self._extract_data(
-                retrieved_record, self.schema_type_identifier.schema_pointer
+                retrieved_record,  # type: ignore[arg-type] # Expected that retrieved_record will be only Mapping[str, Any]
+                self.schema_type_identifier.schema_pointer,
             )
             for property_definition in raw_schema:
                 key = self._get_key(property_definition, self.schema_type_identifier.key_pointer)
@@ -167,9 +168,16 @@ class DynamicSchemaLoader(SchemaLoader):
                 self._get_airbyte_type(mapped_field_type[1]), is_nullable
             )
             return {"oneOf": [first_type, second_type]}
-        return self._make_field_nullable(self._get_airbyte_type(mapped_field_type), is_nullable)
+        elif isinstance(mapped_field_type, str):
+            return self._make_field_nullable(self._get_airbyte_type(mapped_field_type), is_nullable)
+        else:
+            raise ValueError(
+                f"Invalid data type. Available string or two items list of string. Got {mapped_field_type}."
+            )
 
-    def _replace_type_if_not_valid(self, field_type: str) -> str:
+    def _replace_type_if_not_valid(
+        self, field_type: Union[List[str], str]
+    ) -> Union[List[str], str]:
         """
         Replaces a field type if it matches a type mapping in `types_map`.
         """
@@ -186,11 +194,10 @@ class DynamicSchemaLoader(SchemaLoader):
         """
         Wraps a field type to allow null values if `is_nullable` is True.
         """
-
+        updated_field_type = dict(deepcopy(field_type))
         if is_nullable:
-            field_type = deepcopy(field_type)
-            field_type["type"] = ["null", field_type["type"]]
-        return field_type
+            updated_field_type["type"] = ["null", updated_field_type["type"]]
+        return updated_field_type
 
     @staticmethod
     def _get_airbyte_type(field_type: str) -> Mapping[str, Any]:
@@ -215,11 +222,14 @@ class DynamicSchemaLoader(SchemaLoader):
         if len(extraction_path) == 0:
             return body
 
-        path = [path.eval(self.config) for path in extraction_path]
+        path = [
+            path.eval(self.config) if not isinstance(path, str) else path
+            for path in extraction_path
+        ]
 
         if "*" in path:
-            extracted = dpath.values(body, path)
+            extracted = dpath.values(body, path)  # type: ignore # extracted will be a MutableMapping, given input data structure
         else:
-            extracted = dpath.get(body, path, default=default)
+            extracted = dpath.get(body, path, default=default)  # type: ignore # extracted will be a MutableMapping, given input data structure
 
         return extracted
