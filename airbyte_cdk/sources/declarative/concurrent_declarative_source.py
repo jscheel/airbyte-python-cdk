@@ -207,11 +207,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
                 is_without_partition_router_or_cursor = not bool(
                     incremental_sync_component_definition
-                ) and not (
-                    name_to_stream_mapping[declarative_stream.name]
-                    .get("retriever", {})
-                    .get("partition_router")
-                )
+                ) and not bool(partition_router_component_definition)
                 partition_router_component_definition = (
                     name_to_stream_mapping[declarative_stream.name]
                     .get("retriever")
