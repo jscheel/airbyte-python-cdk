@@ -25,7 +25,7 @@ from airbyte_cdk.test.mock_http import HttpMocker, HttpRequest, HttpResponse
 _CONFIG = {"start_date": "2024-07-01T00:00:00.000Z"}
 
 _MANIFEST = {
-    "version": "5.0.0",
+    "version": "6.7.0",
     "type": "DeclarativeSource",
     "check": {"type": "CheckStream", "stream_names": ["Rates"]},
     "dynamic_streams": [
