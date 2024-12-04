@@ -532,16 +532,18 @@ class SkipFailureSQLiteDict(requests_cache.backends.sqlite.SQLiteDict):
 class SkipFailureSQLiteCache(requests_cache.backends.sqlite.SQLiteCache):
     def __init__(
         self,
-        db_path = 'http_cache',
-        serializer = None,
+        db_path="http_cache",
+        serializer=None,
         **kwargs,
     ) -> None:
         super().__init__(db_path, serializer, **kwargs)
-        skwargs = {'serializer': serializer, **kwargs} if serializer else kwargs
-        self.responses: requests_cache.backends.sqlite.SQLiteDict = SkipFailureSQLiteDict(db_path, table_name='responses', **skwargs)
+        skwargs = {"serializer": serializer, **kwargs} if serializer else kwargs
+        self.responses: requests_cache.backends.sqlite.SQLiteDict = SkipFailureSQLiteDict(
+            db_path, table_name="responses", **skwargs
+        )
         self.redirects: requests_cache.backends.sqlite.SQLiteDict = SkipFailureSQLiteDict(
             db_path,
-            table_name='redirects',
+            table_name="redirects",
             lock=self.responses._lock,
             serializer=None,
             **kwargs,

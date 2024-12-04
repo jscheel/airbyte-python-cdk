@@ -755,7 +755,12 @@ def test_given_cache_save_failure_then_do_not_break(requests_mock, monkeypatch):
     @contextlib.contextmanager
     def _create_sqlite_write_error_connection(*args, **kwargs):
         yield RaiseOnInsertConnection()
-    monkeypatch.setattr(requests_cache.backends.sqlite.SQLiteDict, "connection", _create_sqlite_write_error_connection)
+
+    monkeypatch.setattr(
+        requests_cache.backends.sqlite.SQLiteDict,
+        "connection",
+        _create_sqlite_write_error_connection,
+    )
     http_client = HttpClient(name="test", logger=MagicMock(), use_cache=True)
     requests_mock.register_uri("GET", "https://google.com/", json={"test": "response"})
 
