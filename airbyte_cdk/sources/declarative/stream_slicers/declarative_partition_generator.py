@@ -38,33 +38,6 @@ class DeclarativePartitionFactory:
             stream_slice,
         )
 
-class DeclarativePartitionFactory1:
-    def __init__(
-        self,
-        stream_name: str,
-        json_schema: Mapping[str, Any],
-        retriever: Retriever,
-        message_repository: MessageRepository,
-    ) -> None:
-        """
-        The DeclarativePartitionFactory takes a retriever_factory and not a retriever directly. The reason is that our components are not
-        thread safe and classes like `DefaultPaginator` may not work because multiple threads can access and modify a shared field across each other.
-        In order to avoid these problems, we will create one retriever per thread which should make the processing thread-safe.
-        """
-        self._stream_name = stream_name
-        self._json_schema = json_schema
-        self._retriever = retriever
-        self._message_repository = message_repository
-
-    def create(self, stream_slice: StreamSlice) -> Partition:
-        return DeclarativePartition(
-            self._stream_name,
-            self._json_schema,
-            self._retriever,
-            self._message_repository,
-            stream_slice,
-        )
-
 class DeclarativePartition(Partition):
     def __init__(
         self,
