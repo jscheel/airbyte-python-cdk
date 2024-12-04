@@ -3,8 +3,6 @@
 #
 
 import logging
-from airbyte_cdk.sources.declarative.incremental.per_partition_cursor import PerPartitionCursor
-from airbyte_cdk.sources.declarative.incremental.per_partition_with_global import PerPartitionWithGlobalCursor
 from typing import Any, Callable, Generic, Iterator, List, Mapping, Optional, Tuple, Union
 
 from airbyte_cdk.models import (
@@ -22,6 +20,9 @@ from airbyte_cdk.sources.declarative.extractors.record_filter import (
     ClientSideIncrementalRecordFilterDecorator,
 )
 from airbyte_cdk.sources.declarative.incremental.datetime_based_cursor import DatetimeBasedCursor
+from airbyte_cdk.sources.declarative.incremental.per_partition_with_global import (
+    PerPartitionWithGlobalCursor,
+)
 from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
 from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -306,8 +307,8 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                         )
                     )
                 elif (
-                    datetime_based_cursor_component_definition
-                    and datetime_based_cursor_component_definition.get("type", "")
+                    incremental_sync_component_definition
+                    and incremental_sync_component_definition.get("type", "")
                     == DatetimeBasedCursorModel.__name__
                     and self._stream_supports_concurrent_partition_processing(
                         declarative_stream=declarative_stream
@@ -320,18 +321,16 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     )
                     partition_router = declarative_stream.retriever.stream_slicer._partition_router
 
-                    cursor, connector_state_converter = (
-                        self._constructor.create_concurrent_cursor_from_perpartition_cursor(
+                    cursor = self._constructor.create_concurrent_cursor_from_perpartition_cursor(
                             state_manager=state_manager,
                             model_type=DatetimeBasedCursorModel,
-                            component_definition=datetime_based_cursor_component_definition,
+                            component_definition=incremental_sync_component_definition,
                             stream_name=declarative_stream.name,
                             stream_namespace=declarative_stream.namespace,
                             config=config or {},
                             stream_state=stream_state,
                             partition_router=partition_router,
                         )
-                    )
 
 
                     partition_generator = StreamSlicerPartitionGenerator(

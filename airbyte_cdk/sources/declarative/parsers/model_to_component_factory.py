@@ -82,8 +82,8 @@ from airbyte_cdk.sources.declarative.extractors.record_selector import (
 )
 from airbyte_cdk.sources.declarative.incremental import (
     ChildPartitionResumableFullRefreshCursor,
-    ConcurrentPerPartitionCursor,
     ConcurrentCursorFactory,
+    ConcurrentPerPartitionCursor,
     CursorFactory,
     DatetimeBasedCursor,
     DeclarativeCursor,
@@ -911,6 +911,7 @@ class ModelToComponentFactory:
             ),
             connector_state_converter,
         )
+
     def create_concurrent_cursor_from_perpartition_cursor(
         self,
         state_manager: ConnectorStateManager,
@@ -922,7 +923,7 @@ class ModelToComponentFactory:
         stream_state: MutableMapping[str, Any],
         partition_router,
             **kwargs: Any,
-    ) -> Tuple[ConcurrentCursor, DateTimeStreamStateConverter]:
+    ) -> ConcurrentPerPartitionCursor:
         component_type = component_definition.get("type")
         if component_definition.get("type") != model_type.__name__:
             raise ValueError(
@@ -942,149 +943,30 @@ class ModelToComponentFactory:
         )
         cursor_field = CursorField(interpolated_cursor_field.eval(config=config))
 
-        interpolated_partition_field_start = InterpolatedString.create(
-            datetime_based_cursor_model.partition_field_start or "start_time",
-            parameters=datetime_based_cursor_model.parameters or {},
-        )
-        interpolated_partition_field_end = InterpolatedString.create(
-            datetime_based_cursor_model.partition_field_end or "end_time",
-            parameters=datetime_based_cursor_model.parameters or {},
-        )
-
-        slice_boundary_fields = (
-            interpolated_partition_field_start.eval(config=config),
-            interpolated_partition_field_end.eval(config=config),
-        )
-
-        datetime_format = datetime_based_cursor_model.datetime_format
-
-        cursor_granularity = (
-            parse_duration(datetime_based_cursor_model.cursor_granularity)
-            if datetime_based_cursor_model.cursor_granularity
-            else None
-        )
-
-        lookback_window = None
-        interpolated_lookback_window = (
-            InterpolatedString.create(
-                datetime_based_cursor_model.lookback_window,
-                parameters=datetime_based_cursor_model.parameters or {},
-            )
-            if datetime_based_cursor_model.lookback_window
-            else None
-        )
-        if interpolated_lookback_window:
-            evaluated_lookback_window = interpolated_lookback_window.eval(config=config)
-            if evaluated_lookback_window:
-                lookback_window = parse_duration(evaluated_lookback_window)
-
-        connector_state_converter: DateTimeStreamStateConverter
-        connector_state_converter = CustomFormatConcurrentStreamStateConverter(
-            datetime_format=datetime_format,
-            input_datetime_formats=datetime_based_cursor_model.cursor_datetime_formats,
-            is_sequential_state=True,
-            cursor_granularity=cursor_granularity,
-            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-        )
-
-        start_date_runtime_value: Union[InterpolatedString, str, MinMaxDatetime]
-        if isinstance(datetime_based_cursor_model.start_datetime, MinMaxDatetimeModel):
-            start_date_runtime_value = self.create_min_max_datetime(
-                model=datetime_based_cursor_model.start_datetime, config=config
-            )
-        else:
-            start_date_runtime_value = datetime_based_cursor_model.start_datetime
-
-        end_date_runtime_value: Optional[Union[InterpolatedString, str, MinMaxDatetime]]
-        if isinstance(datetime_based_cursor_model.end_datetime, MinMaxDatetimeModel):
-            end_date_runtime_value = self.create_min_max_datetime(
-                model=datetime_based_cursor_model.end_datetime, config=config
-            )
-        else:
-            end_date_runtime_value = datetime_based_cursor_model.end_datetime
-
-        interpolated_start_date = MinMaxDatetime.create(
-            interpolated_string_or_min_max_datetime=start_date_runtime_value,
-            parameters=datetime_based_cursor_model.parameters,
-        )
-        interpolated_end_date = (
-            None
-            if not end_date_runtime_value
-            else MinMaxDatetime.create(
-                end_date_runtime_value, datetime_based_cursor_model.parameters
-            )
-        )
-
-        # If datetime format is not specified then start/end datetime should inherit it from the stream slicer
-        if not interpolated_start_date.datetime_format:
-            interpolated_start_date.datetime_format = datetime_format
-        if interpolated_end_date and not interpolated_end_date.datetime_format:
-            interpolated_end_date.datetime_format = datetime_format
-
-        start_date = interpolated_start_date.get_datetime(config=config)
-        end_date_provider = (
-            partial(interpolated_end_date.get_datetime, config)
-            if interpolated_end_date
-            else connector_state_converter.get_end_provider()
-        )
-
-        if (
-            datetime_based_cursor_model.step and not datetime_based_cursor_model.cursor_granularity
-        ) or (
-            not datetime_based_cursor_model.step and datetime_based_cursor_model.cursor_granularity
-        ):
-            raise ValueError(
-                f"If step is defined, cursor_granularity should be as well and vice-versa. "
-                f"Right now, step is `{datetime_based_cursor_model.step}` and cursor_granularity is `{datetime_based_cursor_model.cursor_granularity}`"
-            )
-
-        # When step is not defined, default to a step size from the starting date to the present moment
-        step_length = datetime.timedelta.max
-        interpolated_step = (
-            InterpolatedString.create(
-                datetime_based_cursor_model.step,
-                parameters=datetime_based_cursor_model.parameters or {},
-            )
-            if datetime_based_cursor_model.step
-            else None
-        )
-        if interpolated_step:
-            evaluated_step = interpolated_step.eval(config)
-            if evaluated_step:
-                step_length = parse_duration(evaluated_step)
-
+        # Create the cursor factory
         cursor_factory = ConcurrentCursorFactory(
-            partial(self.create_concurrent_cursor_from_datetime_based_cursor,
-                    state_manager = state_manager,
-                model_type = model_type,
-                component_definition = component_definition,
-                stream_name = stream_name,
-                stream_namespace = stream_namespace,
-                config = config)
+            partial(
+                self.create_concurrent_cursor_from_datetime_based_cursor,
+                state_manager=state_manager,
+                model_type=model_type,
+                component_definition=component_definition,
+                stream_name=stream_name,
+                stream_namespace=stream_namespace,
+                config=config,
+            )
         )
 
-        partition_router = partition_router
-
-        return (
-            ConcurrentPerPartitionCursor(
+        # Return the concurrent cursor and state converter
+        return ConcurrentPerPartitionCursor(
                 cursor_factory=cursor_factory,
                 partition_router=partition_router,
                 stream_name=stream_name,
                 stream_namespace=stream_namespace,
                 stream_state=stream_state,
-                message_repository=self._message_repository,  # type: ignore  # message_repository is always instantiated with a value by factory
+                message_repository=self._message_repository,  # type: ignore
                 connector_state_manager=state_manager,
-                connector_state_converter=connector_state_converter,
                 cursor_field=cursor_field,
-                slice_boundary_fields=slice_boundary_fields,
-                start=start_date,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-                end_provider=end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-                lookback_window=lookback_window,
-                slice_range=step_length,
-                cursor_granularity=cursor_granularity,
-            ),
-            connector_state_converter,
-        )
+            )
 
     @staticmethod
     def create_constant_backoff_strategy(
@@ -2092,7 +1974,7 @@ class ModelToComponentFactory:
         if (
             not isinstance(stream_slicer, DatetimeBasedCursor)
             or type(stream_slicer) is not DatetimeBasedCursor
-        ):
+        ) and not isinstance(stream_slicer, PerPartitionWithGlobalCursor):
             # Many of the custom component implementations of DatetimeBasedCursor override get_request_params() (or other methods).
             # Because we're decoupling RequestOptionsProvider from the Cursor, custom components will eventually need to reimplement
             # their own RequestOptionsProvider. However, right now the existing StreamSlicer/Cursor still can act as the SimpleRetriever's

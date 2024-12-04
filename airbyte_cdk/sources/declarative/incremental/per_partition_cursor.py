@@ -244,15 +244,6 @@ class PerPartitionCursor(DeclarativeCursor):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
         if stream_slice:
-            if self._to_partition_key(stream_slice.partition) not in self._cursor_per_partition:
-                partition_state = (
-                    self._state_to_migrate_from
-                    if self._state_to_migrate_from
-                    else self._NO_CURSOR_STATE
-                )
-                cursor = self._create_cursor(partition_state)
-
-                self._cursor_per_partition[self._to_partition_key(stream_slice.partition)] = cursor
             return self._partition_router.get_request_headers(  # type: ignore # this always returns a mapping
                 stream_state=stream_state,
                 stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
