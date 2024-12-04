@@ -522,7 +522,7 @@ class HttpClient:
 
 
 class SkipFailureSQLiteDict(requests_cache.backends.sqlite.SQLiteDict):
-    def _write(self, key, value):
+    def _write(self, key, value) -> None:
         try:
             super()._write(key, value)
         except Exception as exception:
