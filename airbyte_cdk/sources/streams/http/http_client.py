@@ -522,15 +522,15 @@ class HttpClient:
 
 
 class SkipFailureSQLiteDict(requests_cache.backends.sqlite.SQLiteDict):
-    def _write(self, key, value) -> None:
+    def _write(self, key: str, value: str) -> None:
         try:
-            super()._write(key, value)
+            super()._write(key, value)  # type: ignore  # lib is not typed
         except Exception as exception:
             logger.warning(exception)
 
 
 class SkipFailureSQLiteCache(requests_cache.backends.sqlite.SQLiteCache):
-    def __init__(
+    def __init__(  # type: ignore  # ignoring as lib is not typed
         self,
         db_path="http_cache",
         serializer=None,
