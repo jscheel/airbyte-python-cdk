@@ -17,8 +17,8 @@ from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStrea
 from airbyte_cdk.sources.streams.concurrent.partition_enqueuer import PartitionEnqueuer
 from airbyte_cdk.sources.streams.concurrent.partition_reader import PartitionReader
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 from airbyte_cdk.sources.streams.concurrent.partitions.types import PartitionCompleteSentinel
+from airbyte_cdk.sources.types import Record
 from airbyte_cdk.sources.utils.record_helper import stream_data_to_airbyte_message
 from airbyte_cdk.sources.utils.slice_logger import SliceLogger
 from airbyte_cdk.utils import AirbyteTracedException
@@ -114,7 +114,8 @@ class ConcurrentReadProcessor:
 
         try:
             if sentinel.is_successful:
-                partition.close()
+                stream = self._stream_name_to_instance[partition.stream_name()]
+                stream.cursor.close_partition(partition)
         except Exception as exception:
             self._flag_exception(partition.stream_name(), exception)
             yield AirbyteTracedException.from_exception(
@@ -146,11 +147,11 @@ class ConcurrentReadProcessor:
         # AbstractStreams are expected to return data as they are expected.
         # Any transformation on the data should be done before reaching this point
         message = stream_data_to_airbyte_message(
-            stream_name=record.partition.stream_name(),
+            stream_name=record.stream_name,
             data_or_message=record.data,
             is_file_transfer_message=record.is_file_transfer_message,
         )
-        stream = self._stream_name_to_instance[record.partition.stream_name()]
+        stream = self._stream_name_to_instance[record.stream_name]
 
         if message.type == MessageType.RECORD:
             if self._record_counter[stream.name] == 0:

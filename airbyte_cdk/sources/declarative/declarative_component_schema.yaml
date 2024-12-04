@@ -1331,6 +1331,19 @@ definitions:
       $parameters:
         type: object
         additionalProperties: true
+  ResponseToFileExtractor:
+    title: CSV To File Extractor
+    description: A record extractor designed for handling large responses that may exceed memory limits (to prevent OOM issues). It downloads a CSV file to disk, reads the data from disk, and deletes the file once it has been fully processed.
+    type: object
+    required:
+      - type
+    properties:
+      type:
+        type: string
+        enum: [ResponseToFileExtractor]
+      $parameters:
+        type: object
+        additionalProperties: true
   ExponentialBackoffStrategy:
     title: Exponential Backoff
     description: Backoff strategy with an exponential backoff interval. The interval is defined as factor * 2^attempt_count.
@@ -1972,6 +1985,173 @@ definitions:
           - app_id:
               type: string
               path_in_connector_config: ["info", "app_id"]
+      oauth_connector_input_specification:
+        title: DeclarativeOAuth Connector Specification
+        description: |-
+          The DeclarativeOAuth specific blob.
+          Pertains to the fields defined by the connector relating to the OAuth flow.
+
+          Interpolation capabilities:
+          - The variables placeholders are declared as `{my_var}`.
+          - The nested resolution variables like `{{my_nested_var}}` is allowed as well.
+
+          - The allowed interpolation context is:
+            + base64Encoder - encode to `base64`, {base64Encoder:{my_var_a}:{my_var_b}}
+            + base64Decorer - decode from `base64` encoded string, {base64Decoder:{my_string_variable_or_string_value}}
+            + urlEncoder - encode the input string to URL-like format, {urlEncoder:https://test.host.com/endpoint}
+            + urlDecorer - decode the input url-encoded string into text format, {urlDecoder:https%3A%2F%2Fairbyte.io}
+            + codeChallengeS256 - get the `codeChallenge` encoded value to provide additional data-provider specific authorisation values, {codeChallengeS256:{state_value}}
+
+          Examples:
+            - The TikTok Marketing DeclarativeOAuth spec:
+            {
+              "oauth_connector_input_specification": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "consent_url": "https://ads.tiktok.com/marketing_api/auth?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{state_key}={{state_key}}",
+                    "access_token_url": "https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/",
+                    "access_token_params": {
+                        "{auth_code_key}": "{{auth_code_key}}",
+                        "{client_id_key}": "{{client_id_key}}",
+                        "{client_secret_key}": "{{client_secret_key}}"
+                    },
+                    "access_token_headers": {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    "extract_output": ["data.access_token"],
+                    "client_id_key": "app_id",
+                    "client_secret_key": "secret",
+                    "auth_code_key": "auth_code"
+                }
+              }
+            }
+        type: object
+        additionalProperties: true
+        required:
+          - consent_url
+          - access_token_url
+          - extract_output
+        properties:
+          consent_url:
+            title: DeclarativeOAuth Consent URL
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific string URL string template to initiate the authentication.
+              The placeholders are replaced during the processing to provide neccessary values.
+            examples:
+              - consent_url: https://domain.host.com/marketing_api/auth?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{state_key}={{state_key}}
+              - consent_url: https://endpoint.host.com/oauth2/authorize?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{scope_key}={urlEncoder:{{scope_key}}}&{state_key}={{state_key}}&subdomain={subdomain}
+          scope:
+            title: (Optional) DeclarativeOAuth Scope
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific string of the scopes needed to be grant for authenticated user.
+            examples:
+              - scope: user:read user:read_orders workspaces:read
+          access_token_url:
+            title: DeclarativeOAuth Access Token URL
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific URL templated string to obtain the `access_token`, `refresh_token` etc.
+              The placeholders are replaced during the processing to provide neccessary values.
+            examples:
+              - access_token_url: https://auth.host.com/oauth2/token?{client_id_key}={{client_id_key}}&{client_secret_key}={{client_secret_key}}&{auth_code_key}={{auth_code_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}
+          access_token_headers:
+            title: (Optional) DeclarativeOAuth Access Token Headers
+            type: object
+            additionalProperties: true
+            description: |-
+              The DeclarativeOAuth Specific optional headers to inject while exchanging the `auth_code` to `access_token` during `completeOAuthFlow` step.
+            examples:
+              - access_token_headers: {
+                  "Authorization": "Basic {base64Encoder:{client_id}:{client_secret}}"
+                }
+          access_token_params:
+            title: (Optional) DeclarativeOAuth Access Token Query Params (Json Encoded)
+            type: object
+            additionalProperties: true
+            description: |-
+              The DeclarativeOAuth Specific optional query parameters to inject while exchanging the `auth_code` to `access_token` during `completeOAuthFlow` step.
+              When this property is provided, the query params will be encoded as `Json` and included in the outgoing API request.
+            examples:
+              - access_token_params: {
+                  "{auth_code_key}": "{{auth_code_key}}",
+                  "{client_id_key}": "{{client_id_key}}",
+                  "{client_secret_key}": "{{client_secret_key}}"
+                }
+          extract_output:
+            title: DeclarativeOAuth Extract Output
+            type: array
+            items:
+              type: string
+            description: |-
+              The DeclarativeOAuth Specific list of strings to indicate which keys should be extracted and returned back to the input config.
+            examples:
+              - extract_output: ["access_token", "refresh_token", "other_field"]
+          state:
+            title: (Optional) DeclarativeOAuth Configurable State Query Param
+            type: object
+            additionalProperties: true
+            required:
+              - min
+              - max
+            description: |-
+              The DeclarativeOAuth Specific object to provide the criteria of how the `state` query param should be constructed,
+              including length and complexity.
+            properties:
+              min:
+                type: integer
+              max:
+                type: integer
+            examples:
+              - state: {
+                  "min": 7,
+                  "max": 128,
+                }
+          client_id_key:
+            title: (Optional) DeclarativeOAuth Client ID Key Override
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific optional override to provide the custom `client_id` key name, if required by data-provider.
+            examples:
+              - client_id_key: "my_custom_client_id_key_name"
+          client_secret_key:
+            title: (Optional) DeclarativeOAuth Client Secret Key Override
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific optional override to provide the custom `client_secret` key name, if required by data-provider.
+            examples:
+              - client_secret_key: "my_custom_client_secret_key_name"
+          scope_key:
+            title: (Optional) DeclarativeOAuth Scope Key Override
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific optional override to provide the custom `scope` key name, if required by data-provider.
+            examples:
+              - scope_key: "my_custom_scope_key_key_name"
+          state_key:
+            title: (Optional) DeclarativeOAuth State Key Override
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific optional override to provide the custom `state` key name, if required by data-provider.
+            examples:
+              - state_key: "my_custom_state_key_key_name"
+          auth_code_key:
+            title: (Optional) DeclarativeOAuth Auth Code Key Override
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific optional override to provide the custom `code` key name to something like `auth_code` or `custom_auth_code`, if required by data-provider.
+            examples:
+              - auth_code_key: "my_custom_auth_code_key_name"
+          redirect_uri_key:
+            title: (Optional) DeclarativeOAuth Redirect URI Key Override
+            type: string
+            description: |-
+              The DeclarativeOAuth Specific optional override to provide the custom `redirect_uri` key name to something like `callback_uri`, if required by data-provider.
+            examples:
+              - redirect_uri_key: "my_custom_redirect_uri_key_name"
       complete_oauth_output_specification:
         title: "OAuth output specification"
         description: |-
@@ -2518,6 +2698,7 @@ definitions:
         anyOf:
           - "$ref": "#/definitions/CustomRecordExtractor"
           - "$ref": "#/definitions/DpathExtractor"
+          - "$ref": "#/definitions/ResponseToFileExtractor"
       creation_requester:
         description: Requester component that describes how to prepare HTTP requests to send to the source API to create the async server-side job.
         anyOf:
@@ -2805,21 +2986,21 @@ interpolation:
         - created_at: "2020-01-01 00:00:00.000+00:00"
         - updated_at: "2020-01-02 00:00:00.000+00:00"
   macros:
-    - title: Now (UTC)
+    - title: now_utc
       description: Returns the current date and time in the UTC timezone.
       arguments: {}
       return_type: Datetime
       examples:
         - "'{{ now_utc() }}' -> '2021-09-01 00:00:00+00:00'"
         - "'{{ now_utc().strftime('%Y-%m-%d') }}' -> '2021-09-01'"
-    - title: Today (UTC)
+    - title: today_utc
       description: Returns the current date in UTC timezone. The output is a date object.
       arguments: {}
       return_type: Date
       examples:
         - "'{{ today_utc() }}' -> '2021-09-01'"
         - "'{{ today_utc().strftime('%Y/%m/%d')}}' -> '2021/09/01'"
-    - title: Timestamp
+    - title: timestamp
       description: Converts a number or a string representing a datetime (formatted as ISO8601) to a timestamp. If the input is a number, it is converted to an int. If no timezone is specified, the string is interpreted as UTC.
       arguments:
         datetime: A string formatted as ISO8601 or an integer representing a unix timestamp
@@ -2830,7 +3011,7 @@ interpolation:
         - "'{{ timestamp('2022-02-28T00:00:00Z') }}' -> 1646006400"
         - "'{{ timestamp('2022-02-28 00:00:00Z') }}' -> 1646006400"
         - "'{{ timestamp('2022-02-28T00:00:00-08:00') }}' -> 1646035200"
-    - title: Max
+    - title: max
       description: Returns the largest object of a iterable, or or two or more arguments.
       arguments:
         args: iterable or a sequence of two or more arguments
@@ -2838,7 +3019,7 @@ interpolation:
       examples:
         - "'{{ max(2, 3) }}' -> 3"
         - "'{{ max([2, 3]) }}' -> 3"
-    - title: Day Delta
+    - title: day_delta
       description: Returns the datetime of now() + num_days.
       arguments:
         num_days: The number of days to add to now
@@ -2848,8 +3029,8 @@ interpolation:
         - "'{{ day_delta(1) }}' -> '2021-09-02T00:00:00.000000+0000'"
         - "'{{ day_delta(-1) }}' -> '2021-08-31:00:00.000000+0000'"
         - "'{{ day_delta(25, format='%Y-%m-%d') }}' -> '2021-09-02'"
-    - title: Duration
-      description: Converts an ISO8601 duratioin to datetime.timedelta.
+    - title: duration
+      description: Converts an ISO8601 duration to datetime timedelta.
       arguments:
         duration_string: "A string representing an ISO8601 duration. See https://www.digi.com/resources/documentation/digidocs//90001488-13/reference/r_iso_8601_duration_format.htm for more details."
       return_type: datetime.timedelta
@@ -2857,7 +3038,7 @@ interpolation:
         - "'{{ duration('P1D') }}' -> '1 day, 0:00:00'"
         - "'{{ duration('P6DT23H') }}' -> '6 days, 23:00:00'"
         - "'{{ (now_utc() - duration('P1D')).strftime('%Y-%m-%dT%H:%M:%SZ') }}' -> '2021-08-31T00:00:00Z'"
-    - title: Format Datetime
+    - title: format_datetime
       description: Converts a datetime or a datetime-string to the specified format.
       arguments:
         datetime: The datetime object or a string to convert. If datetime is a string, it must be formatted as ISO8601.
@@ -2869,7 +3050,7 @@ interpolation:
         - "{{ format_datetime(config['start_date'], '%Y-%m-%dT%H:%M:%S.%fZ') }}"
         - "{{ format_datetime(config['start_date'], '%Y-%m-%dT%H:%M:%S.%fZ', '%a, %d %b %Y %H:%M:%S %z') }}"
   filters:
-    - title: Hash
+    - title: hash
       description: Convert the specified value to a hashed string.
       arguments:
         hash_type: Valid hash type for converts ('md5' as default value).
@@ -2879,26 +3060,26 @@ interpolation:
         - "{{ 'Test client_secret' | hash() }} -> '3032d57a12f76b61a820e47b9a5a0cbb'"
         - "{{ 'Test client_secret' | hash('md5') }} -> '3032d57a12f76b61a820e47b9a5a0cbb'"
         - "{{ 'Test client_secret' | hash('md5', salt='salt') }} -> '5011a0168579c2d94cbbe1c6ad14327c'"
-    - title: Base64 encoder
+    - title: base64encode
       description: Convert the specified value to a string in the base64 format.
       arguments: {}
       return_type: str
       examples:
         - "{{ 'Test client_secret' | base64encode }} -> 'VGVzdCBjbGllbnRfc2VjcmV0'"
-    - title: Base64 decoder
+    - title: base64decode
       description: Decodes the specified base64 format value into a common string.
       arguments: {}
       return_type: str
       examples:
         - "{{ 'ZmFrZSByZWZyZXNoX3Rva2VuIHZhbHVl' | base64decode }} -> 'fake refresh_token value'"
-    - title: String
+    - title: string
       description: Converts the specified value to a string.
       arguments: {}
       return_type: str
       examples:
         - '{{ 1 | string }} -> "1"'
         - '{{ ["hello", "world" | string }} -> "["hello", "world"]"'
-    - title: Regex Search
+    - title: regex_search
       description: Match the input string against a regular expression and return the first match.
       arguments:
         regex: The regular expression to search for. It must include a capture group.

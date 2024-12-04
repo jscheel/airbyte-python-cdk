@@ -5,7 +5,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Iterable, Mapping, Optional
 
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
+from airbyte_cdk.sources.types import Record
 
 
 class Partition(ABC):
@@ -37,21 +37,6 @@ class Partition(ABC):
         """
         Returns the name of the stream that this partition is reading from.
         :return: The name of the stream.
-        """
-        pass
-
-    @abstractmethod
-    def close(self) -> None:
-        """
-        Closes the partition.
-        """
-        pass
-
-    @abstractmethod
-    def is_closed(self) -> bool:
-        """
-        Returns whether the partition is closed.
-        :return:
         """
         pass
 

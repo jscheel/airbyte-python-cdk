@@ -6,6 +6,8 @@ from datetime import timedelta
 from typing import Any, Dict, Iterable, Mapping, Optional
 from copy import deepcopy
 import requests
+from requests import Response
+
 from airbyte_cdk import AirbyteMessage
 from airbyte_cdk.logger import lazy_log
 from airbyte_cdk.models import FailureType, Type
@@ -23,7 +25,6 @@ from airbyte_cdk.sources.declarative.requesters.requester import Requester
 from airbyte_cdk.sources.declarative.retrievers.simple_retriever import SimpleRetriever
 from airbyte_cdk.sources.types import Record, StreamSlice
 from airbyte_cdk.utils import AirbyteTracedException
-from requests import Response
 
 LOGGER = logging.getLogger("airbyte")
 
@@ -41,7 +42,7 @@ class AsyncHttpJobRepository(AsyncJobRepository):
 
     job_timeout: Optional[timedelta] = None
     record_extractor: RecordExtractor = field(
-        init=False, repr=False, default_factory=lambda: ResponseToFileExtractor()
+        init=False, repr=False, default_factory=lambda: ResponseToFileExtractor({})
     )
 
     def __post_init__(self) -> None:

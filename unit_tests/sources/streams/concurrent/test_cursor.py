@@ -10,6 +10,8 @@ from unittest.mock import Mock
 
 import freezegun
 import pytest
+from isodate import parse_duration
+
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.declarative.datetime.min_max_datetime import MinMaxDatetime
 from airbyte_cdk.sources.declarative.incremental.datetime_based_cursor import DatetimeBasedCursor
@@ -20,7 +22,6 @@ from airbyte_cdk.sources.streams.concurrent.cursor import (
     CursorValueType,
 )
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
     ConcurrencyCompatibleStateType,
 )
@@ -28,7 +29,7 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_sta
     EpochValueConcurrentStreamStateConverter,
     IsoMillisConcurrentStreamStateConverter,
 )
-from isodate import parse_duration
+from airbyte_cdk.sources.types import Record, StreamSlice
 
 _A_STREAM_NAME = "a stream name"
 _A_STREAM_NAMESPACE = "a stream namespace"
@@ -56,7 +57,11 @@ def _partition(
 def _record(
     cursor_value: CursorValueType, partition: Optional[Partition] = Mock(spec=Partition)
 ) -> Record:
-    return Record(data={_A_CURSOR_FIELD_KEY: cursor_value}, partition=partition)
+    return Record(
+        data={_A_CURSOR_FIELD_KEY: cursor_value},
+        associated_slice=partition.to_slice(),
+        stream_name=_A_STREAM_NAME,
+    )
 
 
 class ConcurrentCursorStateTest(TestCase):
@@ -64,7 +69,9 @@ class ConcurrentCursorStateTest(TestCase):
         self._message_repository = Mock(spec=MessageRepository)
         self._state_manager = Mock(spec=ConnectorStateManager)
 
-    def _cursor_with_slice_boundary_fields(self, is_sequential_state=True) -> ConcurrentCursor:
+    def _cursor_with_slice_boundary_fields(
+        self, is_sequential_state: bool = True
+    ) -> ConcurrentCursor:
         return ConcurrentCursor(
             _A_STREAM_NAME,
             _A_STREAM_NAMESPACE,
@@ -94,11 +101,28 @@ class ConcurrentCursorStateTest(TestCase):
             _NO_LOOKBACK_WINDOW,
         )
 
+    def test_given_no_cursor_value_when_observe_then_do_not_raise(self) -> None:
+        cursor = self._cursor_with_slice_boundary_fields()
+        partition = _partition(_NO_SLICE)
+
+        cursor.observe(
+            Record(
+                data={"record_with_A_CURSOR_FIELD_KEY": "any value"},
+                associated_slice=partition.to_slice(),
+                stream_name=_A_STREAM_NAME,
+            )
+        )
+
+        # did not raise
+
     def test_given_boundary_fields_when_close_partition_then_emit_state(self) -> None:
         cursor = self._cursor_with_slice_boundary_fields()
         cursor.close_partition(
             _partition(
-                {_LOWER_SLICE_BOUNDARY_FIELD: 12, _UPPER_SLICE_BOUNDARY_FIELD: 30},
+                StreamSlice(
+                    partition={_LOWER_SLICE_BOUNDARY_FIELD: 12, _UPPER_SLICE_BOUNDARY_FIELD: 30},
+                    cursor_slice={},
+                ),
             )
         )
 
@@ -117,7 +141,10 @@ class ConcurrentCursorStateTest(TestCase):
         cursor = self._cursor_with_slice_boundary_fields(is_sequential_state=False)
         cursor.close_partition(
             _partition(
-                {_LOWER_SLICE_BOUNDARY_FIELD: 12, _UPPER_SLICE_BOUNDARY_FIELD: 30},
+                StreamSlice(
+                    partition={_LOWER_SLICE_BOUNDARY_FIELD: 12, _UPPER_SLICE_BOUNDARY_FIELD: 30},
+                    cursor_slice={},
+                ),
             )
         )
 
@@ -128,7 +155,10 @@ class ConcurrentCursorStateTest(TestCase):
             _A_STREAM_NAME,
             _A_STREAM_NAMESPACE,
             {
-                "slices": [{"end": 0, "start": 0}, {"end": 30, "start": 12}],
+                "slices": [
+                    {"end": 0, "most_recent_cursor_value": 0, "start": 0},
+                    {"end": 30, "start": 12},
+                ],
                 "state_type": "date-range",
             },
         )
@@ -138,7 +168,10 @@ class ConcurrentCursorStateTest(TestCase):
     ) -> None:
         self._cursor_with_slice_boundary_fields().close_partition(
             _partition(
-                {_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 30},
+                StreamSlice(
+                    partition={_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 30},
+                    cursor_slice={},
+                ),
             )
         )
 
@@ -158,7 +191,12 @@ class ConcurrentCursorStateTest(TestCase):
         cursor.observe(_record(_A_VERY_HIGH_CURSOR_VALUE))
 
         cursor.close_partition(
-            _partition({_LOWER_SLICE_BOUNDARY_FIELD: 12, _UPPER_SLICE_BOUNDARY_FIELD: 30})
+            _partition(
+                StreamSlice(
+                    partition={_LOWER_SLICE_BOUNDARY_FIELD: 12, _UPPER_SLICE_BOUNDARY_FIELD: 30},
+                    cursor_slice={},
+                )
+            )
         )
 
         assert (
@@ -208,7 +246,9 @@ class ConcurrentCursorStateTest(TestCase):
     ) -> None:
         cursor = self._cursor_with_slice_boundary_fields()
         with pytest.raises(KeyError):
-            cursor.close_partition(_partition({"not_matching_key": "value"}))
+            cursor.close_partition(
+                _partition(StreamSlice(partition={"not_matching_key": "value"}, cursor_slice={}))
+            )
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
     def test_given_no_state_when_generate_slices_then_create_slice_from_start_to_end(self):
@@ -227,10 +267,16 @@ class ConcurrentCursorStateTest(TestCase):
             _NO_LOOKBACK_WINDOW,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(10, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 10,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -260,10 +306,16 @@ class ConcurrentCursorStateTest(TestCase):
             _NO_LOOKBACK_WINDOW,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(20, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 20,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -291,10 +343,16 @@ class ConcurrentCursorStateTest(TestCase):
             _NO_LOOKBACK_WINDOW,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(30, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 30,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -328,10 +386,16 @@ class ConcurrentCursorStateTest(TestCase):
             _NO_LOOKBACK_WINDOW,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(30, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 30,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -361,12 +425,30 @@ class ConcurrentCursorStateTest(TestCase):
             small_slice_range,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(20, timezone.utc), datetime.fromtimestamp(30, timezone.utc)),
-            (datetime.fromtimestamp(30, timezone.utc), datetime.fromtimestamp(40, timezone.utc)),
-            (datetime.fromtimestamp(40, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 20,
+                    _SLICE_BOUNDARY_FIELDS[1]: 30,
+                },
+            ),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 30,
+                    _SLICE_BOUNDARY_FIELDS[1]: 40,
+                },
+            ),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 40,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -402,10 +484,16 @@ class ConcurrentCursorStateTest(TestCase):
             small_slice_range,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(30, timezone.utc), datetime.fromtimestamp(40, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 30,
+                    _SLICE_BOUNDARY_FIELDS[1]: 40,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -439,12 +527,30 @@ class ConcurrentCursorStateTest(TestCase):
             granularity,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(20, timezone.utc), datetime.fromtimestamp(29, timezone.utc)),
-            (datetime.fromtimestamp(30, timezone.utc), datetime.fromtimestamp(39, timezone.utc)),
-            (datetime.fromtimestamp(40, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 20,
+                    _SLICE_BOUNDARY_FIELDS[1]: 29,
+                },
+            ),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 30,
+                    _SLICE_BOUNDARY_FIELDS[1]: 39,
+                },
+            ),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 40,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -482,13 +588,16 @@ class ConcurrentCursorStateTest(TestCase):
             granularity,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (
-                datetime.fromtimestamp(31, timezone.utc),
-                datetime.fromtimestamp(40, timezone.utc),
-            ),  # FIXME there should probably be the granularity at the beginning too
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 31,
+                    _SLICE_BOUNDARY_FIELDS[1]: 40,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -525,12 +634,30 @@ class ConcurrentCursorStateTest(TestCase):
             _NO_LOOKBACK_WINDOW,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(10, timezone.utc), datetime.fromtimestamp(20, timezone.utc)),
-            (datetime.fromtimestamp(25, timezone.utc), datetime.fromtimestamp(30, timezone.utc)),
-            (datetime.fromtimestamp(40, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 10,
+                    _SLICE_BOUNDARY_FIELDS[1]: 20,
+                },
+            ),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 25,
+                    _SLICE_BOUNDARY_FIELDS[1]: 30,
+                },
+            ),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 40,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -565,11 +692,23 @@ class ConcurrentCursorStateTest(TestCase):
             lookback_window,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(20, timezone.utc), datetime.fromtimestamp(30, timezone.utc)),
-            (datetime.fromtimestamp(30, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 20,
+                    _SLICE_BOUNDARY_FIELDS[1]: 30,
+                },
+            ),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 30,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
@@ -599,11 +738,23 @@ class ConcurrentCursorStateTest(TestCase):
             _NO_LOOKBACK_WINDOW,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(0, timezone.utc), datetime.fromtimestamp(10, timezone.utc)),
-            (datetime.fromtimestamp(20, timezone.utc), datetime.fromtimestamp(50, timezone.utc)),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 0,
+                    _SLICE_BOUNDARY_FIELDS[1]: 10,
+                },
+            ),
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 20,
+                    _SLICE_BOUNDARY_FIELDS[1]: 50,
+                },
+            ),
         ]
 
     def test_slices_with_records_when_close_then_most_recent_cursor_value_from_most_recent_slice(
@@ -611,10 +762,16 @@ class ConcurrentCursorStateTest(TestCase):
     ) -> None:
         cursor = self._cursor_with_slice_boundary_fields(is_sequential_state=False)
         first_partition = _partition(
-            {_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10}
+            StreamSlice(
+                partition={_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10},
+                cursor_slice={},
+            )
         )
         second_partition = _partition(
-            {_LOWER_SLICE_BOUNDARY_FIELD: 10, _UPPER_SLICE_BOUNDARY_FIELD: 20}
+            StreamSlice(
+                partition={_LOWER_SLICE_BOUNDARY_FIELD: 10, _UPPER_SLICE_BOUNDARY_FIELD: 20},
+                cursor_slice={},
+            )
         )
         cursor.observe(_record(5, partition=first_partition))
         cursor.close_partition(first_partition)
@@ -632,10 +789,16 @@ class ConcurrentCursorStateTest(TestCase):
     ) -> None:
         cursor = self._cursor_with_slice_boundary_fields(is_sequential_state=False)
         first_partition = _partition(
-            {_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10}
+            StreamSlice(
+                partition={_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10},
+                cursor_slice={},
+            )
         )
         second_partition = _partition(
-            {_LOWER_SLICE_BOUNDARY_FIELD: 10, _UPPER_SLICE_BOUNDARY_FIELD: 20}
+            StreamSlice(
+                partition={_LOWER_SLICE_BOUNDARY_FIELD: 10, _UPPER_SLICE_BOUNDARY_FIELD: 20},
+                cursor_slice={},
+            )
         )
         cursor.observe(_record(5, partition=first_partition))
         cursor.close_partition(first_partition)
@@ -654,7 +817,12 @@ class ConcurrentCursorStateTest(TestCase):
         Not sure what is the value of this behavior but I'm simply documenting how it is today
         """
         cursor = self._cursor_with_slice_boundary_fields(is_sequential_state=False)
-        partition = _partition({_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10})
+        partition = _partition(
+            StreamSlice(
+                partition={_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10},
+                cursor_slice={},
+            )
+        )
         cursor.observe(_record(15, partition=partition))
         cursor.close_partition(partition)
 
@@ -667,7 +835,12 @@ class ConcurrentCursorStateTest(TestCase):
         self,
     ) -> None:
         cursor = self._cursor_with_slice_boundary_fields(is_sequential_state=True)
-        partition = _partition({_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10})
+        partition = _partition(
+            StreamSlice(
+                partition={_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10},
+                cursor_slice={},
+            )
+        )
         cursor.observe(_record(7, partition=partition))
         cursor.close_partition(partition)
 
@@ -680,10 +853,16 @@ class ConcurrentCursorStateTest(TestCase):
     ) -> None:
         cursor = self._cursor_with_slice_boundary_fields(is_sequential_state=True)
         first_partition = _partition(
-            {_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10}
+            StreamSlice(
+                partition={_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10},
+                cursor_slice={},
+            )
         )
         third_partition = _partition(
-            {_LOWER_SLICE_BOUNDARY_FIELD: 20, _UPPER_SLICE_BOUNDARY_FIELD: 30}
+            StreamSlice(
+                partition={_LOWER_SLICE_BOUNDARY_FIELD: 20, _UPPER_SLICE_BOUNDARY_FIELD: 30},
+                cursor_slice={},
+            )
         )  # second partition has failed
         cursor.observe(_record(7, partition=first_partition))
         cursor.close_partition(first_partition)
@@ -714,11 +893,53 @@ class ConcurrentCursorStateTest(TestCase):
             slice_range=a_very_big_slice_range,
         )
 
-        slices = list(cursor.generate_slices())
+        slices = list(cursor.stream_slices())
 
         assert slices == [
-            (datetime.fromtimestamp(0, timezone.utc), datetime.fromtimestamp(10, timezone.utc))
+            StreamSlice(
+                partition={},
+                cursor_slice={
+                    _SLICE_BOUNDARY_FIELDS[0]: 0,
+                    _SLICE_BOUNDARY_FIELDS[1]: 10,
+                },
+            ),
         ]
+
+    @freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(50, timezone.utc))
+    def test_given_initial_state_is_sequential_and_start_provided_when_generate_slices_then_state_emitted_is_initial_state(
+        self,
+    ) -> None:
+        cursor = ConcurrentCursor(
+            _A_STREAM_NAME,
+            _A_STREAM_NAMESPACE,
+            {_A_CURSOR_FIELD_KEY: 10},
+            self._message_repository,
+            self._state_manager,
+            EpochValueConcurrentStreamStateConverter(is_sequential_state=True),
+            CursorField(_A_CURSOR_FIELD_KEY),
+            _SLICE_BOUNDARY_FIELDS,
+            datetime.fromtimestamp(0, timezone.utc),
+            EpochValueConcurrentStreamStateConverter.get_end_provider(),
+            _NO_LOOKBACK_WINDOW,
+        )
+
+        # simulate the case where at least the first slice fails but others succeed
+        cursor.close_partition(
+            _partition(
+                StreamSlice(
+                    partition={_LOWER_SLICE_BOUNDARY_FIELD: 40, _UPPER_SLICE_BOUNDARY_FIELD: 50},
+                    cursor_slice={},
+                )
+            )
+        )
+
+        self._state_manager.update_state_for_stream.assert_called_once_with(
+            _A_STREAM_NAME,
+            _A_STREAM_NAMESPACE,
+            {
+                _A_CURSOR_FIELD_KEY: 10
+            },  # State message is updated to the legacy format before being emitted
+        )
 
 
 @freezegun.freeze_time(time_to_freeze=datetime(2024, 4, 1, 0, 0, 0, 0, tzinfo=timezone.utc))
@@ -733,30 +954,30 @@ class ConcurrentCursorStateTest(TestCase):
             "P5D",
             {},
             [
-                (
-                    datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 1, 10, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 1, 11, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 1, 20, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 1, 21, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 1, 30, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 1, 31, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 2, 9, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 2, 10, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 2, 19, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 2, 20, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 3, 1, 0, 0, 0, tzinfo=timezone.utc),
-                ),
+                {
+                    "start": "2024-01-01T00:00:00.000Z",
+                    "end": "2024-01-10T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-01-11T00:00:00.000Z",
+                    "end": "2024-01-20T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-01-21T00:00:00.000Z",
+                    "end": "2024-01-30T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-01-31T00:00:00.000Z",
+                    "end": "2024-02-09T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-02-10T00:00:00.000Z",
+                    "end": "2024-02-19T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-02-20T00:00:00.000Z",
+                    "end": "2024-03-01T00:00:00.000Z",
+                },
             ],
             id="test_datetime_based_cursor_all_fields",
         ),
@@ -776,18 +997,18 @@ class ConcurrentCursorStateTest(TestCase):
                 "state_type": "date-range",
             },
             [
-                (
-                    datetime(2024, 2, 5, 0, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 2, 14, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 2, 15, 0, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 2, 24, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 2, 25, 0, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 3, 1, 0, 0, 0, tzinfo=timezone.utc),
-                ),
+                {
+                    "start": "2024-02-05T00:00:00.000Z",
+                    "end": "2024-02-14T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-02-15T00:00:00.000Z",
+                    "end": "2024-02-24T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-02-25T00:00:00.000Z",
+                    "end": "2024-03-01T00:00:00.000Z",
+                },
             ],
             id="test_datetime_based_cursor_with_state",
         ),
@@ -807,22 +1028,22 @@ class ConcurrentCursorStateTest(TestCase):
                 "state_type": "date-range",
             },
             [
-                (
-                    datetime(2024, 1, 20, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 2, 8, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 2, 9, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 2, 28, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 2, 29, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 3, 19, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 3, 20, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 4, 1, 0, 0, 0, tzinfo=timezone.utc),
-                ),
+                {
+                    "start": "2024-01-20T00:00:00.000Z",
+                    "end": "2024-02-08T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-02-09T00:00:00.000Z",
+                    "end": "2024-02-28T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-02-29T00:00:00.000Z",
+                    "end": "2024-03-19T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-03-20T00:00:00.000Z",
+                    "end": "2024-04-01T00:00:00.000Z",
+                },
             ],
             id="test_datetime_based_cursor_with_state_and_end_date",
         ),
@@ -834,14 +1055,14 @@ class ConcurrentCursorStateTest(TestCase):
             "P5D",
             {},
             [
-                (
-                    datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 1, 31, 23, 59, 59, tzinfo=timezone.utc),
-                ),
-                (
-                    datetime(2024, 2, 1, 0, 0, 0, tzinfo=timezone.utc),
-                    datetime(2024, 3, 1, 0, 0, 0, tzinfo=timezone.utc),
-                ),
+                {
+                    "start": "2024-01-01T00:00:00.000Z",
+                    "end": "2024-01-31T23:59:59.000Z",
+                },
+                {
+                    "start": "2024-02-01T00:00:00.000Z",
+                    "end": "2024-03-01T00:00:00.000Z",
+                },
             ],
             id="test_datetime_based_cursor_using_large_step_duration",
         ),
@@ -927,7 +1148,7 @@ def test_generate_slices_concurrent_cursor_from_datetime_based_cursor(
         cursor_granularity=cursor_granularity,
     )
 
-    actual_slices = list(cursor.generate_slices())
+    actual_slices = list(cursor.stream_slices())
     assert actual_slices == expected_slices
 
 
@@ -969,51 +1190,63 @@ def test_observe_concurrent_cursor_from_datetime_based_cursor():
     )
 
     partition = _partition(
-        {
-            _LOWER_SLICE_BOUNDARY_FIELD: "2024-08-01T00:00:00.000000+0000",
-            _UPPER_SLICE_BOUNDARY_FIELD: "2024-09-01T00:00:00.000000+0000",
-        },
+        StreamSlice(
+            partition={
+                _LOWER_SLICE_BOUNDARY_FIELD: "2024-08-01T00:00:00.000000+0000",
+                _UPPER_SLICE_BOUNDARY_FIELD: "2024-09-01T00:00:00.000000+0000",
+            },
+            cursor_slice={},
+        ),
         _stream_name="gods",
     )
 
     record_1 = Record(
-        partition=partition,
+        associated_slice=partition.to_slice(),
         data={
             "id": "999",
             "updated_at": "2024-08-23T00:00:00.000000+0000",
             "name": "kratos",
             "mythology": "greek",
         },
+        stream_name="gods",
     )
     record_2 = Record(
-        partition=partition,
+        associated_slice=partition.to_slice(),
         data={
             "id": "1000",
             "updated_at": "2024-08-22T00:00:00.000000+0000",
             "name": "odin",
             "mythology": "norse",
         },
+        stream_name="gods",
     )
     record_3 = Record(
-        partition=partition,
+        associated_slice=partition.to_slice(),
         data={
             "id": "500",
             "updated_at": "2024-08-24T00:00:00.000000+0000",
             "name": "freya",
             "mythology": "norse",
         },
+        stream_name="gods",
     )
 
     concurrent_cursor.observe(record_1)
-    actual_most_recent_record = concurrent_cursor._most_recent_cursor_value_per_partition[partition]
+    actual_most_recent_record = concurrent_cursor._most_recent_cursor_value_per_partition[
+        partition.to_slice()
+    ]
     assert actual_most_recent_record == concurrent_cursor._extract_cursor_value(record_1)
 
     concurrent_cursor.observe(record_2)
-    actual_most_recent_record = concurrent_cursor._most_recent_cursor_value_per_partition[partition]
+    actual_most_recent_record = concurrent_cursor._most_recent_cursor_value_per_partition[
+        partition.to_slice()
+    ]
     assert actual_most_recent_record == concurrent_cursor._extract_cursor_value(record_1)
 
     concurrent_cursor.observe(record_3)
-    actual_most_recent_record = concurrent_cursor._most_recent_cursor_value_per_partition[partition]
+    actual_most_recent_record = concurrent_cursor._most_recent_cursor_value_per_partition[
+        partition.to_slice()
+    ]
     assert actual_most_recent_record == concurrent_cursor._extract_cursor_value(record_3)
 
 
@@ -1057,21 +1290,25 @@ def test_close_partition_concurrent_cursor_from_datetime_based_cursor():
     )
 
     partition = _partition(
-        {
-            _LOWER_SLICE_BOUNDARY_FIELD: "2024-08-01T00:00:00.000000+0000",
-            _UPPER_SLICE_BOUNDARY_FIELD: "2024-09-01T00:00:00.000000+0000",
-        },
+        StreamSlice(
+            partition={
+                _LOWER_SLICE_BOUNDARY_FIELD: "2024-08-01T00:00:00.000000+0000",
+                _UPPER_SLICE_BOUNDARY_FIELD: "2024-09-01T00:00:00.000000+0000",
+            },
+            cursor_slice={},
+        ),
         _stream_name="gods",
     )
 
     record_1 = Record(
-        partition=partition,
+        associated_slice=partition.to_slice(),
         data={
             "id": "999",
             "updated_at": "2024-08-23T00:00:00.000000+0000",
             "name": "kratos",
             "mythology": "greek",
         },
+        stream_name="gods",
     )
     concurrent_cursor.observe(record_1)
 
@@ -1143,36 +1380,44 @@ def test_close_partition_with_slice_range_concurrent_cursor_from_datetime_based_
     )
 
     partition_0 = _partition(
-        {
-            "start_time": "2024-07-01T00:00:00.000000+0000",
-            "end_time": "2024-07-16T00:00:00.000000+0000",
-        },
+        StreamSlice(
+            partition={
+                "start_time": "2024-07-01T00:00:00.000000+0000",
+                "end_time": "2024-07-16T00:00:00.000000+0000",
+            },
+            cursor_slice={},
+        ),
         _stream_name="gods",
     )
     partition_3 = _partition(
-        {
-            "start_time": "2024-08-15T00:00:00.000000+0000",
-            "end_time": "2024-08-30T00:00:00.000000+0000",
-        },
+        StreamSlice(
+            partition={
+                "start_time": "2024-08-15T00:00:00.000000+0000",
+                "end_time": "2024-08-30T00:00:00.000000+0000",
+            },
+            cursor_slice={},
+        ),
         _stream_name="gods",
     )
     record_1 = Record(
-        partition=partition_0,
+        associated_slice=partition_0.to_slice(),
         data={
             "id": "1000",
             "updated_at": "2024-07-05T00:00:00.000000+0000",
             "name": "loki",
             "mythology": "norse",
         },
+        stream_name="gods",
     )
     record_2 = Record(
-        partition=partition_3,
+        associated_slice=partition_3.to_slice(),
         data={
             "id": "999",
             "updated_at": "2024-08-20T00:00:00.000000+0000",
             "name": "kratos",
             "mythology": "greek",
         },
+        stream_name="gods",
     )
 
     concurrent_cursor.observe(record_1)
@@ -1259,52 +1504,64 @@ def test_close_partition_with_slice_range_granularity_concurrent_cursor_from_dat
     )
 
     partition_0 = _partition(
-        {
-            "start_time": "2024-07-01T00:00:00.000000+0000",
-            "end_time": "2024-07-15T00:00:00.000000+0000",
-        },
+        StreamSlice(
+            partition={
+                "start_time": "2024-07-01T00:00:00.000000+0000",
+                "end_time": "2024-07-15T00:00:00.000000+0000",
+            },
+            cursor_slice={},
+        ),
         _stream_name="gods",
     )
     partition_1 = _partition(
-        {
-            "start_time": "2024-07-16T00:00:00.000000+0000",
-            "end_time": "2024-07-31T00:00:00.000000+0000",
-        },
+        StreamSlice(
+            partition={
+                "start_time": "2024-07-16T00:00:00.000000+0000",
+                "end_time": "2024-07-31T00:00:00.000000+0000",
+            },
+            cursor_slice={},
+        ),
         _stream_name="gods",
     )
     partition_3 = _partition(
-        {
-            "start_time": "2024-08-15T00:00:00.000000+0000",
-            "end_time": "2024-08-29T00:00:00.000000+0000",
-        },
+        StreamSlice(
+            partition={
+                "start_time": "2024-08-15T00:00:00.000000+0000",
+                "end_time": "2024-08-29T00:00:00.000000+0000",
+            },
+            cursor_slice={},
+        ),
         _stream_name="gods",
     )
     record_1 = Record(
-        partition=partition_0,
+        associated_slice=partition_0.to_slice(),
         data={
             "id": "1000",
             "updated_at": "2024-07-05T00:00:00.000000+0000",
             "name": "loki",
             "mythology": "norse",
         },
+        stream_name="gods",
     )
     record_2 = Record(
-        partition=partition_1,
+        associated_slice=partition_1.to_slice(),
         data={
             "id": "2000",
             "updated_at": "2024-07-25T00:00:00.000000+0000",
             "name": "freya",
             "mythology": "norse",
         },
+        stream_name="gods",
     )
     record_3 = Record(
-        partition=partition_3,
+        associated_slice=partition_3.to_slice(),
         data={
             "id": "999",
             "updated_at": "2024-08-20T00:00:00.000000+0000",
             "name": "kratos",
             "mythology": "greek",
         },
+        stream_name="gods",
     )
 
     concurrent_cursor.observe(record_1)
@@ -1338,3 +1595,72 @@ def test_close_partition_with_slice_range_granularity_concurrent_cursor_from_dat
         },
     )
     assert state_manager.update_state_for_stream.call_count == 3
+
+
+@pytest.mark.parametrize(
+    "record, should_be_synced",
+    [
+        [
+            Record(
+                data={_A_CURSOR_FIELD_KEY: 10},
+                stream_name="test_stream",
+                associated_slice=_partition(
+                    {_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10}
+                ).to_slice(),
+            ),
+            True,
+        ],
+        [
+            Record(
+                data={_A_CURSOR_FIELD_KEY: 9},
+                stream_name="test_stream",
+                associated_slice=_partition(
+                    {_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10}
+                ).to_slice(),
+            ),
+            False,
+        ],
+        [
+            Record(
+                data={_A_CURSOR_FIELD_KEY: 21},
+                stream_name="test_stream",
+                associated_slice=_partition(
+                    {_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10}
+                ).to_slice(),
+            ),
+            False,
+        ],
+        [
+            Record(
+                data={"not_a_cursor_field": "some_data"},
+                stream_name="test_stream",
+                associated_slice=_partition(
+                    {_LOWER_SLICE_BOUNDARY_FIELD: 0, _UPPER_SLICE_BOUNDARY_FIELD: 10}
+                ).to_slice(),
+            ),
+            True,
+        ],
+    ],
+    ids=[
+        "with_cursor_field_inside_range",
+        "with_cursor_field_lower_than_range",
+        "with_cursor_field_higher_than_range",
+        "no_cursor",
+    ],
+)
+@freezegun.freeze_time(time_to_freeze=datetime.fromtimestamp(20, timezone.utc))
+def test_should_be_synced(record: Record, should_be_synced: bool):
+    cursor = ConcurrentCursor(
+        _A_STREAM_NAME,
+        _A_STREAM_NAMESPACE,
+        {},
+        Mock(spec=MessageRepository),
+        Mock(spec=ConnectorStateManager),
+        EpochValueConcurrentStreamStateConverter(True),
+        CursorField(_A_CURSOR_FIELD_KEY),
+        _SLICE_BOUNDARY_FIELDS,
+        datetime.fromtimestamp(10, timezone.utc),
+        EpochValueConcurrentStreamStateConverter.get_end_provider(),
+        _NO_LOOKBACK_WINDOW,
+    )
+    assert cursor.should_be_synced(record) == should_be_synced
