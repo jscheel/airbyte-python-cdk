@@ -526,7 +526,8 @@ class SkipFailureSQLiteDict(requests_cache.backends.sqlite.SQLiteDict):
         try:
             return super().__getitem__(key)  # type: ignore  # lib is not typed
         except Exception as exception:
-            logger.warning(f"Error while retrieving item from cache: {exception}")
+            if not isinstance(exception, KeyError):
+                logger.warning(f"Error while retrieving item from cache: {exception}")
 
     def _write(self, key: str, value: str) -> None:
         try:
