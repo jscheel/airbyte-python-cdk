@@ -1,8 +1,13 @@
-from typing import Any, Optional
-import pytest
-from pathlib import Path
+# Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+
+
 import importlib.util
+from pathlib import Path
 from types import ModuleType
+from typing import Any, Optional
+
+import pytest
+
 
 @pytest.fixture(scope="session")
 def connector_dir(request: pytest.FixtureRequest) -> Path:
@@ -16,11 +21,11 @@ def components_module(connector_dir: Path) -> Optional[ModuleType]:
     components_path = connector_dir / "components.py"
     if not components_path.exists():
         return None
-        
+
     spec = importlib.util.spec_from_file_location("components", components_path)
     if spec is None:
         return None
-    
+
     module = importlib.util.module_from_spec(spec)
     if spec.loader is None:
         return None
