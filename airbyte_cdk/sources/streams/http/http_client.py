@@ -522,11 +522,18 @@ class HttpClient:
 
 
 class SkipFailureSQLiteDict(requests_cache.backends.sqlite.SQLiteDict):
+    def __getitem__(self, key):  # type: ignore  # lib is not typed
+        try:
+            return super().__getitem__(key)  # type: ignore  # lib is not typed
+        except Exception as exception:
+            logger.warning(f"Error while retrieving item from cache: {exception}")
+
     def _write(self, key: str, value: str) -> None:
         try:
             super()._write(key, value)  # type: ignore  # lib is not typed
         except Exception as exception:
-            logger.warning(exception)
+            logger.warning(f"Error while saving item to cache: {exception}")
+
 
 
 class SkipFailureSQLiteCache(requests_cache.backends.sqlite.SQLiteCache):
