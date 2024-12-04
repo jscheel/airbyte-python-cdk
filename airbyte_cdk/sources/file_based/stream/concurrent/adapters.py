@@ -7,6 +7,8 @@ import logging
 from functools import cache, lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Optional, Union
 
+from typing_extensions import deprecated
+
 from airbyte_cdk.models import (
     AirbyteLogMessage,
     AirbyteMessage,
@@ -39,11 +41,10 @@ from airbyte_cdk.sources.streams.concurrent.helpers import (
 )
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 from airbyte_cdk.sources.streams.concurrent.partitions.partition_generator import PartitionGenerator
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 from airbyte_cdk.sources.streams.core import StreamData
+from airbyte_cdk.sources.types import Record
 from airbyte_cdk.sources.utils.schema_helpers import InternalConfig
 from airbyte_cdk.sources.utils.slice_logger import SliceLogger
-from deprecated.classic import deprecated
 
 if TYPE_CHECKING:
     from airbyte_cdk.sources.file_based.stream.concurrent.cursor import (
@@ -55,7 +56,10 @@ This module contains adapters to help enabling concurrency on File-based Stream 
 """
 
 
-@deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
+@deprecated(
+    "This class is experimental. Use at your own risk.",
+    category=ExperimentalClassWarning,
+)
 class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBasedStream):
     @classmethod
     def create_from_stream(
@@ -142,7 +146,7 @@ class FileBasedStreamFacade(AbstractStreamFacade[DefaultStream], AbstractFileBas
         return self._legacy_stream.supports_incremental
 
     @property
-    @deprecated(version="3.7.0")
+    @deprecated("Deprecated as of CDK version 3.7.0.")
     def availability_strategy(self) -> AbstractFileBasedAvailabilityStrategy:
         return self._legacy_stream.availability_strategy
 
@@ -226,7 +230,6 @@ class FileBasedStreamPartition(Partition):
         sync_mode: SyncMode,
         cursor_field: Optional[List[str]],
         state: Optional[MutableMapping[str, Any]],
-        cursor: "AbstractConcurrentFileBasedCursor",
     ):
         self._stream = stream
         self._slice = _slice
@@ -234,8 +237,6 @@ class FileBasedStreamPartition(Partition):
         self._sync_mode = sync_mode
         self._cursor_field = cursor_field
         self._state = state
-        self._cursor = cursor
-        self._is_closed = False
 
     def read(self) -> Iterable[Record]:
         try:
@@ -250,7 +251,7 @@ class FileBasedStreamPartition(Partition):
                     self._stream.transformer.transform(
                         data_to_return, self._stream.get_json_schema()
                     )
-                    yield Record(data_to_return, self)
+                    yield Record(data=data_to_return, stream_name=self.stream_name())
                 elif (
                     isinstance(record_data, AirbyteMessage)
                     and record_data.type == Type.RECORD
@@ -268,7 +269,7 @@ class FileBasedStreamPartition(Partition):
                     else:
                         yield Record(
                             data=record_message_data,
-                            partition=self,
+                            stream_name=self.stream_name(),
                             is_file_transfer_message=self._use_file_transfer(),
                         )
                 else:
@@ -288,13 +289,6 @@ class FileBasedStreamPartition(Partition):
         ), f"Expected 1 file per partition but got {len(self._slice['files'])} for stream {self.stream_name()}"
         file = self._slice["files"][0]
         return {"files": [file]}
-
-    def close(self) -> None:
-        self._cursor.close_partition(self)
-        self._is_closed = True
-
-    def is_closed(self) -> bool:
-        return self._is_closed
 
     def __hash__(self) -> int:
         if self._slice:
@@ -352,7 +346,6 @@ class FileBasedStreamPartitionGenerator(PartitionGenerator):
                             self._sync_mode,
                             self._cursor_field,
                             self._state,
-                            self._cursor,
                         )
                     )
         self._cursor.set_pending_partitions(pending_partitions)

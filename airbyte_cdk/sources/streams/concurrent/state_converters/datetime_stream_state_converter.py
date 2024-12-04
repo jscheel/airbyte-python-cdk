@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, List, MutableMapping, Optional, Tuple
 
 import pendulum
+from pendulum.datetime import DateTime
 
 # FIXME We would eventually like the Concurrent package do be agnostic of the declarative package. However, this is a breaking change and
 #  the goal in the short term is only to fix the issue we are seeing for source-declarative-manifest.
@@ -16,7 +17,6 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_sta
     AbstractStreamStateConverter,
     ConcurrencyCompatibleStateType,
 )
-from pendulum.datetime import DateTime
 
 
 class DateTimeStreamStateConverter(AbstractStreamStateConverter):
@@ -82,7 +82,11 @@ class DateTimeStreamStateConverter(AbstractStreamStateConverter):
         # The start and end are the same to avoid confusion as to whether the records for this slice
         # were actually synced
         slices = [
-            {self.START_KEY: start if start is not None else sync_start, self.END_KEY: sync_start}
+            {
+                self.START_KEY: start if start is not None else sync_start,
+                self.END_KEY: sync_start,
+                self.MOST_RECENT_RECORD_KEY: sync_start,
+            }
         ]
 
         return sync_start, {
@@ -137,7 +141,7 @@ class EpochValueConcurrentStreamStateConverter(DateTimeStreamStateConverter):
             raise ValueError(
                 f"DateTime object was expected but got {type(dt_object)} from pendulum.parse({timestamp})"
             )
-        return dt_object  # type: ignore  # we are manually type checking because pendulum.parse may return different types
+        return dt_object
 
 
 class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
@@ -174,7 +178,7 @@ class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
             raise ValueError(
                 f"DateTime object was expected but got {type(dt_object)} from pendulum.parse({timestamp})"
             )
-        return dt_object  # type: ignore  # we are manually type checking because pendulum.parse may return different types
+        return dt_object
 
 
 class CustomFormatConcurrentStreamStateConverter(IsoMillisConcurrentStreamStateConverter):

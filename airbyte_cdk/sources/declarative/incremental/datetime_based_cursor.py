@@ -7,6 +7,8 @@ from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
 from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Union
 
+from isodate import Duration, duration_isoformat, parse_duration
+
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, Type
 from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
 from airbyte_cdk.sources.declarative.datetime.min_max_datetime import MinMaxDatetime
@@ -19,7 +21,6 @@ from airbyte_cdk.sources.declarative.requesters.request_option import (
 )
 from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
-from isodate import Duration, duration_isoformat, parse_duration
 
 
 @dataclass
@@ -132,8 +133,8 @@ class DatetimeBasedCursor(DeclarativeCursor):
         :param stream_state: The state of the stream as returned by get_stream_state
         """
         self._cursor = (
-            stream_state.get(self.cursor_field.eval(self.config)) if stream_state else None
-        )  # type: ignore  # cursor_field is converted to an InterpolatedString in __post_init__
+            stream_state.get(self.cursor_field.eval(self.config)) if stream_state else None  # type: ignore [union-attr]
+        )
 
     def observe(self, stream_slice: StreamSlice, record: Record) -> None:
         """
@@ -157,8 +158,10 @@ class DatetimeBasedCursor(DeclarativeCursor):
         )
         if (
             self._is_within_daterange_boundaries(
-                record, stream_slice.get(start_field), stream_slice.get(end_field)
-            )  # type: ignore # we know that stream_slices for these cursors will use a string representing an unparsed date
+                record,
+                stream_slice.get(start_field),  # type: ignore [arg-type]
+                stream_slice.get(end_field),  # type: ignore [arg-type]
+            )
             and is_highest_observed_cursor_value
         ):
             self._highest_observed_cursor_field_value = record_cursor_value
@@ -367,9 +370,9 @@ class DatetimeBasedCursor(DeclarativeCursor):
                 self._partition_field_start.eval(self.config)
             )
         if self.end_time_option and self.end_time_option.inject_into == option_type:
-            options[self.end_time_option.field_name.eval(config=self.config)] = stream_slice.get(
+            options[self.end_time_option.field_name.eval(config=self.config)] = stream_slice.get(  # type: ignore [union-attr]
                 self._partition_field_end.eval(self.config)
-            )  # type: ignore # field_name is always casted to an interpolated string
+            )
         return options
 
     def should_be_synced(self, record: Record) -> bool:

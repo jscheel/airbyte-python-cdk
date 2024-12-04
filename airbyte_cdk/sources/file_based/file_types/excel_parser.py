@@ -7,7 +7,12 @@ from io import IOBase
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Optional, Tuple, Union
 
+import orjson
 import pandas as pd
+from numpy import datetime64, issubdtype
+from numpy import dtype as dtype_
+from pydantic.v1 import BaseModel
+
 from airbyte_cdk.sources.file_based.config.file_based_stream_config import (
     ExcelFormat,
     FileBasedStreamConfig,
@@ -24,11 +29,6 @@ from airbyte_cdk.sources.file_based.file_based_stream_reader import (
 from airbyte_cdk.sources.file_based.file_types.file_type_parser import FileTypeParser
 from airbyte_cdk.sources.file_based.remote_file import RemoteFile
 from airbyte_cdk.sources.file_based.schema_helpers import SchemaType
-from numpy import datetime64
-from numpy import dtype as dtype_
-from numpy import issubdtype
-from orjson import orjson
-from pydantic.v1 import BaseModel
 
 
 class ExcelParser(FileTypeParser):
@@ -69,8 +69,11 @@ class ExcelParser(FileTypeParser):
             df = self.open_and_parse_file(fp)
             for column, df_type in df.dtypes.items():
                 # Choose the broadest data type if the column's data type differs in dataframes
-                prev_frame_column_type = fields.get(column)
-                fields[column] = self.dtype_to_json_type(prev_frame_column_type, df_type)
+                prev_frame_column_type = fields.get(column)  # type: ignore [call-overload]
+                fields[column] = self.dtype_to_json_type(  # type: ignore [index]
+                    prev_frame_column_type,
+                    df_type,
+                )
 
         schema = {
             field: (
@@ -136,7 +139,10 @@ class ExcelParser(FileTypeParser):
         return FileReadMode.READ_BINARY
 
     @staticmethod
-    def dtype_to_json_type(current_type: Optional[str], dtype: dtype_) -> str:
+    def dtype_to_json_type(
+        current_type: Optional[str],
+        dtype: dtype_,  # type: ignore [type-arg]
+    ) -> str:
         """
         Convert Pandas DataFrame types to Airbyte Types.
 
@@ -187,4 +193,4 @@ class ExcelParser(FileTypeParser):
         Returns:
             pd.DataFrame: Parsed data from the Excel file.
         """
-        return pd.ExcelFile(fp, engine="calamine").parse()
+        return pd.ExcelFile(fp, engine="calamine").parse()  # type: ignore [arg-type, call-overload, no-any-return]

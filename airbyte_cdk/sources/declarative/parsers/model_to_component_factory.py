@@ -17,13 +17,15 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
-    Tuple,
     Type,
     Union,
     get_args,
     get_origin,
     get_type_hints,
 )
+
+from isodate import parse_duration
+from pydantic.v1 import BaseModel
 
 from airbyte_cdk.models import FailureType, Level
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
@@ -58,6 +60,7 @@ from airbyte_cdk.sources.declarative.datetime import MinMaxDatetime
 from airbyte_cdk.sources.declarative.declarative_stream import DeclarativeStream
 from airbyte_cdk.sources.declarative.decoders import (
     Decoder,
+    GzipJsonDecoder,
     IterableDecoder,
     JsonDecoder,
     JsonlDecoder,
@@ -135,6 +138,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     CustomBackoffStrategy as CustomBackoffStrategyModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CustomDecoder as CustomDecoderModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     CustomErrorHandler as CustomErrorHandlerModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -181,6 +187,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ExponentialBackoffStrategy as ExponentialBackoffStrategyModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    GzipJsonDecoder as GzipJsonDecoderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpRequester as HttpRequesterModel,
@@ -259,6 +268,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     RequestPath as RequestPathModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    ResponseToFileExtractor as ResponseToFileExtractorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SelectiveAuthenticator as SelectiveAuthenticatorModel,
@@ -360,8 +372,6 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_sta
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction
 from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
-from isodate import parse_duration
-from pydantic.v1 import BaseModel
 
 ComponentDefinition = Mapping[str, Any]
 
@@ -376,6 +386,7 @@ class ModelToComponentFactory:
         emit_connector_builder_messages: bool = False,
         disable_retries: bool = False,
         disable_cache: bool = False,
+        disable_resumable_full_refresh: bool = False,
         message_repository: Optional[MessageRepository] = None,
     ):
         self._init_mappings()
@@ -384,7 +395,8 @@ class ModelToComponentFactory:
         self._emit_connector_builder_messages = emit_connector_builder_messages
         self._disable_retries = disable_retries
         self._disable_cache = disable_cache
-        self._message_repository = message_repository or InMemoryMessageRepository(  # type: ignore
+        self._disable_resumable_full_refresh = disable_resumable_full_refresh
+        self._message_repository = message_repository or InMemoryMessageRepository(
             self._evaluate_log_level(emit_connector_builder_messages)
         )
 
@@ -402,6 +414,7 @@ class ModelToComponentFactory:
             CursorPaginationModel: self.create_cursor_pagination,
             CustomAuthenticatorModel: self.create_custom_component,
             CustomBackoffStrategyModel: self.create_custom_component,
+            CustomDecoderModel: self.create_custom_component,
             CustomErrorHandlerModel: self.create_custom_component,
             CustomIncrementalSyncModel: self.create_custom_component,
             CustomRecordExtractorModel: self.create_custom_component,
@@ -418,6 +431,7 @@ class ModelToComponentFactory:
             DefaultErrorHandlerModel: self.create_default_error_handler,
             DefaultPaginatorModel: self.create_default_paginator,
             DpathExtractorModel: self.create_dpath_extractor,
+            ResponseToFileExtractorModel: self.create_response_to_file_extractor,
             ExponentialBackoffStrategyModel: self.create_exponential_backoff_strategy,
             SessionTokenAuthenticatorModel: self.create_session_token_authenticator,
             HttpRequesterModel: self.create_http_requester,
@@ -425,6 +439,7 @@ class ModelToComponentFactory:
             InlineSchemaLoaderModel: self.create_inline_schema_loader,
             JsonDecoderModel: self.create_json_decoder,
             JsonlDecoderModel: self.create_jsonl_decoder,
+            GzipJsonDecoderModel: self.create_gzipjson_decoder,
             KeysToLowerModel: self.create_keys_to_lower_transformation,
             IterableDecoderModel: self.create_iterable_decoder,
             XmlDecoderModel: self.create_xml_decoder,
@@ -619,12 +634,17 @@ class ModelToComponentFactory:
                 "LegacyToPerPartitionStateMigrations can only be applied with a parent stream configuration."
             )
 
+        if not hasattr(declarative_stream, "incremental_sync"):
+            raise ValueError(
+                "LegacyToPerPartitionStateMigrations can only be applied with an incremental_sync configuration."
+            )
+
         return LegacyToPerPartitionStateMigration(
-            declarative_stream.retriever.partition_router,
-            declarative_stream.incremental_sync,
+            partition_router,  # type: ignore # was already checked above
+            declarative_stream.incremental_sync,  # type: ignore # was already checked. Migration can be applied only to incremental streams.
             config,
-            declarative_stream.parameters,
-        )  # type: ignore # The retriever type was already checked
+            declarative_stream.parameters,  # type: ignore # different type is expected here Mapping[str, Any], got Dict[str, Any]
+        )
 
     def create_session_token_authenticator(
         self, model: SessionTokenAuthenticatorModel, config: Config, name: str, **kwargs: Any
@@ -654,7 +674,7 @@ class ModelToComponentFactory:
             return ModelToComponentFactory.create_bearer_authenticator(
                 BearerAuthenticatorModel(type="BearerAuthenticator", api_token=""),  # type: ignore # $parameters has a default value
                 config,
-                token_provider=token_provider,  # type: ignore # $parameters defaults to None
+                token_provider=token_provider,
             )
         else:
             return ModelToComponentFactory.create_api_key_authenticator(
@@ -739,7 +759,7 @@ class ModelToComponentFactory:
         config: Config,
         stream_state: MutableMapping[str, Any],
         **kwargs: Any,
-    ) -> Tuple[ConcurrentCursor, DateTimeStreamStateConverter]:
+    ) -> ConcurrentCursor:
         component_type = component_definition.get("type")
         if component_definition.get("type") != model_type.__name__:
             raise ValueError(
@@ -801,7 +821,6 @@ class ModelToComponentFactory:
             input_datetime_formats=datetime_based_cursor_model.cursor_datetime_formats,
             is_sequential_state=True,
             cursor_granularity=cursor_granularity,
-            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
         )
 
         start_date_runtime_value: Union[InterpolatedString, str, MinMaxDatetime]
@@ -870,23 +889,20 @@ class ModelToComponentFactory:
             if evaluated_step:
                 step_length = parse_duration(evaluated_step)
 
-        return (
-            ConcurrentCursor(
-                stream_name=stream_name,
-                stream_namespace=stream_namespace,
-                stream_state=stream_state,
-                message_repository=self._message_repository,  # type: ignore  # message_repository is always instantiated with a value by factory
-                connector_state_manager=state_manager,
-                connector_state_converter=connector_state_converter,
-                cursor_field=cursor_field,
-                slice_boundary_fields=slice_boundary_fields,
-                start=start_date,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-                end_provider=end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-                lookback_window=lookback_window,
-                slice_range=step_length,
-                cursor_granularity=cursor_granularity,
-            ),
-            connector_state_converter,
+        return ConcurrentCursor(
+            stream_name=stream_name,
+            stream_namespace=stream_namespace,
+            stream_state=stream_state,
+            message_repository=self._message_repository,
+            connector_state_manager=state_manager,
+            connector_state_converter=connector_state_converter,
+            cursor_field=cursor_field,
+            slice_boundary_fields=slice_boundary_fields,
+            start=start_date,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            end_provider=end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            lookback_window=lookback_window,
+            slice_range=step_length,
+            cursor_granularity=cursor_granularity,
         )
 
     @staticmethod
@@ -1320,6 +1336,8 @@ class ModelToComponentFactory:
                 if model.incremental_sync
                 else None
             )
+        elif self._disable_resumable_full_refresh:
+            return stream_slicer
         elif stream_slicer:
             # For the Full-Refresh sub-streams, we use the nested `ChildPartitionResumableFullRefreshCursor`
             return PerPartitionCursor(
@@ -1431,6 +1449,13 @@ class ModelToComponentFactory:
             config=config,
             parameters=model.parameters or {},
         )
+
+    def create_response_to_file_extractor(
+        self,
+        model: ResponseToFileExtractorModel,
+        **kwargs: Any,
+    ) -> ResponseToFileExtractor:
+        return ResponseToFileExtractor(parameters=model.parameters or {})
 
     @staticmethod
     def create_exponential_backoff_strategy(
@@ -1547,6 +1572,12 @@ class ModelToComponentFactory:
     @staticmethod
     def create_xml_decoder(model: XmlDecoderModel, config: Config, **kwargs: Any) -> XmlDecoder:
         return XmlDecoder(parameters={})
+
+    @staticmethod
+    def create_gzipjson_decoder(
+        model: GzipJsonDecoderModel, config: Config, **kwargs: Any
+    ) -> GzipJsonDecoder:
+        return GzipJsonDecoder(parameters={}, encoding=model.encoding)
 
     @staticmethod
     def create_json_file_schema_loader(
@@ -1673,7 +1704,7 @@ class ModelToComponentFactory:
             refresh_token=model.refresh_token,
             scopes=model.scopes,
             token_expiry_date=model.token_expiry_date,
-            token_expiry_date_format=model.token_expiry_date_format,  # type: ignore
+            token_expiry_date_format=model.token_expiry_date_format,
             token_expiry_is_time_of_expiration=bool(model.token_expiry_date_format),
             token_refresh_endpoint=model.token_refresh_endpoint,
             config=config,
@@ -1760,6 +1791,7 @@ class ModelToComponentFactory:
         self,
         model: RecordSelectorModel,
         config: Config,
+        name: str,
         *,
         transformations: List[RecordTransformation],
         decoder: Optional[Decoder] = None,
@@ -1790,6 +1822,7 @@ class ModelToComponentFactory:
 
         return RecordSelector(
             extractor=extractor,
+            name=name,
             config=config,
             record_filter=record_filter,
             transformations=transformations,
@@ -1860,6 +1893,7 @@ class ModelToComponentFactory:
         )
         record_selector = self._create_component_from_model(
             model=model.record_selector,
+            name=name,
             config=config,
             decoder=decoder,
             transformations=transformations,
@@ -1987,6 +2021,7 @@ class ModelToComponentFactory:
             model=model.record_selector,
             config=config,
             decoder=decoder,
+            name=name,
             transformations=transformations,
             client_side_incremental_sync=client_side_incremental_sync,
         )
@@ -2004,16 +2039,37 @@ class ModelToComponentFactory:
             name=f"job polling - {name}",
         )
         job_download_components_name = f"job download - {name}"
+        download_decoder = (
+            self._create_component_from_model(model=model.download_decoder, config=config)
+            if model.download_decoder
+            else JsonDecoder(parameters={})
+        )
+        download_extractor = (
+            self._create_component_from_model(
+                model=model.download_extractor,
+                config=config,
+                decoder=download_decoder,
+                parameters=model.parameters,
+            )
+            if model.download_extractor
+            else DpathExtractor(
+                [],
+                config=config,
+                decoder=download_decoder,
+                parameters=model.parameters or {},
+            )
+        )
         download_requester = self._create_component_from_model(
             model=model.download_requester,
-            decoder=decoder,
+            decoder=download_decoder,
             config=config,
             name=job_download_components_name,
         )
         download_retriever = SimpleRetriever(
             requester=download_requester,
             record_selector=RecordSelector(
-                extractor=ResponseToFileExtractor(),
+                extractor=download_extractor,
+                name=name,
                 record_filter=None,
                 transformations=[],
                 schema_normalization=TypeTransformer(TransformConfig.NoTransform),

@@ -6,8 +6,9 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from typing_extensions import deprecated
+
 from airbyte_cdk.sources.source import ExperimentalClassWarning
-from deprecated.classic import deprecated
 
 
 class StreamAvailability(ABC):
@@ -47,7 +48,10 @@ class StreamUnavailable(StreamAvailability):
 STREAM_AVAILABLE = StreamAvailable()
 
 
-@deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
+@deprecated(
+    "This class is experimental. Use at your own risk.",
+    category=ExperimentalClassWarning,
+)
 class AbstractAvailabilityStrategy(ABC):
     """
     AbstractAvailabilityStrategy is an experimental interface developed as part of the Concurrent CDK.
@@ -67,7 +71,10 @@ class AbstractAvailabilityStrategy(ABC):
         """
 
 
-@deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
+@deprecated(
+    "This class is experimental. Use at your own risk.",
+    category=ExperimentalClassWarning,
+)
 class AlwaysAvailableAvailabilityStrategy(AbstractAvailabilityStrategy):
     """
     An availability strategy that always indicates a stream is available.

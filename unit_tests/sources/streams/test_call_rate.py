@@ -9,6 +9,8 @@ from typing import Any, Iterable, Mapping, Optional
 
 import pytest
 import requests
+from requests import Request
+
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.call_rate import (
     APIBudget,
@@ -22,7 +24,6 @@ from airbyte_cdk.sources.streams.call_rate import (
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
 from airbyte_cdk.utils.constants import ENV_REQUEST_CACHE_PATH
-from requests import Request
 
 
 class StubDummyHttpStream(HttpStream):
@@ -46,7 +47,11 @@ class StubDummyCacheHttpStream(StubDummyHttpStream):
 @pytest.fixture(name="enable_cache")
 def enable_cache_fixture():
     prev_cache_path = os.environ.get(ENV_REQUEST_CACHE_PATH)
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(
+        # Cleanup can fail on Windows due to file locks. Ignore if so,
+        # rather than failing the whole process.
+        ignore_cleanup_errors=True,
+    ) as temp_dir:
         os.environ[ENV_REQUEST_CACHE_PATH] = temp_dir
         yield
 

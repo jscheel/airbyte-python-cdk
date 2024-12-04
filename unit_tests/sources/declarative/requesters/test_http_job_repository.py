@@ -6,6 +6,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 import pytest
+
 from airbyte_cdk.sources.declarative.async_job.status import AsyncJobStatus
 from airbyte_cdk.sources.declarative.decoders import NoopDecoder
 from airbyte_cdk.sources.declarative.decoders.json_decoder import JsonDecoder
@@ -94,7 +95,7 @@ class HttpJobRepositoryTest(TestCase):
                 stream_response=True,
             ),
             record_selector=RecordSelector(
-                extractor=ResponseToFileExtractor(),
+                extractor=ResponseToFileExtractor({}),
                 record_filter=None,
                 transformations=[],
                 schema_normalization=TypeTransformer(TransformConfig.NoTransform),

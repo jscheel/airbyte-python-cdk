@@ -7,6 +7,8 @@ import logging
 import logging.config
 from typing import Any, Callable, Mapping, Optional, Tuple
 
+import orjson
+
 from airbyte_cdk.models import (
     AirbyteLogMessage,
     AirbyteMessage,
@@ -15,7 +17,6 @@ from airbyte_cdk.models import (
     Type,
 )
 from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets
-from orjson import orjson
 
 LOGGING_CONFIG = {
     "version": 1,
@@ -77,7 +78,7 @@ class AirbyteLogFormatter(logging.Formatter):
             log_message = AirbyteMessage(
                 type=Type.LOG, log=AirbyteLogMessage(level=airbyte_level, message=message)
             )
-            return orjson.dumps(AirbyteMessageSerializer.dump(log_message)).decode()  # type: ignore[no-any-return] # orjson.dumps(message).decode() always returns string
+            return orjson.dumps(AirbyteMessageSerializer.dump(log_message)).decode()
 
     @staticmethod
     def extract_extra_args_from_record(record: logging.LogRecord) -> Mapping[str, Any]:

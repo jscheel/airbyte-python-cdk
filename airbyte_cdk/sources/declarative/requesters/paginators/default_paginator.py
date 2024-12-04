@@ -6,6 +6,7 @@ from dataclasses import InitVar, dataclass, field
 from typing import Any, Mapping, MutableMapping, Optional, Union
 
 import requests
+
 from airbyte_cdk.sources.declarative.decoders import (
     Decoder,
     JsonDecoder,
@@ -193,7 +194,7 @@ class DefaultPaginator(Paginator):
             and self.pagination_strategy.get_page_size()
             and self.page_size_option.inject_into == option_type
         ):
-            options[self.page_size_option.field_name.eval(config=self.config)] = (
+            options[self.page_size_option.field_name.eval(config=self.config)] = (  # type: ignore [union-attr]
                 self.pagination_strategy.get_page_size()
             )  # type: ignore # field_name is always cast to an interpolated string
         return options

@@ -3,7 +3,9 @@
 #
 
 
+import orjson
 import pytest
+
 from airbyte_cdk.models import (
     AirbyteErrorTraceMessage,
     AirbyteMessage,
@@ -16,7 +18,6 @@ from airbyte_cdk.models import (
 )
 from airbyte_cdk.models import Type as MessageType
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
-from orjson import orjson
 
 _AN_EXCEPTION = ValueError("An exception")
 _A_STREAM_DESCRIPTOR = StreamDescriptor(name="a_stream")

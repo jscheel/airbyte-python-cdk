@@ -3,17 +3,32 @@
 #
 
 import functools
+import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Protocol, Tuple
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Protocol,
+    Tuple,
+    Union,
+)
 
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.streams import NO_CURSOR_STATE_KEY
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
-from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
+from airbyte_cdk.sources.streams.concurrent.partitions.stream_slicer import StreamSlicer
 from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
     AbstractStreamStateConverter,
 )
+from airbyte_cdk.sources.types import Record, StreamSlice
+
+LOGGER = logging.getLogger("airbyte")
 
 
 def _extract_value(mapping: Mapping[str, Any], path: List[str]) -> Any:
@@ -61,7 +76,7 @@ class CursorField:
         return cursor_value  # type: ignore  # we assume that the value the path points at is a comparable
 
 
-class Cursor(ABC):
+class Cursor(StreamSlicer, ABC):
     @property
     @abstractmethod
     def state(self) -> MutableMapping[str, Any]: ...
@@ -88,12 +103,12 @@ class Cursor(ABC):
         """
         raise NotImplementedError()
 
-    def generate_slices(self) -> Iterable[Tuple[Any, Any]]:
+    def stream_slices(self) -> Iterable[StreamSlice]:
         """
         Default placeholder implementation of generate_slices.
         Subclasses can override this method to provide actual behavior.
         """
-        yield from ()
+        yield StreamSlice(partition={}, cursor_slice={})
 
 
 class FinalStateCursor(Cursor):
@@ -171,9 +186,13 @@ class ConcurrentCursor(Cursor):
         self.start, self._concurrent_state = self._get_concurrent_state(stream_state)
         self._lookback_window = lookback_window
         self._slice_range = slice_range
-        self._most_recent_cursor_value_per_partition: MutableMapping[Partition, Any] = {}
+        self._most_recent_cursor_value_per_partition: MutableMapping[
+            Union[StreamSlice, Mapping[str, Any], None], Any
+        ] = {}
         self._has_closed_at_least_one_slice = False
         self._cursor_granularity = cursor_granularity
+        # Flag to track if the logger has been triggered (per stream)
+        self._should_be_synced_logger_triggered = False
 
     @property
     def state(self) -> MutableMapping[str, Any]:
@@ -184,8 +203,15 @@ class ConcurrentCursor(Cursor):
         return self._cursor_field
 
     @property
-    def slice_boundary_fields(self) -> Optional[Tuple[str, str]]:
-        return self._slice_boundary_fields
+    def _slice_boundary_fields_wrapper(self) -> Tuple[str, str]:
+        return (
+            self._slice_boundary_fields
+            if self._slice_boundary_fields
+            else (
+                self._connector_state_converter.START_KEY,
+                self._connector_state_converter.END_KEY,
+            )
+        )
 
     def _get_concurrent_state(
         self, state: MutableMapping[str, Any]
@@ -201,12 +227,15 @@ class ConcurrentCursor(Cursor):
 
     def observe(self, record: Record) -> None:
         most_recent_cursor_value = self._most_recent_cursor_value_per_partition.get(
-            record.partition
+            record.associated_slice
         )
-        cursor_value = self._extract_cursor_value(record)
+        try:
+            cursor_value = self._extract_cursor_value(record)
 
-        if most_recent_cursor_value is None or most_recent_cursor_value < cursor_value:
-            self._most_recent_cursor_value_per_partition[record.partition] = cursor_value
+            if most_recent_cursor_value is None or most_recent_cursor_value < cursor_value:
+                self._most_recent_cursor_value_per_partition[record.associated_slice] = cursor_value
+        except ValueError:
+            self._log_for_record_without_cursor_value()
 
     def _extract_cursor_value(self, record: Record) -> Any:
         return self._connector_state_converter.parse_value(self._cursor_field.extract_value(record))
@@ -222,7 +251,9 @@ class ConcurrentCursor(Cursor):
         self._has_closed_at_least_one_slice = True
 
     def _add_slice_to_state(self, partition: Partition) -> None:
-        most_recent_cursor_value = self._most_recent_cursor_value_per_partition.get(partition)
+        most_recent_cursor_value = self._most_recent_cursor_value_per_partition.get(
+            partition.to_slice()
+        )
 
         if self._slice_boundary_fields:
             if "slices" not in self.state:
@@ -299,7 +330,7 @@ class ConcurrentCursor(Cursor):
         """
         self._emit_state_message()
 
-    def generate_slices(self) -> Iterable[Tuple[CursorValueType, CursorValueType]]:
+    def stream_slices(self) -> Iterable[StreamSlice]:
         """
         Generating slices based on a few parameters:
         * lookback_window: Buffer to remove from END_KEY of the highest slice
@@ -368,7 +399,7 @@ class ConcurrentCursor(Cursor):
 
     def _split_per_slice_range(
         self, lower: CursorValueType, upper: CursorValueType, upper_is_end: bool
-    ) -> Iterable[Tuple[CursorValueType, CursorValueType]]:
+    ) -> Iterable[StreamSlice]:
         if lower >= upper:
             return
 
@@ -377,10 +408,22 @@ class ConcurrentCursor(Cursor):
 
         lower = max(lower, self._start) if self._start else lower
         if not self._slice_range or self._evaluate_upper_safely(lower, self._slice_range) >= upper:
-            if self._cursor_granularity and not upper_is_end:
-                yield lower, upper - self._cursor_granularity
-            else:
-                yield lower, upper
+            start_value, end_value = (
+                (lower, upper - self._cursor_granularity)
+                if self._cursor_granularity and not upper_is_end
+                else (lower, upper)
+            )
+            yield StreamSlice(
+                partition={},
+                cursor_slice={
+                    self._slice_boundary_fields_wrapper[
+                        self._START_BOUNDARY
+                    ]: self._connector_state_converter.output_format(start_value),
+                    self._slice_boundary_fields_wrapper[
+                        self._END_BOUNDARY
+                    ]: self._connector_state_converter.output_format(end_value),
+                },
+            )
         else:
             stop_processing = False
             current_lower_boundary = lower
@@ -389,12 +432,24 @@ class ConcurrentCursor(Cursor):
                     self._evaluate_upper_safely(current_lower_boundary, self._slice_range), upper
                 )
                 has_reached_upper_boundary = current_upper_boundary >= upper
-                if self._cursor_granularity and (
-                    not upper_is_end or not has_reached_upper_boundary
-                ):
-                    yield current_lower_boundary, current_upper_boundary - self._cursor_granularity
-                else:
-                    yield current_lower_boundary, current_upper_boundary
+
+                start_value, end_value = (
+                    (current_lower_boundary, current_upper_boundary - self._cursor_granularity)
+                    if self._cursor_granularity
+                    and (not upper_is_end or not has_reached_upper_boundary)
+                    else (current_lower_boundary, current_upper_boundary)
+                )
+                yield StreamSlice(
+                    partition={},
+                    cursor_slice={
+                        self._slice_boundary_fields_wrapper[
+                            self._START_BOUNDARY
+                        ]: self._connector_state_converter.output_format(start_value),
+                        self._slice_boundary_fields_wrapper[
+                            self._END_BOUNDARY
+                        ]: self._connector_state_converter.output_format(end_value),
+                    },
+                )
                 current_lower_boundary = current_upper_boundary
                 if current_upper_boundary >= upper:
                     stop_processing = True
@@ -409,3 +464,24 @@ class ConcurrentCursor(Cursor):
             return lower + step
         except OverflowError:
             return self._end_provider()
+
+    def should_be_synced(self, record: Record) -> bool:
+        """
+        Determines if a record should be synced based on its cursor value.
+        :param record: The record to evaluate
+
+        :return: True if the record's cursor value falls within the sync boundaries
+        """
+        try:
+            record_cursor_value: CursorValueType = self._extract_cursor_value(record)
+        except ValueError:
+            self._log_for_record_without_cursor_value()
+            return True
+        return self.start <= record_cursor_value <= self._end_provider()
+
+    def _log_for_record_without_cursor_value(self) -> None:
+        if not self._should_be_synced_logger_triggered:
+            LOGGER.warning(
+                f"Could not find cursor field `{self.cursor_field.cursor_field_key}` in record for stream {self._stream_name}. The incremental sync will assume it needs to be synced"
+            )
+            self._should_be_synced_logger_triggered = True

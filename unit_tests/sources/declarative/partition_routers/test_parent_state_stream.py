@@ -4,8 +4,10 @@ import copy
 from typing import Any, List, Mapping, MutableMapping, Optional, Union
 from unittest.mock import MagicMock
 
+import orjson
 import pytest
 import requests_mock
+
 from airbyte_cdk.models import (
     AirbyteMessage,
     AirbyteStateBlob,
@@ -20,7 +22,6 @@ from airbyte_cdk.models import (
     SyncMode,
 )
 from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
-from orjson import orjson
 
 SUBSTREAM_MANIFEST: MutableMapping[str, Any] = {
     "version": "0.51.42",

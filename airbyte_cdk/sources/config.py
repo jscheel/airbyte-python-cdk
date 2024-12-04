@@ -4,8 +4,9 @@
 
 from typing import Any, Dict
 
-from airbyte_cdk.sources.utils.schema_helpers import expand_refs, rename_key
 from pydantic.v1 import BaseModel
+
+from airbyte_cdk.sources.utils.schema_helpers import expand_refs, rename_key
 
 
 class BaseConfig(BaseModel):
@@ -23,4 +24,4 @@ class BaseConfig(BaseModel):
         rename_key(schema, old_key="anyOf", new_key="oneOf")  # UI supports only oneOf
         expand_refs(schema)
         schema.pop("description", None)  # description added from the docstring
-        return schema  # type: ignore[no-any-return]
+        return schema

@@ -6,10 +6,13 @@ import argparse
 import io
 import json
 from os import PathLike
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Union
 from unittest.mock import ANY
 
+import orjson
 import pytest
+
 from airbyte_cdk.destinations import Destination
 from airbyte_cdk.destinations import destination as destination_module
 from airbyte_cdk.models import (
@@ -29,7 +32,6 @@ from airbyte_cdk.models import (
     SyncMode,
     Type,
 )
-from orjson import orjson
 
 
 @pytest.fixture(name="destination")
@@ -128,7 +130,7 @@ class OrderedIterableMatcher(Iterable):
     in an ordered fashion
     """
 
-    def attempt_consume(self, iterator):
+    def attempt_consume(self, iterator) -> Any | None:
         try:
             return next(iterator)
         except StopIteration:
@@ -137,7 +139,7 @@ class OrderedIterableMatcher(Iterable):
     def __iter__(self):
         return iter(self.iterable)
 
-    def __init__(self, iterable: Iterable):
+    def __init__(self, iterable: Iterable) -> None:
         self.iterable = iterable
 
     def __eq__(self, other):
@@ -148,7 +150,11 @@ class OrderedIterableMatcher(Iterable):
 
 
 class TestRun:
-    def test_run_initializes_exception_handler(self, mocker, destination: Destination):
+    def test_run_initializes_exception_handler(
+        self,
+        mocker,
+        destination: Destination,
+    ) -> None:
         mocker.patch.object(destination_module, "init_uncaught_exception_handler")
         mocker.patch.object(destination, "parse_args")
         mocker.patch.object(destination, "run_cmd")
@@ -157,7 +163,11 @@ class TestRun:
             destination_module.logger
         )
 
-    def test_run_spec(self, mocker, destination: Destination):
+    def test_run_spec(
+        self,
+        mocker,
+        destination: Destination,
+    ) -> None:
         args = {"command": "spec"}
         parsed_args = argparse.Namespace(**args)
 
@@ -202,7 +212,12 @@ class TestRun:
         # verify output was correct
         assert returned_check_result == _wrapped(expected_check_result)
 
-    def test_run_check_with_invalid_config(self, mocker, destination: Destination, tmp_path):
+    def test_run_check_with_invalid_config(
+        self,
+        mocker,
+        destination: Destination,
+        tmp_path: Path,
+    ) -> None:
         file_path = tmp_path / "config.json"
         invalid_config = {"not": "valid"}
         write_file(file_path, invalid_config)

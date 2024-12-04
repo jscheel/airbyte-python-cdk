@@ -6,6 +6,7 @@ from dataclasses import InitVar, dataclass, field
 from typing import Any, List, Mapping, Optional, Union
 
 import pendulum
+
 from airbyte_cdk.sources.declarative.auth.declarative_authenticator import DeclarativeAuthenticator
 from airbyte_cdk.sources.declarative.interpolation.interpolated_mapping import InterpolatedMapping
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
@@ -134,7 +135,7 @@ class DeclarativeOauth2Authenticator(AbstractOauth2Authenticator, DeclarativeAut
         return self.grant_type.eval(self.config)  # type: ignore # eval returns a string in this context
 
     def get_refresh_request_body(self) -> Mapping[str, Any]:
-        return self._refresh_request_body.eval(self.config)  # type: ignore # eval should return a Mapping in this context
+        return self._refresh_request_body.eval(self.config)
 
     def get_token_expiry_date(self) -> pendulum.DateTime:
         return self._token_expiry_date  # type: ignore # _token_expiry_date is a pendulum.DateTime. It is never None despite what mypy thinks

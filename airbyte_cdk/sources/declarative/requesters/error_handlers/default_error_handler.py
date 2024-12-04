@@ -6,6 +6,7 @@ from dataclasses import InitVar, dataclass, field
 from typing import Any, List, Mapping, MutableMapping, Optional, Union
 
 import requests
+
 from airbyte_cdk.sources.declarative.requesters.error_handlers.default_http_response_filter import (
     DefaultHttpResponseFilter,
 )
@@ -140,7 +141,7 @@ class DefaultErrorHandler(ErrorHandler):
             for backoff_strategy in self.backoff_strategies:
                 backoff = backoff_strategy.backoff_time(
                     response_or_exception=response_or_exception, attempt_count=attempt_count
-                )  # type: ignore # attempt_count maintained for compatibility with low code CDK
+                )
                 if backoff:
                     return backoff
         return backoff
