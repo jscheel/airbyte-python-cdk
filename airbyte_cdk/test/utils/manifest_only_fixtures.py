@@ -8,6 +8,12 @@ from typing import Optional
 
 import pytest
 
+# The following fixtures are used to load a manifest-only connector's components module and manifest file.
+# They can be accessed from any test file in the connector's unit_tests directory by importing them as follows:
+
+# from airbyte_cdk.test.utils.manifest_only_fixtures import components_module, connector_dir, manifest_path
+
+# individual components can then be referenced as: components_module.<CustomComponentClass>
 
 @pytest.fixture(scope="session")
 def connector_dir(request: pytest.FixtureRequest) -> Path:
