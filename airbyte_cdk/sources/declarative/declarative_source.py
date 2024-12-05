@@ -33,4 +33,4 @@ class DeclarativeSource(AbstractSource):
           and the "error" object should describe what went wrong.
           The error object will be cast to string to display the problem to the user.
         """
-        return None  # self.connection_checker.check_connection(self, logger, config) TODO: Undo after we confirm this breaks the pipeline
+        return self.connection_checker.check_connection(self, logger, config)
