@@ -22,11 +22,11 @@ logger = logging.getLogger("airbyte")
 
 
 class ConcurrentCursorFactory:
-    def __init__(self, create_function: Callable[..., tuple[Cursor, ...]]):
+    def __init__(self, create_function: Callable[..., Cursor]):
         self._create_function = create_function
 
     def create(self, stream_state: Mapping[str, Any]) -> Cursor:
-        return self._create_function(stream_state=stream_state)[0]
+        return self._create_function(stream_state=stream_state)
 
 
 class ConcurrentPerPartitionCursor(Cursor):
