@@ -134,6 +134,7 @@ jobs:
           airbyte-ci-dev connectors \
           --name ${{matrix.connector}} \
           --use-local-cdk \
+          --is-ci \
           test \
           --fail-fast \
           --skip-step qa_checks \
