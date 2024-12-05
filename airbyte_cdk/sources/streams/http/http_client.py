@@ -538,7 +538,6 @@ class SkipFailureSQLiteDict(requests_cache.backends.sqlite.SQLiteDict):
             logger.warning(f"Error while saving item to cache: {exception}")
 
 
-
 class SkipFailureSQLiteCache(requests_cache.backends.sqlite.SQLiteCache):
     def __init__(  # type: ignore  # ignoring as lib is not typed
         self,
