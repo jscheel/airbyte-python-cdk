@@ -95,6 +95,7 @@ class HttpClient:
     ):
         self._name = name
         self._api_budget: APIBudget = api_budget or APIBudget(policies=[])
+        self._logger = logger
         if session:
             self._session = session
         else:
@@ -108,7 +109,6 @@ class HttpClient:
             )
         if isinstance(authenticator, AuthBase):
             self._session.auth = authenticator
-        self._logger = logger
         self._error_handler = error_handler or HttpStatusErrorHandler(self._logger)
         if backoff_strategy is not None:
             if isinstance(backoff_strategy, list):
@@ -140,10 +140,12 @@ class HttpClient:
             # Use in-memory cache if cache_dir is not set
             # This is a non-obvious interface, but it ensures we don't write sql files when running unit tests
             if cache_dir:
+                self._logger.info(f"Using path {cache_dir} for HTTP cache")  # TODO: remove
                 sqlite_path = str(Path(cache_dir) / self.cache_filename)
             else:
+                self._logger.info("Using memory for cache")  # TODO: remove
                 sqlite_path = "file::memory:?cache=shared"
-            backend = SkipFailureSQLiteCache(sqlite_path)
+            backend = SkipFailureSQLiteCache(self._name, sqlite_path)  # TODO maybe add a busy timeout
             return CachedLimiterSession(
                 sqlite_path, backend=backend, api_budget=self._api_budget, match_headers=True
             )  # type: ignore # there are no typeshed stubs for requests_cache
@@ -541,6 +543,7 @@ class SkipFailureSQLiteDict(requests_cache.backends.sqlite.SQLiteDict):
 class SkipFailureSQLiteCache(requests_cache.backends.sqlite.SQLiteCache):
     def __init__(  # type: ignore  # ignoring as lib is not typed
         self,
+        table_name="response",
         db_path="http_cache",
         serializer=None,
         **kwargs,
@@ -548,11 +551,13 @@ class SkipFailureSQLiteCache(requests_cache.backends.sqlite.SQLiteCache):
         super().__init__(db_path, serializer, **kwargs)
         skwargs = {"serializer": serializer, **kwargs} if serializer else kwargs
         self.responses: requests_cache.backends.sqlite.SQLiteDict = SkipFailureSQLiteDict(
-            db_path, table_name="responses", **skwargs
+            db_path, table_name=table_name, fast_save=True, wal=True, **skwargs
         )
         self.redirects: requests_cache.backends.sqlite.SQLiteDict = SkipFailureSQLiteDict(
             db_path,
-            table_name="redirects",
+            table_name=f"redirects_{table_name}",
+            fast_save=True,
+            wal=True,
             lock=self.responses._lock,
             serializer=None,
             **kwargs,
