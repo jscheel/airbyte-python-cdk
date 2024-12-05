@@ -2132,7 +2132,7 @@ class ModelToComponentFactory:
                 extractor=download_extractor,
                 name=name,
                 record_filter=None,
-                transformations=[],
+                transformations=transformations,
                 schema_normalization=TypeTransformer(TransformConfig.NoTransform),
                 config=config,
                 parameters={},
@@ -2199,7 +2199,7 @@ class ModelToComponentFactory:
                 has_bulk_parent=False,  # FIXME work would need to be done here in order to detect if a stream as a parent stream that is bulk
             ),
             # TODO: check this # TODO: remove
-            cursor = stream_slicer,
+            cursor=stream_slicer,
             record_selector=record_selector,
             stream_slicer=stream_slicer,
             config=config,
