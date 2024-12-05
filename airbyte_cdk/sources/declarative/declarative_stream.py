@@ -25,6 +25,7 @@ from airbyte_cdk.sources.streams.checkpoint import (
 )
 from airbyte_cdk.sources.streams.core import Stream
 from airbyte_cdk.sources.types import Config, StreamSlice
+from sources.declarative.retrievers import AsyncRetriever
 
 
 @dataclass
@@ -189,7 +190,7 @@ class DeclarativeStream(Stream):
         return None
 
     def get_cursor(self) -> Optional[Cursor]:
-        if self.retriever and isinstance(self.retriever, SimpleRetriever):
+        if self.retriever and isinstance(self.retriever, SimpleRetriever | AsyncRetriever):
             return self.retriever.cursor
         return None
 
