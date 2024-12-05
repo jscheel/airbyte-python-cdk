@@ -140,7 +140,6 @@ class HttpClient:
             # Use in-memory cache if cache_dir is not set
             # This is a non-obvious interface, but it ensures we don't write sql files when running unit tests
             if cache_dir:
-                self._logger.info(f"Using path {cache_dir} for HTTP cache")  # TODO: remove
                 sqlite_path = str(Path(cache_dir) / self.cache_filename)
             else:
                 self._logger.info("Using memory for cache")  # TODO: remove

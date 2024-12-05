@@ -79,6 +79,9 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             emit_connector_builder_messages=emit_connector_builder_messages,
             disable_resumable_full_refresh=True,
         )
+        self._config = config
+        self._concurrent_streams: Optional[List[AbstractStream]] = None
+        self._synchronous_streams: Optional[List[Stream]] = None
 
         super().__init__(
             source_config=source_config,
@@ -88,21 +91,6 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
         )
 
         self._state = state
-
-        self._concurrent_streams: Optional[List[AbstractStream]]
-        self._synchronous_streams: Optional[List[Stream]]
-
-        # If the connector command was SPEC, there is no incoming config, and we cannot instantiate streams because
-        # they might depend on it. Ideally we want to have a static method on this class to get the spec without
-        # any other arguments, but the existing entrypoint.py isn't designed to support this. Just noting this
-        # for our future improvements to the CDK.
-        if config:
-            self._concurrent_streams, self._synchronous_streams = self._group_streams(
-                config=config or {}
-            )
-        else:
-            self._concurrent_streams = None
-            self._synchronous_streams = None
 
         concurrency_level_from_manifest = self._source_config.get("concurrency_level")
         if concurrency_level_from_manifest:
@@ -132,6 +120,19 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             message_repository=self.message_repository,  # type: ignore  # message_repository is always instantiated with a value by factory
         )
 
+    def _actually_group(self) -> None:
+        # If the connector command was SPEC, there is no incoming config, and we cannot instantiate streams because
+        # they might depend on it. Ideally we want to have a static method on this class to get the spec without
+        # any other arguments, but the existing entrypoint.py isn't designed to support this. Just noting this
+        # for our future improvements to the CDK.
+        if self._config:
+            self._concurrent_streams, self._synchronous_streams = self._group_streams(
+                config=self._config or {}
+            )
+        else:
+            self._concurrent_streams = None
+            self._synchronous_streams = None
+
     def read(
         self,
         logger: logging.Logger,
@@ -141,6 +142,9 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
     ) -> Iterator[AirbyteMessage]:
         # ConcurrentReadProcessor pops streams that are finished being read so before syncing, the names of the concurrent
         # streams must be saved so that they can be removed from the catalog before starting synchronous streams
+        if self._concurrent_streams is None:
+            self._actually_group()
+
         if self._concurrent_streams:
             concurrent_stream_names = set(
                 [concurrent_stream.name for concurrent_stream in self._concurrent_streams]
@@ -166,6 +170,9 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
         yield from super().read(logger, config, filtered_catalog, state)
 
     def discover(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteCatalog:
+        if self._concurrent_streams is None:
+            self._actually_group()
+
         concurrent_streams = self._concurrent_streams or []
         synchronous_streams = self._synchronous_streams or []
         return AirbyteCatalog(
