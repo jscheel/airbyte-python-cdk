@@ -8,7 +8,7 @@ from dataclasses import InitVar, dataclass
 from typing import Any, List, Mapping, MutableMapping, Optional, Union
 
 import dpath
-from deprecated.classic import deprecated
+from typing_extensions import deprecated
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
