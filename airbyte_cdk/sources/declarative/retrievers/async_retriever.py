@@ -2,10 +2,11 @@
 
 
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Callable, Iterable, Mapping, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional, MutableMapping
 
 from deprecated.classic import deprecated
 
+from airbyte_cdk.sources.streams.concurrent.cursor import Cursor
 from airbyte_cdk.models import FailureType
 from airbyte_cdk.sources.declarative.async_job.job_orchestrator import (
     AsyncJobOrchestrator,
@@ -31,6 +32,7 @@ class AsyncRetriever(Retriever):
     stream_slicer: StreamSlicer = field(
         default_factory=lambda: SinglePartitionRouter(parameters={})
     )
+    cursor: Optional[Cursor] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
         self._job_orchestrator_factory = self.job_orchestrator_factory
