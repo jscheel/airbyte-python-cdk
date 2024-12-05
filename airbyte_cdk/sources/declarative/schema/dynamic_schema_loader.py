@@ -64,7 +64,7 @@ class SchemaTypeIdentifier:
     key_pointer: List[Union[InterpolatedString, str]]
     parameters: InitVar[Mapping[str, Any]]
     type_pointer: Optional[List[Union[InterpolatedString, str]]] = None
-    types_map: Optional[List[TypesMap]] = None
+    types_mapping: Optional[List[TypesMap]] = None
     schema_pointer: Optional[List[Union[InterpolatedString, str]]] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
@@ -182,10 +182,10 @@ class DynamicSchemaLoader(SchemaLoader):
         """
         Replaces a field type if it matches a type mapping in `types_map`.
         """
-        if self.schema_type_identifier.types_map:
-            for types_pair in self.schema_type_identifier.types_map:
-                if field_type == types_pair.current_type:
-                    return types_pair.target_type
+        if self.schema_type_identifier.types_mapping:
+            for types_map in self.schema_type_identifier.types_mapping:
+                if field_type == types_map.current_type:
+                    return types_map.target_type
         return field_type
 
     @staticmethod
@@ -212,8 +212,8 @@ class DynamicSchemaLoader(SchemaLoader):
             return body
 
         path = [
-            path.eval(self.config) if not isinstance(path, str) else path
-            for path in extraction_path
+            node.eval(self.config) if not isinstance(node, str) else node
+            for node in extraction_path
         ]
 
         return dpath.get(body, path, default=default)  # type: ignore # extracted will be a MutableMapping, given input data structure

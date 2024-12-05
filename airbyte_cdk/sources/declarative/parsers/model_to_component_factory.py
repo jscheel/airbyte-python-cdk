@@ -1585,12 +1585,12 @@ class ModelToComponentFactory:
     def create_schema_type_identifier(
         self, model: SchemaTypeIdentifierModel, config: Config, **kwargs: Any
     ) -> SchemaTypeIdentifier:
-        types_map = []
+        types_mapping = []
         if model.types_mapping:
-            types_map.extend(
+            types_mapping.extend(
                 [
-                    self._create_component_from_model(types_pair, config=config)
-                    for types_pair in model.types_mapping
+                    self._create_component_from_model(types_map, config=config)
+                    for types_map in model.types_mapping
                 ]
             )
         model_schema_pointer: List[Union[InterpolatedString, str]] = (
@@ -1605,7 +1605,7 @@ class ModelToComponentFactory:
             schema_pointer=model_schema_pointer,
             key_pointer=model_key_pointer,
             type_pointer=model_type_pointer,
-            types_map=types_map,
+            types_mapping=types_mapping,
             parameters=model.parameters or {},
         )
 

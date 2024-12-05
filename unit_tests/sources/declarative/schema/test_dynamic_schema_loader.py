@@ -30,7 +30,7 @@ def mock_schema_type_identifier():
         schema_pointer=["schema"],
         key_pointer=["key"],
         type_pointer=["type"],
-        types_map=[],
+        types_mapping=[],
         parameters={},
     )
 
