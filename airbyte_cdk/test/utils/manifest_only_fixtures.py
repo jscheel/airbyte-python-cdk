@@ -12,7 +12,7 @@ import pytest
 @pytest.fixture(scope="session")
 def connector_dir(request: pytest.FixtureRequest) -> Path:
     """Return the connector's root directory.
-    
+
     This assumes tests are being run from the unit_tests directory,
     and that it is a direct child of the connector directory.
     """
@@ -23,7 +23,7 @@ def connector_dir(request: pytest.FixtureRequest) -> Path:
 @pytest.fixture(scope="session")
 def components_module(connector_dir: Path) -> Optional[ModuleType]:
     """Load and return the components module from the connector directory.
-    
+
     This assumes the components module is located at <connector_dir>/components.py.
     """
     components_path = connector_dir / "components.py"
