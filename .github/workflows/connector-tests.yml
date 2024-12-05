@@ -123,7 +123,7 @@ jobs:
         if: steps.no_changes.outputs.status != 'cancelled'
         id: run-airbyte-ci-connector-test-pr
         timeout-minutes: 90
-        uses: ./.github/actions/run-airbyte-ci
+        uses: ./airbyte/.github/actions/run-airbyte-ci
         with:
           context: "pull_request"
           subcommand: "--name ${{matrix.connector}} test --fail-fast --skip-step qa_checks --skip-step connector_live_tests"
