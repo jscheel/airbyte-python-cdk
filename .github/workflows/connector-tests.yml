@@ -86,12 +86,10 @@ jobs:
           # TODO: Re-enable once fixed
           # - connector: source-zendesk-support
           #   cdk_extra: n/a
-          # TODO: These are manifest connectors and won't work as expected until we
-          #       add `--use-local-cdk` support for manifest connectors.
-          # - connector: source-the-guardian-api
-          #   cdk_extra: n/a
-          # - connector: source-pokeapi
-          #   cdk_extra: n/a
+          - connector: source-the-guardian-api
+            cdk_extra: n/a
+          - connector: source-pokeapi
+            cdk_extra: n/a
 
     name: "Check: '${{matrix.connector}}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
     steps:
@@ -121,23 +119,17 @@ jobs:
           repository: airbytehq/airbyte
           ref: master
           path: airbyte
-      - name: Test Connector
+      - name: Test connector
         if: steps.no_changes.outputs.status != 'cancelled'
+        id: run-airbyte-ci-connector-test-pr
         timeout-minutes: 90
-        env:
-          GCP_GSM_CREDENTIALS: ${{ secrets.GCP_GSM_CREDENTIALS }}
-          POETRY_DYNAMIC_VERSIONING_BYPASS: "0.0.0"
-        # TODO: Revert below to use `tools.airbyte-ci-binary.install` after Airbyte CI released:
-        run: |
-          cd airbyte
-          make tools.airbyte-ci-dev.install
-          airbyte-ci-dev connectors \
-          --name ${{matrix.connector}} \
-          --use-local-cdk \
-          test \
-          --fail-fast \
-          --skip-step qa_checks \
-          --skip-step connector_live_tests
+        uses: ./.github/actions/run-airbyte-ci
+        with:
+          context: "pull_request"
+          subcommand: "--name ${{matrix.connector}} test --fail-fast --skip-step qa_checks --skip-step connector_live_tests"
+          # TODO remove me once local cdk is confirmed to work for manifest only connector
+          # We use a custom binary url to run the airbyte-ci version of this PR: https://github.com/airbytehq/airbyte/pull/48818
+          airbyte_ci_binary_url: https://storage.googleapis.com/dev-airbyte-cloud-connector-metadata-service/airbyte-ci/releases/ubuntu/f217461/airbyte-ci
 
       - name: Evaluate Test Output
         if: always() && steps.no_changes.outputs.status != 'cancelled'
