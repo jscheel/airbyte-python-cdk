@@ -15,6 +15,7 @@ import pytest
 
 # individual components can then be referenced as: components_module.<CustomComponentClass>
 
+
 @pytest.fixture(scope="session")
 def connector_dir(request: pytest.FixtureRequest) -> Path:
     """Return the connector's root directory.
