@@ -17,7 +17,6 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
-    Tuple,
     Type,
     Union,
     get_args,
@@ -400,6 +399,7 @@ class ModelToComponentFactory:
         emit_connector_builder_messages: bool = False,
         disable_retries: bool = False,
         disable_cache: bool = False,
+        disable_resumable_full_refresh: bool = False,
         message_repository: Optional[MessageRepository] = None,
     ):
         self._init_mappings()
@@ -408,7 +408,8 @@ class ModelToComponentFactory:
         self._emit_connector_builder_messages = emit_connector_builder_messages
         self._disable_retries = disable_retries
         self._disable_cache = disable_cache
-        self._message_repository = message_repository or InMemoryMessageRepository(  # type: ignore
+        self._disable_resumable_full_refresh = disable_resumable_full_refresh
+        self._message_repository = message_repository or InMemoryMessageRepository(
             self._evaluate_log_level(emit_connector_builder_messages)
         )
 
@@ -659,7 +660,7 @@ class ModelToComponentFactory:
             declarative_stream.incremental_sync,  # type: ignore # was already checked. Migration can be applied only to incremental streams.
             config,
             declarative_stream.parameters,  # type: ignore # different type is expected here Mapping[str, Any], got Dict[str, Any]
-        )  # type: ignore # The retriever type was already checked
+        )
 
     def create_session_token_authenticator(
         self, model: SessionTokenAuthenticatorModel, config: Config, name: str, **kwargs: Any
@@ -689,7 +690,7 @@ class ModelToComponentFactory:
             return ModelToComponentFactory.create_bearer_authenticator(
                 BearerAuthenticatorModel(type="BearerAuthenticator", api_token=""),  # type: ignore # $parameters has a default value
                 config,
-                token_provider=token_provider,  # type: ignore # $parameters defaults to None
+                token_provider=token_provider,
             )
         else:
             return ModelToComponentFactory.create_api_key_authenticator(
@@ -774,7 +775,7 @@ class ModelToComponentFactory:
         config: Config,
         stream_state: MutableMapping[str, Any],
         **kwargs: Any,
-    ) -> Tuple[ConcurrentCursor, DateTimeStreamStateConverter]:
+    ) -> ConcurrentCursor:
         component_type = component_definition.get("type")
         if component_definition.get("type") != model_type.__name__:
             raise ValueError(
@@ -836,7 +837,6 @@ class ModelToComponentFactory:
             input_datetime_formats=datetime_based_cursor_model.cursor_datetime_formats,
             is_sequential_state=True,
             cursor_granularity=cursor_granularity,
-            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
         )
 
         start_date_runtime_value: Union[InterpolatedString, str, MinMaxDatetime]
@@ -905,23 +905,20 @@ class ModelToComponentFactory:
             if evaluated_step:
                 step_length = parse_duration(evaluated_step)
 
-        return (
-            ConcurrentCursor(
-                stream_name=stream_name,
-                stream_namespace=stream_namespace,
-                stream_state=stream_state,
-                message_repository=self._message_repository,  # type: ignore  # message_repository is always instantiated with a value by factory
-                connector_state_manager=state_manager,
-                connector_state_converter=connector_state_converter,
-                cursor_field=cursor_field,
-                slice_boundary_fields=slice_boundary_fields,
-                start=start_date,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-                end_provider=end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-                lookback_window=lookback_window,
-                slice_range=step_length,
-                cursor_granularity=cursor_granularity,
-            ),
-            connector_state_converter,
+        return ConcurrentCursor(
+            stream_name=stream_name,
+            stream_namespace=stream_namespace,
+            stream_state=stream_state,
+            message_repository=self._message_repository,
+            connector_state_manager=state_manager,
+            connector_state_converter=connector_state_converter,
+            cursor_field=cursor_field,
+            slice_boundary_fields=slice_boundary_fields,
+            start=start_date,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            end_provider=end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            lookback_window=lookback_window,
+            slice_range=step_length,
+            cursor_granularity=cursor_granularity,
         )
 
     @staticmethod
@@ -1371,6 +1368,8 @@ class ModelToComponentFactory:
                 if model.incremental_sync
                 else None
             )
+        elif self._disable_resumable_full_refresh:
+            return stream_slicer
         elif stream_slicer:
             # For the Full-Refresh sub-streams, we use the nested `ChildPartitionResumableFullRefreshCursor`
             return PerPartitionCursor(
@@ -1786,7 +1785,7 @@ class ModelToComponentFactory:
             refresh_token=model.refresh_token,
             scopes=model.scopes,
             token_expiry_date=model.token_expiry_date,
-            token_expiry_date_format=model.token_expiry_date_format,  # type: ignore
+            token_expiry_date_format=model.token_expiry_date_format,
             token_expiry_is_time_of_expiration=bool(model.token_expiry_date_format),
             token_refresh_endpoint=model.token_refresh_endpoint,
             config=config,
