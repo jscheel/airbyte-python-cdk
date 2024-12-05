@@ -190,6 +190,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     DpathExtractor as DpathExtractorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    DynamicSchemaLoader as DynamicSchemaLoaderModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ExponentialBackoffStrategy as ExponentialBackoffStrategyModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -277,6 +280,12 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     RequestPath as RequestPathModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    ResponseToFileExtractor as ResponseToFileExtractorModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    SchemaTypeIdentifier as SchemaTypeIdentifierModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SelectiveAuthenticator as SelectiveAuthenticatorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -288,6 +297,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import Spec as SpecModel
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SubstreamPartitionRouter as SubstreamPartitionRouterModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    TypesMap as TypesMapModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import ValueType
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -354,8 +366,11 @@ from airbyte_cdk.sources.declarative.retrievers import (
 )
 from airbyte_cdk.sources.declarative.schema import (
     DefaultSchemaLoader,
+    DynamicSchemaLoader,
     InlineSchemaLoader,
     JsonFileSchemaLoader,
+    SchemaTypeIdentifier,
+    TypesMap,
 )
 from airbyte_cdk.sources.declarative.spec import Spec
 from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
@@ -438,6 +453,7 @@ class ModelToComponentFactory:
             DefaultErrorHandlerModel: self.create_default_error_handler,
             DefaultPaginatorModel: self.create_default_paginator,
             DpathExtractorModel: self.create_dpath_extractor,
+            ResponseToFileExtractorModel: self.create_response_to_file_extractor,
             ExponentialBackoffStrategyModel: self.create_exponential_backoff_strategy,
             SessionTokenAuthenticatorModel: self.create_session_token_authenticator,
             HttpRequesterModel: self.create_http_requester,
@@ -450,6 +466,9 @@ class ModelToComponentFactory:
             IterableDecoderModel: self.create_iterable_decoder,
             XmlDecoderModel: self.create_xml_decoder,
             JsonFileSchemaLoaderModel: self.create_json_file_schema_loader,
+            DynamicSchemaLoaderModel: self.create_dynamic_schema_loader,
+            SchemaTypeIdentifierModel: self.create_schema_type_identifier,
+            TypesMapModel: self.create_types_map,
             JwtAuthenticatorModel: self.create_jwt_authenticator,
             LegacyToPerPartitionStateMigrationModel: self.create_legacy_to_per_partition_state_migration,
             ListPartitionRouterModel: self.create_list_partition_router,
@@ -1468,6 +1487,13 @@ class ModelToComponentFactory:
             parameters=model.parameters or {},
         )
 
+    def create_response_to_file_extractor(
+        self,
+        model: ResponseToFileExtractorModel,
+        **kwargs: Any,
+    ) -> ResponseToFileExtractor:
+        return ResponseToFileExtractor(parameters=model.parameters or {})
+
     @staticmethod
     def create_exponential_backoff_strategy(
         model: ExponentialBackoffStrategyModel, config: Config
@@ -1563,6 +1589,63 @@ class ModelToComponentFactory:
         model: InlineSchemaLoaderModel, config: Config, **kwargs: Any
     ) -> InlineSchemaLoader:
         return InlineSchemaLoader(schema=model.schema_ or {}, parameters={})
+
+    @staticmethod
+    def create_types_map(model: TypesMapModel, **kwargs: Any) -> TypesMap:
+        return TypesMap(target_type=model.target_type, current_type=model.current_type)
+
+    def create_schema_type_identifier(
+        self, model: SchemaTypeIdentifierModel, config: Config, **kwargs: Any
+    ) -> SchemaTypeIdentifier:
+        types_map = []
+        if model.types_mapping:
+            types_map.extend(
+                [
+                    self._create_component_from_model(types_pair, config=config)
+                    for types_pair in model.types_mapping
+                ]
+            )
+        model_schema_pointer: List[Union[InterpolatedString, str]] = (
+            [x for x in model.schema_pointer] if model.schema_pointer else []
+        )
+        model_key_pointer: List[Union[InterpolatedString, str]] = [x for x in model.key_pointer]
+        model_type_pointer: Optional[List[Union[InterpolatedString, str]]] = (
+            [x for x in model.type_pointer] if model.type_pointer else None
+        )
+
+        return SchemaTypeIdentifier(
+            schema_pointer=model_schema_pointer,
+            key_pointer=model_key_pointer,
+            type_pointer=model_type_pointer,
+            types_map=types_map,
+            parameters=model.parameters or {},
+        )
+
+    def create_dynamic_schema_loader(
+        self, model: DynamicSchemaLoaderModel, config: Config, **kwargs: Any
+    ) -> DynamicSchemaLoader:
+        stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
+        combined_slicers = self._build_resumable_cursor_from_paginator(
+            model.retriever, stream_slicer
+        )
+
+        retriever = self._create_component_from_model(
+            model=model.retriever,
+            config=config,
+            name="",
+            primary_key=None,
+            stream_slicer=combined_slicers,
+            transformations=[],
+        )
+        schema_type_identifier = self._create_component_from_model(
+            model.schema_type_identifier, config=config, parameters=model.parameters or {}
+        )
+        return DynamicSchemaLoader(
+            retriever=retriever,
+            config=config,
+            schema_type_identifier=schema_type_identifier,
+            parameters=model.parameters or {},
+        )
 
     @staticmethod
     def create_json_decoder(model: JsonDecoderModel, config: Config, **kwargs: Any) -> JsonDecoder:
@@ -1802,6 +1885,7 @@ class ModelToComponentFactory:
         self,
         model: RecordSelectorModel,
         config: Config,
+        name: str,
         *,
         transformations: List[RecordTransformation],
         decoder: Optional[Decoder] = None,
@@ -1832,6 +1916,7 @@ class ModelToComponentFactory:
 
         return RecordSelector(
             extractor=extractor,
+            name=name,
             config=config,
             record_filter=record_filter,
             transformations=transformations,
@@ -1902,6 +1987,7 @@ class ModelToComponentFactory:
         )
         record_selector = self._create_component_from_model(
             model=model.record_selector,
+            name=name,
             config=config,
             decoder=decoder,
             transformations=transformations,
@@ -2029,6 +2115,7 @@ class ModelToComponentFactory:
             model=model.record_selector,
             config=config,
             decoder=decoder,
+            name=name,
             transformations=transformations,
             client_side_incremental_sync=client_side_incremental_sync,
         )
@@ -2046,16 +2133,37 @@ class ModelToComponentFactory:
             name=f"job polling - {name}",
         )
         job_download_components_name = f"job download - {name}"
+        download_decoder = (
+            self._create_component_from_model(model=model.download_decoder, config=config)
+            if model.download_decoder
+            else JsonDecoder(parameters={})
+        )
+        download_extractor = (
+            self._create_component_from_model(
+                model=model.download_extractor,
+                config=config,
+                decoder=download_decoder,
+                parameters=model.parameters,
+            )
+            if model.download_extractor
+            else DpathExtractor(
+                [],
+                config=config,
+                decoder=download_decoder,
+                parameters=model.parameters or {},
+            )
+        )
         download_requester = self._create_component_from_model(
             model=model.download_requester,
-            decoder=decoder,
+            decoder=download_decoder,
             config=config,
             name=job_download_components_name,
         )
         download_retriever = SimpleRetriever(
             requester=download_requester,
             record_selector=RecordSelector(
-                extractor=ResponseToFileExtractor(),
+                extractor=download_extractor,
+                name=name,
                 record_filter=None,
                 transformations=[],
                 schema_normalization=TypeTransformer(TransformConfig.NoTransform),

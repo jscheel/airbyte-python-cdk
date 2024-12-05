@@ -9,3 +9,4 @@ from airbyte_cdk.sources.declarative.partition_routers.substream_partition_route
 from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
 
 __all__ = ["CartesianProductStreamSlicer", "ListPartitionRouter", "SinglePartitionRouter", "SubstreamPartitionRouter", "PartitionRouter"]
+
