@@ -247,8 +247,8 @@ class DatetimeBasedCursor(DeclarativeCursor):
             return self.parse_date(stream_state[self.cursor_field.eval(self.config)])  # type: ignore  # cursor_field is converted to an InterpolatedString in __post_init__
         return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
-    def _format_datetime(self, dt: datetime.datetime) -> Union[str, int]:
-        return self._parser.format(dt, self.datetime_format)
+    def _format_datetime(self, dt: datetime.datetime) -> str:
+        return str(self._parser.format(dt, self.datetime_format))
 
     def _partition_daterange(
         self,
