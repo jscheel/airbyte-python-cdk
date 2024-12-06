@@ -65,7 +65,7 @@ def test_parse_date(test_name, input_date, date_format, expected_output_date):
             "test_format_timestamp",
             datetime.datetime(2021, 1, 1, 0, 0, tzinfo=datetime.timezone.utc),
             "%s",
-            "1609459200",
+            1609459200,
         ),
         (
             "test_format_timestamp_ms",
