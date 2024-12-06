@@ -1321,7 +1321,7 @@ definitions:
         type: array
         items:
           - type: string
-        interpolation_content:
+        interpolation_context:
           - config
         examples:
           - ["data"]
@@ -1713,7 +1713,7 @@ definitions:
         default: []
         items:
           - type: string
-        interpolation_content:
+        interpolation_context:
           - config
       key_pointer:
         title: Key Path
@@ -1721,7 +1721,7 @@ definitions:
         type: array
         items:
           - type: string
-        interpolation_content:
+        interpolation_context:
           - config
       type_pointer:
         title: Type Path
@@ -1729,7 +1729,7 @@ definitions:
         type: array
         items:
           - type: string
-        interpolation_content:
+        interpolation_context:
           - config
       types_mapping:
         type: array
