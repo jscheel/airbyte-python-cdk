@@ -44,10 +44,10 @@ class DatetimeParser:
         if format == "%s":
             return int(dt.timestamp())
         if format == "%s_as_float":
-            return str(float(dt.timestamp()))
+            return float(dt.timestamp())
         if format == "%ms":
             # timstamp() returns a float representing the number of seconds since the unix epoch
-            return str(int(dt.timestamp() * 1000))
+            return int(dt.timestamp() * 1000)
         else:
             return dt.strftime(format)
 
