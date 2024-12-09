@@ -36,11 +36,13 @@ def connector_dir(request: pytest.FixtureRequest) -> Path:
     print("==============================\n")
     
     path = Path(request.config.invocation_params.dir)
-    resolved_path = path.parent
-    print(f"Resolved connector dir: {resolved_path}")
-    print(f"Resolved dir contents: {os.listdir(resolved_path) if resolved_path.exists() else 'Directory not found'}")
+    print(f"Resolved connector dir: {path}")
+
+    if path.name == "unit_tests":
+        return path.parent
+    print(f"Resolved dir contents: {os.listdir(path) if path.exists() else 'Directory not found'}")
     
-    return resolved_path
+    return path
 
 
 @pytest.fixture(scope="session")
