@@ -31,7 +31,6 @@ def connector_dir(request: pytest.FixtureRequest) -> Path:
     print(f"Config root path: {request.config.rootpath}")
     print(f"Invocation dir: {request.config.invocation_params.dir}")
     print(f"Current working dir: {os.getcwd()}")
-    print(f"Test file dir: {getattr(request.module, '__file__', 'No file attribute')}")
     print(f"Environment variables: {dict(os.environ)}")
     print(f"Directory contents: {os.listdir(os.getcwd())}")
     print("==============================\n")
