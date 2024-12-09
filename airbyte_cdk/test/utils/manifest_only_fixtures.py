@@ -16,8 +16,7 @@ import pytest
 # individual components can then be referenced as: components_module.<CustomComponentClass>
 
 
-import os
-from typing import Any, Optional
+from typing import Optional
 import pytest
 from pathlib import Path
 import importlib.util
@@ -27,50 +26,33 @@ from types import ModuleType
 @pytest.fixture(scope="session")
 def connector_dir(request: pytest.FixtureRequest) -> Path:
     """Return the connector's root directory."""
-    print("\n=== CDK Path Resolution Debug ===")
-    print(f"Config root path: {request.config.rootpath}")
-    print(f"Invocation dir: {request.config.invocation_params.dir}")
-    print(f"Current working dir: {os.getcwd()}")
-    print(f"Environment variables: {dict(os.environ)}")
-    print(f"Directory contents: {os.listdir(os.getcwd())}")
-    print("==============================\n")
     
     path = Path(request.config.invocation_params.dir)
-    print(f"Resolved connector dir: {path}")
-
+    # If the test is run locally from the connector's unit_tests directory, return the parent (connector) directory
     if path.name == "unit_tests":
         return path.parent
-    print(f"Resolved dir contents: {os.listdir(path) if path.exists() else 'Directory not found'}")
-    
+    # If the test is run in CI, return the current (connector) directory
     return path
 
 
 @pytest.fixture(scope="session")
 def components_module(connector_dir: Path) -> Optional[ModuleType]:
-    print("\n=== Components Module Debug ===")
     components_path = connector_dir / "components.py"
-    print(f"Looking for components.py at: {components_path}")
-    print(f"File exists: {components_path.exists()}")
     
     if not components_path.exists():
-        print("components.py not found")
         return None
         
     spec = importlib.util.spec_from_file_location("components", components_path)
-    print(f"Import spec created: {spec is not None}")
     
     if spec is None:
         return None
         
     module = importlib.util.module_from_spec(spec)
-    print(f"Module created: {module is not None}")
     
     if spec.loader is None:
         return None
         
     spec.loader.exec_module(module)
-    print("Module loaded successfully")
-    print("===========================\n")
     
     return module
 
