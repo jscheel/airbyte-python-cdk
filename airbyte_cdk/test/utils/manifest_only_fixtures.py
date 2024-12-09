@@ -16,37 +16,62 @@ import pytest
 # individual components can then be referenced as: components_module.<CustomComponentClass>
 
 
+import os
+from typing import Any, Optional
+import pytest
+from pathlib import Path
+import importlib.util
+from types import ModuleType
+
+
 @pytest.fixture(scope="session")
 def connector_dir(request: pytest.FixtureRequest) -> Path:
-    """Return the connector's root directory.
-
-    This assumes tests are being run from the unit_tests directory,
-    and that it is a direct child of the connector directory.
-    """
-    test_dir = Path(request.config.invocation_params.dir)
-    return test_dir.parent
+    """Return the connector's root directory."""
+    print("\n=== CDK Path Resolution Debug ===")
+    print(f"Config root path: {request.config.rootpath}")
+    print(f"Invocation dir: {request.config.invocation_params.dir}")
+    print(f"Current working dir: {os.getcwd()}")
+    print(f"Test file dir: {getattr(request.module, '__file__', 'No file attribute')}")
+    print(f"Environment variables: {dict(os.environ)}")
+    print(f"Directory contents: {os.listdir(os.getcwd())}")
+    print("==============================\n")
+    
+    path = Path(request.config.invocation_params.dir)
+    resolved_path = path.parent
+    print(f"Resolved connector dir: {resolved_path}")
+    print(f"Resolved dir contents: {os.listdir(resolved_path) if resolved_path.exists() else 'Directory not found'}")
+    
+    return resolved_path
 
 
 @pytest.fixture(scope="session")
 def components_module(connector_dir: Path) -> Optional[ModuleType]:
-    """Load and return the components module from the connector directory.
-
-    This assumes the components module is located at <connector_dir>/components.py.
-    """
+    print("\n=== Components Module Debug ===")
     components_path = connector_dir / "components.py"
+    print(f"Looking for components.py at: {components_path}")
+    print(f"File exists: {components_path.exists()}")
+    
     if not components_path.exists():
+        print("components.py not found")
         return None
-
-    components_spec = importlib.util.spec_from_file_location("components", components_path)
-    if components_spec is None:
+        
+    spec = importlib.util.spec_from_file_location("components", components_path)
+    print(f"Import spec created: {spec is not None}")
+    
+    if spec is None:
         return None
-
-    components_module = importlib.util.module_from_spec(components_spec)
-    if components_spec.loader is None:
+        
+    module = importlib.util.module_from_spec(spec)
+    print(f"Module created: {module is not None}")
+    
+    if spec.loader is None:
         return None
-
-    components_spec.loader.exec_module(components_module)
-    return components_module
+        
+    spec.loader.exec_module(module)
+    print("Module loaded successfully")
+    print("===========================\n")
+    
+    return module
 
 
 @pytest.fixture(scope="session")
