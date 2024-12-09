@@ -225,7 +225,7 @@ class ConcurrentPerPartitionCursor(Cursor):
     def _to_dict(self, partition_key: str) -> Mapping[str, Any]:
         return self._partition_serializer.to_partition(partition_key)
 
-    def _create_cursor(self, cursor_state: Any) -> DeclarativeCursor:
+    def _create_cursor(self, cursor_state: Any) -> Cursor:
         cursor = self._cursor_factory.create(stream_state=cursor_state)
         return cursor
 
