@@ -1606,9 +1606,7 @@ class ModelToComponentFactory:
         return GzipJsonDecoder(parameters={}, encoding=model.encoding)
 
     @staticmethod
-    def create_json_parser(
-        model: JsonParserModel, config: Config, **kwargs: Any
-    ) -> JsonParser:
+    def create_json_parser(model: JsonParserModel, config: Config, **kwargs: Any) -> JsonParser:
         return JsonParser(parameters={})
 
     @staticmethod

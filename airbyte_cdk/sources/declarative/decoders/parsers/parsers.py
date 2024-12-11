@@ -10,6 +10,7 @@ from typing import Any, Generator, MutableMapping, Union
 
 logger = logging.getLogger("airbyte")
 
+
 @dataclass
 class Parser:
     """
@@ -25,7 +26,10 @@ class JsonParser(Parser):
     """
     Parser strategy for converting JSON-structure str, bytes, or bytearray data into MutableMapping[str, Any].
     """
-    def parse(self, data: Union[str, bytes, bytearray]) -> Generator[MutableMapping[str, Any], None, None]:
+
+    def parse(
+        self, data: Union[str, bytes, bytearray]
+    ) -> Generator[MutableMapping[str, Any], None, None]:
         try:
             body_json = json.loads(data)
         except json.JSONDecodeError:
