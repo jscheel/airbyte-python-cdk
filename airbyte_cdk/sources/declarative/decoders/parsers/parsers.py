@@ -11,7 +11,7 @@ from typing import Any, Generator, MutableMapping, Union
 @dataclass
 class Parser:
     """
-    Parser strategy to convert byte data into a MutableMapping[str, Any].
+    Parser strategy to convert str, bytes, or bytearray data into MutableMapping[str, Any].
     """
 
     @abstractmethod
@@ -20,5 +20,8 @@ class Parser:
 
 
 class JsonParser(Parser):
+    """
+    Parser strategy for converting JSON-structure str, bytes, or bytearray data into MutableMapping[str, Any].
+    """
     def parse(self, data: Union[str, bytes, bytearray]) -> Generator[MutableMapping[str, Any], None, None]:
         yield json.loads(data)
