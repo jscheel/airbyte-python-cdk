@@ -1635,7 +1635,7 @@ class DeclarativeStream(BaseModel):
     primary_key: Optional[PrimaryKey] = Field(
         "", description="The primary key of the stream.", title="Primary Key"
     )
-    schema_loader: Optional[Union[InlineSchemaLoader, JsonFileSchemaLoader, CustomSchemaLoader]] = (
+    schema_loader: Optional[Union[InlineSchemaLoader, JsonFileSchemaLoader, CustomSchemaLoader, DynamicSchemaLoader]] = (
         Field(
             None,
             description="Component used to retrieve the schema for the current stream.",

@@ -1221,6 +1221,7 @@ definitions:
           - "$ref": "#/definitions/InlineSchemaLoader"
           - "$ref": "#/definitions/JsonFileSchemaLoader"
           - "$ref": "#/definitions/CustomSchemaLoader"
+          - "$ref": "#/definitions/DynamicSchemaLoader"
       # TODO we have move the transformation to the RecordSelector level in the code but kept this here for
       # compatibility reason. We should eventually move this to align with the code.
       transformations:
