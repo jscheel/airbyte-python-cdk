@@ -5,10 +5,11 @@
 import json
 import logging
 from abc import abstractmethod
-from dataclasses import dataclass
-from typing import Any, Generator, MutableMapping, Union
+from dataclasses import InitVar, dataclass
+from typing import Any, Generator, Mapping, MutableMapping, Union
 
 logger = logging.getLogger("airbyte")
+
 
 @dataclass
 class Parser:
@@ -17,15 +18,23 @@ class Parser:
     """
 
     @abstractmethod
-    def parse(self, data: bytes) -> Generator[MutableMapping[str, Any], None, None]:
+    def parse(
+        self, data: Union[str, bytes, bytearray]
+    ) -> Generator[MutableMapping[str, Any], None, None]:
         pass
 
 
+@dataclass
 class JsonParser(Parser):
     """
     Parser strategy for converting JSON-structure str, bytes, or bytearray data into MutableMapping[str, Any].
     """
-    def parse(self, data: Union[str, bytes, bytearray]) -> Generator[MutableMapping[str, Any], None, None]:
+
+    parameters: InitVar[Mapping[str, Any]]
+
+    def parse(
+        self, data: Union[str, bytes, bytearray]
+    ) -> Generator[MutableMapping[str, Any], None, None]:
         try:
             body_json = json.loads(data)
         except json.JSONDecodeError:

@@ -66,6 +66,7 @@ from airbyte_cdk.sources.declarative.decoders import (
     JsonlDecoder,
     PaginationDecoderDecorator,
     XmlDecoder,
+    ZipfileDecoder,
 )
 from airbyte_cdk.sources.declarative.decoders.parsers import JsonParser
 from airbyte_cdk.sources.declarative.extractors import (
@@ -305,6 +306,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     XmlDecoder as XmlDecoderModel,
 )
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    ZipfileDecoder as ZipfileDecoderModel,
+)
 from airbyte_cdk.sources.declarative.partition_routers import (
     CartesianProductStreamSlicer,
     ListPartitionRouter,
@@ -454,7 +458,7 @@ class ModelToComponentFactory:
             InlineSchemaLoaderModel: self.create_inline_schema_loader,
             JsonDecoderModel: self.create_json_decoder,
             JsonlDecoderModel: self.create_jsonl_decoder,
-            JsonParser: self.create_json_parser,
+            JsonParserModel: self.create_json_parser,
             GzipJsonDecoderModel: self.create_gzipjson_decoder,
             KeysToLowerModel: self.create_keys_to_lower_transformation,
             IterableDecoderModel: self.create_iterable_decoder,
@@ -485,6 +489,7 @@ class ModelToComponentFactory:
             AsyncRetrieverModel: self.create_async_retriever,
             HttpComponentsResolverModel: self.create_http_components_resolver,
             ComponentMappingDefinitionModel: self.create_components_mapping_definition,
+            ZipfileDecoderModel: self.create_zipfile_decoder,
         }
 
         # Needed for the case where we need to perform a second parse on the fields of a custom component
@@ -1605,10 +1610,18 @@ class ModelToComponentFactory:
     ) -> GzipJsonDecoder:
         return GzipJsonDecoder(parameters={}, encoding=model.encoding)
 
+    def create_zipfile_decoder(
+        self, model: ZipfileDecoderModel, config: Config, **kwargs: Any
+    ) -> ZipfileDecoder:
+        parser = (
+            self._create_component_from_model(model=model.parser, config=config)
+            if model.parser
+            else None
+        )
+        return ZipfileDecoder(parameters={}, parser=parser)
+
     @staticmethod
-    def create_json_parser(
-        model: JsonParserModel, config: Config, **kwargs: Any
-    ) -> JsonParser:
+    def create_json_parser(model: JsonParserModel, config: Config, **kwargs: Any) -> JsonParser:
         return JsonParser(parameters={})
 
     @staticmethod
