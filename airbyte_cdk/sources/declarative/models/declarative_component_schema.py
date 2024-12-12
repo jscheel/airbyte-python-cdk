@@ -650,6 +650,32 @@ class HttpResponseFilter(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class TypesMap(BaseModel):
+    target_type: Union[str, List[str]]
+    current_type: Union[str, List[str]]
+
+
+class SchemaTypeIdentifier(BaseModel):
+    type: Optional[Literal["SchemaTypeIdentifier"]] = None
+    schema_pointer: Optional[List[str]] = Field(
+        [],
+        description="List of nested fields defining the schema field path to extract. Defaults to [].",
+        title="Schema Path",
+    )
+    key_pointer: List[str] = Field(
+        ...,
+        description="List of potentially nested fields describing the full path of the field key to extract.",
+        title="Key Path",
+    )
+    type_pointer: Optional[List[str]] = Field(
+        None,
+        description="List of potentially nested fields describing the full path of the field type to extract.",
+        title="Type Path",
+    )
+    types_mapping: Optional[List[TypesMap]] = None
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
 class InlineSchemaLoader(BaseModel):
     type: Literal["InlineSchemaLoader"]
     schema_: Optional[Dict[str, Any]] = Field(
@@ -1187,8 +1213,10 @@ class ComponentMappingDefinition(BaseModel):
         examples=[
             ["data"],
             ["data", "records"],
-            ["data", "{{ parameters.name }}"],
+            ["data", 1, "name"],
+            ["data", "{{ components_values.name }}"],
             ["data", "*", "record"],
+            ["*", "**", "name"],
         ],
         title="Field Path",
     )
@@ -1207,6 +1235,24 @@ class ComponentMappingDefinition(BaseModel):
         description="The expected data type of the value. If omitted, the type will be inferred from the value provided.",
         title="Value Type",
     )
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class StreamConfig(BaseModel):
+    type: Literal["StreamConfig"]
+    configs_pointer: List[str] = Field(
+        ...,
+        description="A list of potentially nested fields indicating the full path in source config file where streams configs located.",
+        examples=[["data"], ["data", "streams"], ["data", "{{ parameters.name }}"]],
+        title="Configs Pointer",
+    )
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class ConfigComponentsResolver(BaseModel):
+    type: Literal["ConfigComponentsResolver"]
+    stream_config: StreamConfig
+    components_mapping: List[ComponentMappingDefinition]
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
@@ -1642,12 +1688,17 @@ class DeclarativeStream(BaseModel):
     primary_key: Optional[PrimaryKey] = Field(
         "", description="The primary key of the stream.", title="Primary Key"
     )
-    schema_loader: Optional[Union[InlineSchemaLoader, JsonFileSchemaLoader, CustomSchemaLoader]] = (
-        Field(
-            None,
-            description="Component used to retrieve the schema for the current stream.",
-            title="Schema Loader",
-        )
+    schema_loader: Optional[
+        Union[
+            DynamicSchemaLoader,
+            InlineSchemaLoader,
+            JsonFileSchemaLoader,
+            CustomSchemaLoader,
+        ]
+    ] = Field(
+        None,
+        description="Component used to retrieve the schema for the current stream.",
+        title="Schema Loader",
     )
     transformations: Optional[
         List[Union[AddFields, CustomTransformation, RemoveFields, KeysToLower]]
@@ -1804,6 +1855,17 @@ class HttpRequester(BaseModel):
         description="Enables stream requests caching. This field is automatically set by the CDK.",
         title="Use Cache",
     )
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class DynamicSchemaLoader(BaseModel):
+    type: Literal["DynamicSchemaLoader"]
+    retriever: Union[AsyncRetriever, CustomRetriever, SimpleRetriever] = Field(
+        ...,
+        description="Component used to coordinate how records are extracted across stream slices and request pages.",
+        title="Retriever",
+    )
+    schema_type_identifier: SchemaTypeIdentifier
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
@@ -2001,7 +2063,7 @@ class DynamicDeclarativeStream(BaseModel):
     stream_template: DeclarativeStream = Field(
         ..., description="Reference to the stream template.", title="Stream Template"
     )
-    components_resolver: HttpComponentsResolver = Field(
+    components_resolver: Union[HttpComponentsResolver, ConfigComponentsResolver] = Field(
         ...,
         description="Component resolve and populates stream templates with components values.",
         title="Components Resolver",
@@ -2014,5 +2076,6 @@ DeclarativeSource2.update_forward_refs()
 SelectiveAuthenticator.update_forward_refs()
 DeclarativeStream.update_forward_refs()
 SessionTokenAuthenticator.update_forward_refs()
+DynamicSchemaLoader.update_forward_refs()
 SimpleRetriever.update_forward_refs()
 AsyncRetriever.update_forward_refs()
