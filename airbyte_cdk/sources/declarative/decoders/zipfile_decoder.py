@@ -10,7 +10,6 @@ from dataclasses import InitVar, dataclass
 from typing import Any, Generator, Mapping, MutableMapping, Optional
 
 import requests
-from pydantic import field
 
 from airbyte_cdk.sources.declarative.decoders import Decoder
 from airbyte_cdk.sources.declarative.decoders.parsers import JsonParser, Parser
@@ -24,7 +23,9 @@ class ZipfileDecoder(Decoder):
     parser: Optional[Parser] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-        self._parser = self.parser if self.parser is not None else JsonParser(parameters=parameters)
+        self._parser = (
+            self.parser(parameters=parameters) if self.parser else JsonParser(parameters=parameters)
+        )
 
     def is_stream_response(self) -> bool:
         return False
@@ -44,6 +45,10 @@ class ZipfileDecoder(Decoder):
 
         for gzip_filename in zip_file.namelist():
             with zip_file.open(gzip_filename) as file:
-                with gzip.open(file) as unzipped_file:
-                    for data in unzipped_file:
+                try:
+                    for data in gzip.open(file):
                         yield from self._parser.parse(data)
+                except gzip.BadGzipFile as e:
+                    logger.exception(e)
+                    logger.error(f"Fail to read contents of zipped response: {e}")
+                    yield {}
