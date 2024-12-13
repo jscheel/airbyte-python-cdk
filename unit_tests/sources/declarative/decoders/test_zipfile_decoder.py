@@ -32,7 +32,6 @@ def create_zip_from_dict(data: Union[dict, list]):
 def test_zipfile_decoder_with_valid_response(requests_mock, json_data):
     zipfile_decoder = ZipfileDecoder(parameters={}, parser=JsonParser)
     compressed_data = gzip.compress(json.dumps(json_data).encode())
-    # zipped_data = create_zip_from_dict(json_data)
     zipped_data = create_zip_from_dict(compressed_data)
     requests_mock.register_uri("GET", "https://airbyte.io/", content=zipped_data)
     response = requests.get("https://airbyte.io/")
