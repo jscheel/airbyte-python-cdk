@@ -8,6 +8,7 @@ import datetime
 import importlib
 import inspect
 import re
+import types
 from functools import partial
 from typing import (
     Any,
@@ -986,8 +987,25 @@ class ModelToComponentFactory:
         :param config: The custom defined connector config
         :return: The declarative component built from the Pydantic model to be used at runtime
         """
+        INJECTED_COMPONENTS_PY = "__injected_components_py"
 
-        custom_component_class = self._get_class_from_fully_qualified_class_name(model.class_name)
+        components_module: Optional[types.ModuleType] = None
+        if INJECTED_COMPONENTS_PY in config:
+            # declares a dynamic module `components` from provided text
+            python_text = config[INJECTED_COMPONENTS_PY]
+            module_name = "components"
+
+            # Create a new module object
+            components_module = types.ModuleType(module_name)
+            # Execute the module text in the module's namespace
+            exec(python_text, components_module.__dict__)
+            # Skip insert the module into sys.modules because we pass by reference below
+            # sys.modules[module_name] = components_module
+
+        custom_component_class = self._get_class_from_fully_qualified_class_name(
+            full_qualified_class_name=model.class_name,
+            components_module=components_module,
+        )
         component_fields = get_type_hints(custom_component_class)
         model_args = model.dict()
         model_args["config"] = config
@@ -1039,15 +1057,38 @@ class ModelToComponentFactory:
         }
         return custom_component_class(**kwargs)
 
-    @staticmethod
-    def _get_class_from_fully_qualified_class_name(full_qualified_class_name: str) -> Any:
+    def _get_class_from_fully_qualified_class_name(
+        full_qualified_class_name: str,
+        components_module: Optional[types.ModuleType] = None,
+    ) -> Any:
+        """
+        Get a class from its fully qualified name, optionally using a pre-parsed module.
+
+        Args:
+            full_qualified_class_name (str): The fully qualified name of the class (e.g., "module.ClassName").
+            components_module (Optional[ModuleType]): An optional pre-parsed module.
+
+        Returns:
+            Any: The class object.
+
+        Raises:
+            ValueError: If the class cannot be loaded.
+        """
         split = full_qualified_class_name.split(".")
-        module = ".".join(split[:-1])
+        module_name = ".".join(split[:-1])
         class_name = split[-1]
+
         try:
-            return getattr(importlib.import_module(module), class_name)
-        except AttributeError:
-            raise ValueError(f"Could not load class {full_qualified_class_name}.")
+            # Use the provided module if available and if module name matches
+            if components_module and components_module.__name__ == module_name:
+                return getattr(components_module, class_name)
+
+            # Fallback to importing the module dynamically
+            module = importlib.import_module(module_name)
+            return getattr(module, class_name)
+
+        except (AttributeError, ModuleNotFoundError) as e:
+            raise ValueError(f"Could not load class {full_qualified_class_name}.") from e
 
     @staticmethod
     def _derive_component_type_from_type_hints(field_type: Any) -> Optional[str]:
