@@ -78,5 +78,7 @@ def test_stream_slices_with_parent_slicer():
         attempts_per_job = list(partition.jobs)
         assert len(attempts_per_job) == 1
         assert attempts_per_job[0].api_job_id() == "a_job_id"
-        assert attempts_per_job[0].job_parameters() == StreamSlice(partition={}, cursor_slice={})
+        assert attempts_per_job[0].job_parameters() == StreamSlice(
+            partition={"parent_id": str(i)}, cursor_slice={}
+        )
         assert attempts_per_job[0].status() == AsyncJobStatus.COMPLETED

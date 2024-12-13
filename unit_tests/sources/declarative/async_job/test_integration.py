@@ -38,7 +38,7 @@ _NO_LIMIT = 10000
 
 class MockAsyncJobRepository(AsyncJobRepository):
     def start(self, stream_slice: StreamSlice) -> AsyncJob:
-        return AsyncJob("a_job_id", StreamSlice(partition={}, cursor_slice={}))
+        return AsyncJob("a_job_id", stream_slice)
 
     def update_jobs_status(self, jobs: Set[AsyncJob]) -> None:
         for job in jobs:
