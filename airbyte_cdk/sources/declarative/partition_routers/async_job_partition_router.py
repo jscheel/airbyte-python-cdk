@@ -48,6 +48,13 @@ class AsyncJobPartitionRouter(StreamSlicer):
             )
 
     def fetch_records(self, partition: AsyncPartition) -> Iterable[Mapping[str, Any]]:
+        """
+        This method of fetching records extends beyond what a PartitionRouter/StreamSlicer should
+        be responsible for. However, this was added in because the JobOrchestrator is required to
+        retrieve records. And without defining fetch_records() on this class, we're stuck with either
+        passing the JobOrchestrator to the AsyncRetriever or storing it on multiple classes.
+        """
+
         if not self._job_orchestrator:
             raise AirbyteTracedException(
                 message="Invalid state within AsyncJobRetriever. Please contact Airbyte Support",
