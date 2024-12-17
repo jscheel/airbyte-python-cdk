@@ -2719,9 +2719,27 @@ definitions:
           - "$ref": "#/definitions/IterableDecoder"
           - "$ref": "#/definitions/XmlDecoder"
           - "$ref": "#/definitions/GzipJsonDecoder"
+          - "$ref": "#/definitions/GenericDecoder"
       $parameters:
         type: object
         additionalProperties: true
+  GenericDecoder:
+    description: "(This is experimental, use at your own risk)"
+    type: object
+    properties:
+      mapping: # content type to parser
+        application/json: JsonParser
+        application/csv: CsvParser
+
+  GzipParser:
+    type: object
+    required:
+      - parser
+    properties:
+      anyOf:
+        - "$ref": "#/definitions/GzipParser"
+        - "$ref": "#/definitions/JsonlParser"
+        - "$ref": "#/definitions/CsvParser"
   AsyncJobStatusMap:
     description: Matches the api job status to Async Job Status.
     type: object
