@@ -226,6 +226,7 @@ class ConcurrentCursor(Cursor):
         )
 
     def observe(self, record: Record) -> None:
+        print(f"Observing record: {record}")
         most_recent_cursor_value = self._most_recent_cursor_value_per_partition.get(
             record.associated_slice
         )
@@ -239,15 +240,6 @@ class ConcurrentCursor(Cursor):
 
     def _extract_cursor_value(self, record: Record) -> Any:
         return self._connector_state_converter.parse_value(self._cursor_field.extract_value(record))
-
-    def close_partition_without_emit(self, partition: Partition) -> None:
-        slice_count_before = len(self.state.get("slices", []))
-        self._add_slice_to_state(partition)
-        if slice_count_before < len(
-            self.state["slices"]
-        ):  # only emit if at least one slice has been processed
-            self._merge_partitions()
-        self._has_closed_at_least_one_slice = True
 
     def close_partition(self, partition: Partition) -> None:
         slice_count_before = len(self.state.get("slices", []))

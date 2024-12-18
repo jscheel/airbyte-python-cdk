@@ -376,6 +376,7 @@ from airbyte_cdk.sources.message import (
     InMemoryMessageRepository,
     LogAppenderMessageRepositoryDecorator,
     MessageRepository,
+    NoopMessageRepository,
 )
 from airbyte_cdk.sources.streams.concurrent.cursor import ConcurrentCursor, CursorField
 from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_state_converter import (
@@ -773,6 +774,7 @@ class ModelToComponentFactory:
         stream_namespace: Optional[str],
         config: Config,
         stream_state: MutableMapping[str, Any],
+        message_repository: Optional[MessageRepository] = None,
         **kwargs: Any,
     ) -> ConcurrentCursor:
         component_type = component_definition.get("type")
@@ -908,7 +910,7 @@ class ModelToComponentFactory:
             stream_name=stream_name,
             stream_namespace=stream_namespace,
             stream_state=stream_state,
-            message_repository=self._message_repository,
+            message_repository=message_repository or self._message_repository,
             connector_state_manager=state_manager,
             connector_state_converter=connector_state_converter,
             cursor_field=cursor_field,
@@ -961,6 +963,7 @@ class ModelToComponentFactory:
                 stream_name=stream_name,
                 stream_namespace=stream_namespace,
                 config=config,
+                message_repository=NoopMessageRepository()
             )
         )
 
