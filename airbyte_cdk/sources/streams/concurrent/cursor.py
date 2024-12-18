@@ -183,6 +183,7 @@ class ConcurrentCursor(Cursor):
         self._slice_boundary_fields = slice_boundary_fields
         self._start = start
         self._end_provider = end_provider
+        print(f"ConcurrentCursor.__init__ with state {stream_state}")
         self.start, self._concurrent_state = self._get_concurrent_state(stream_state)
         self._lookback_window = lookback_window
         self._slice_range = slice_range
@@ -226,7 +227,7 @@ class ConcurrentCursor(Cursor):
         )
 
     def observe(self, record: Record) -> None:
-        print(f"Observing record: {record}")
+        print(f"ConcurrentCursor.observe {record}")
         most_recent_cursor_value = self._most_recent_cursor_value_per_partition.get(
             record.associated_slice
         )

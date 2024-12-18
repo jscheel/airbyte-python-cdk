@@ -6,6 +6,7 @@ import logging
 #
 import threading
 from collections import OrderedDict
+from copy import deepcopy
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional
 
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
@@ -57,7 +58,6 @@ class ConcurrentPerPartitionCursor(Cursor):
     _NO_CURSOR_STATE: Mapping[str, Any] = {}
     _KEY = 0
     _VALUE = 1
-    _state_to_migrate_from: Mapping[str, Any] = {}
 
     def __init__(
         self,
@@ -70,6 +70,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         connector_state_manager: ConnectorStateManager,
         cursor_field: CursorField,
     ) -> None:
+        self._state_to_migrate_from = {}
         self._stream_name = stream_name
         self._stream_namespace = stream_namespace
         self._message_repository = message_repository
@@ -125,7 +126,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         return state
 
     def close_partition(self, partition: Partition) -> None:
-        print(f"Closing partition {self._to_partition_key(partition._stream_slice.partition)}")
+        print(f"ConcurrentPerPartitionCursor.close_partition {self._to_partition_key(partition._stream_slice.partition)}")
         self._cursor_per_partition[
             self._to_partition_key(partition._stream_slice.partition)
         ].close_partition(partition=partition)
@@ -259,6 +260,7 @@ class ConcurrentPerPartitionCursor(Cursor):
                     }
                 }
         """
+        print(f"ConcurrentPerPartitionCursor._set_initial_state {stream_state}")
         if not stream_state:
             return
 
@@ -284,7 +286,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         self._partition_router.set_initial_state(stream_state)
 
     def observe(self, record: Record) -> None:
-        print(self._to_partition_key(record.associated_slice.partition), record)
+        print(f"ConcurrentPerPartitionCursor.observe: {self._to_partition_key(record.associated_slice.partition), record}")
         self._cursor_per_partition[
             self._to_partition_key(record.associated_slice.partition)
         ].observe(record)
@@ -296,7 +298,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         return self._partition_serializer.to_partition(partition_key)
 
     def _create_cursor(self, cursor_state: Any) -> Cursor:
-        cursor = self._cursor_factory.create(stream_state=cursor_state)
+        cursor = self._cursor_factory.create(stream_state=deepcopy(cursor_state))
         return cursor
 
     def should_be_synced(self, record: Record) -> bool:
