@@ -165,7 +165,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         ):
             self._global_cursor = self._new_global_cursor
             self._lookback_window = self._timer.finish()
-        self._parent_state = self._partition_router.get_stream_state()
+            self._parent_state = self._partition_router.get_stream_state()
         self._emit_state_message()
 
     def _emit_state_message(self) -> None:
