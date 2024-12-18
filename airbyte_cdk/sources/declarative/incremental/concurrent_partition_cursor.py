@@ -1,16 +1,19 @@
 import copy
+import logging
 
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 import threading
-import logging
 from collections import OrderedDict
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional
 
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
-from airbyte_cdk.sources.declarative.incremental.global_substream_cursor import iterate_with_last_flag_and_state, Timer
 from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
+from airbyte_cdk.sources.declarative.incremental.global_substream_cursor import (
+    Timer,
+    iterate_with_last_flag_and_state,
+)
 from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
 from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import (
@@ -123,18 +126,33 @@ class ConcurrentPerPartitionCursor(Cursor):
 
     def close_partition(self, partition: Partition) -> None:
         print(f"Closing partition {self._to_partition_key(partition._stream_slice.partition)}")
-        self._cursor_per_partition[self._to_partition_key(partition._stream_slice.partition)].close_partition(partition=partition)
-        with (self._lock):
-            self._semaphore_per_partition[self._to_partition_key(partition._stream_slice.partition)].acquire()
-            cursor = self._cursor_per_partition[self._to_partition_key(partition._stream_slice.partition)]
+        self._cursor_per_partition[
+            self._to_partition_key(partition._stream_slice.partition)
+        ].close_partition(partition=partition)
+        with self._lock:
+            self._semaphore_per_partition[
+                self._to_partition_key(partition._stream_slice.partition)
+            ].acquire()
+            cursor = self._cursor_per_partition[
+                self._to_partition_key(partition._stream_slice.partition)
+            ]
             cursor_state = cursor._connector_state_converter.convert_to_state_message(
                 cursor._cursor_field, cursor.state
             )
             print(f"State {cursor_state} {cursor.state}")
-            if self._to_partition_key(partition._stream_slice.partition) in self._finished_partitions \
-                and self._semaphore_per_partition[self._to_partition_key(partition._stream_slice.partition)]._value == 0:
-                if self._new_global_cursor is None \
-                        or self._new_global_cursor[self.cursor_field.cursor_field_key] < cursor_state[self.cursor_field.cursor_field_key]:
+            if (
+                self._to_partition_key(partition._stream_slice.partition)
+                in self._finished_partitions
+                and self._semaphore_per_partition[
+                    self._to_partition_key(partition._stream_slice.partition)
+                ]._value
+                == 0
+            ):
+                if (
+                    self._new_global_cursor is None
+                    or self._new_global_cursor[self.cursor_field.cursor_field_key]
+                    < cursor_state[self.cursor_field.cursor_field_key]
+                ):
                     self._new_global_cursor = copy.deepcopy(cursor_state)
 
     def ensure_at_least_one_state_emitted(self) -> None:
@@ -142,7 +160,9 @@ class ConcurrentPerPartitionCursor(Cursor):
         The platform expect to have at least one state message on successful syncs. Hence, whatever happens, we expect this method to be
         called.
         """
-        if not any(semaphore_item[1]._value for semaphore_item in self._semaphore_per_partition.items()):
+        if not any(
+            semaphore_item[1]._value for semaphore_item in self._semaphore_per_partition.items()
+        ):
             self._global_cursor = self._new_global_cursor
             self._lookback_window = self._timer.finish()
         self._parent_state = self._partition_router.get_stream_state()
@@ -158,7 +178,6 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._stream_name, self._stream_namespace
         )
         self._message_repository.emit_message(state_message)
-
 
     def stream_slices(self) -> Iterable[StreamSlice]:
         slices = self._partition_router.stream_slices()
@@ -179,11 +198,13 @@ class ConcurrentPerPartitionCursor(Cursor):
             )
             cursor = self._create_cursor(partition_state)
             self._cursor_per_partition[self._to_partition_key(partition.partition)] = cursor
-            self._semaphore_per_partition[self._to_partition_key(partition.partition)] = threading.Semaphore(0)
+            self._semaphore_per_partition[self._to_partition_key(partition.partition)] = (
+                threading.Semaphore(0)
+            )
 
         for cursor_slice, is_last_slice, _ in iterate_with_last_flag_and_state(
-                cursor.stream_slices(),
-                lambda: None,
+            cursor.stream_slices(),
+            lambda: None,
         ):
             self._semaphore_per_partition[self._to_partition_key(partition.partition)].release()
             if is_last_slice:
@@ -251,7 +272,9 @@ class ConcurrentPerPartitionCursor(Cursor):
                 self._cursor_per_partition[self._to_partition_key(state["partition"])] = (
                     self._create_cursor(state["cursor"])
                 )
-                self._semaphore_per_partition[self._to_partition_key(state["partition"])] = threading.Semaphore(0)
+                self._semaphore_per_partition[self._to_partition_key(state["partition"])] = (
+                    threading.Semaphore(0)
+                )
 
             # set default state for missing partitions if it is per partition with fallback to global
             if "state" in stream_state:
@@ -262,7 +285,9 @@ class ConcurrentPerPartitionCursor(Cursor):
 
     def observe(self, record: Record) -> None:
         print(self._to_partition_key(record.associated_slice.partition), record)
-        self._cursor_per_partition[self._to_partition_key(record.associated_slice.partition)].observe(record)
+        self._cursor_per_partition[
+            self._to_partition_key(record.associated_slice.partition)
+        ].observe(record)
 
     def _to_partition_key(self, partition: Mapping[str, Any]) -> str:
         return self._partition_serializer.to_partition_key(partition)

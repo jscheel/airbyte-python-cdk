@@ -1,8 +1,8 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
+import copy
 from typing import Any, List, Mapping, MutableMapping, Optional, Union
 from unittest.mock import MagicMock
-import copy
 
 import pytest
 import requests_mock
@@ -264,9 +264,7 @@ def _run_read(
     source = ConcurrentDeclarativeSource(
         source_config=manifest, config=config, catalog=catalog, state=state
     )
-    messages = list(
-        source.read(logger=source.logger, config=config, catalog=catalog, state=[])
-    )
+    messages = list(source.read(logger=source.logger, config=config, catalog=catalog, state=[]))
     return messages
 
 
@@ -474,11 +472,9 @@ def _run_read(
                         "cursor": {"created_at": "2024-01-10T00:00:00Z"},
                     },
                 ],
-             'lookback_window': 1,
-              'parent_state': {},
-              'state': {'created_at': '2024-01-15T00:00:00Z'}
-
-
+                "lookback_window": 1,
+                "parent_state": {},
+                "state": {"created_at": "2024-01-15T00:00:00Z"},
             },
         ),
     ],
@@ -520,7 +516,9 @@ def test_incremental_parent_state_no_incremental_dependency(
         output = _run_read(manifest, config, _stream_name, initial_state)
         output_data = [message.record.data for message in output if message.record]
 
-        assert set(tuple(sorted(d.items())) for d in output_data) == set(tuple(sorted(d.items())) for d in expected_records)
+        assert set(tuple(sorted(d.items())) for d in output_data) == set(
+            tuple(sorted(d.items())) for d in expected_records
+        )
         final_state = [
             orjson.loads(orjson.dumps(message.state.stream.stream_state))
             for message in output
@@ -565,8 +563,9 @@ def run_incremental_parent_state_test(
         output_data = [message.record.data for message in output if message.record]
 
         # Assert that output_data equals expected_records
-        assert (sorted(output_data, key=lambda x: orjson.dumps(x))
-            == sorted(expected_records, key=lambda x: orjson.dumps(x)))
+        assert sorted(output_data, key=lambda x: orjson.dumps(x)) == sorted(
+            expected_records, key=lambda x: orjson.dumps(x)
+        )
 
         # Collect the intermediate states and records produced before each state
         cumulative_records = []
@@ -884,8 +883,8 @@ def run_incremental_parent_state_test(
                         "cursor": {"created_at": "2024-01-13T00:00:00Z"},
                     },
                     {
-                        'partition': {'id': 12, 'parent_slice': {'id': 1, 'parent_slice': {}}},
-                        'cursor': {'created_at': '2024-01-01T00:00:01Z'},
+                        "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
+                        "cursor": {"created_at": "2024-01-01T00:00:01Z"},
                     },
                     {
                         "partition": {"id": 20, "parent_slice": {"id": 2, "parent_slice": {}}},
@@ -1141,7 +1140,9 @@ def test_incremental_parent_state_migration(
         output = _run_read(manifest, config, _stream_name, initial_state)
         output_data = [message.record.data for message in output if message.record]
 
-        assert set(tuple(sorted(d.items())) for d in output_data) == set(tuple(sorted(d.items())) for d in expected_records)
+        assert set(tuple(sorted(d.items())) for d in output_data) == set(
+            tuple(sorted(d.items())) for d in expected_records
+        )
         final_state = [
             orjson.loads(orjson.dumps(message.state.stream.stream_state))
             for message in output
