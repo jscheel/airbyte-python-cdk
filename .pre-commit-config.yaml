@@ -1,13 +1,15 @@
-exclude: |
-  (?x)(
-    # Python/system files
-    ^.*?/\.venv/.*$|
-    ^.*?/node_modules/.*$|
-
-    # Generated files
-    ^.*?/generated/.*$|
-  )
-
+# Pre-commit configuration file.
+#
+# Usage:
+#   pre-commit                  # Run pre-commit checks on modified files.
+#   pre-commit run --all-files  # Run pre-commit on all files in the repo.
+#
+# You do not need to install pre-commit as a git hook. The pre-commit
+# tool can be called directly (or in CI). You can also lean on your IDE
+# or CLI of the individual tools to run them directly.
+#
+# If direct execution differs from the pre-commit execution, this is a bug
+# and should be raised as an issue.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.3
