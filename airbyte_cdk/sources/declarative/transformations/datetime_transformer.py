@@ -53,10 +53,10 @@ class DateTimeNormalizer(RecordTransformation):
         for pointer in self.field_pointers:
             try:
                 current_date_time_value: str | int = dpath.get(record, pointer)
-                new_val = self._parser.parse(
+                parsed_datetime = self._parser.parse(
                     date=current_date_time_value, format=self.datetime_format
-                ).isoformat()
-                dpath.set(record, pointer, new_val)
+                )
+                dpath.set(record, pointer, self._parser.isoformat(parsed_datetime))
             except dpath.exceptions.PathNotFound:
                 # if the (potentially nested) property does not exist, silently skip
                 pass

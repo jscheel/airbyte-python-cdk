@@ -63,3 +63,13 @@ class DatetimeParser:
 
     def _is_naive(self, dt: datetime.datetime) -> bool:
         return dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None
+
+    def isoformat(self, dt: datetime.datetime) -> str:
+        """
+        Convert a datetime object to an ISO 8601 formatted string.
+
+        :param dt: (datetime.datetime) The datetime object to format.
+
+        :return: str: The ISO 8601 formatted string representation of the datetime.
+        """
+        return dt.isoformat()
