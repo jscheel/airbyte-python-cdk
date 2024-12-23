@@ -14,10 +14,9 @@ from airbyte_cdk.sources.types import Config, FieldPointer, StreamSlice, StreamS
 
 
 @dataclass
-class DateTimeNormalizerFields(RecordTransformation):
+class DateTimeNormalizer(RecordTransformation):
     """
-    A transformation which removes fields from a record. The fields removed are designated using FieldPointers.
-    During transformation, if a field or any of its parents does not exist in the record, no error is thrown.
+    A transformation which transform specified datetime fields into RFC3339 format.
 
     Usage syntax:
 
