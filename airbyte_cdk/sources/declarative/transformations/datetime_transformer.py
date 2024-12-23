@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Mapping, Optional
 
 import dpath
 import dpath.exceptions
-from sources.declarative.datetime.datetime_parser import DatetimeParser
 
+from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
 from airbyte_cdk.sources.declarative.transformations import RecordTransformation
 from airbyte_cdk.sources.types import Config, FieldPointer, StreamSlice, StreamState
 
