@@ -5,6 +5,8 @@
 import datetime
 from typing import Union
 
+import dateparser
+
 
 class DatetimeParser:
     """
@@ -32,7 +34,15 @@ class DatetimeParser:
         elif format == "%ms":
             return self._UNIX_EPOCH + datetime.timedelta(milliseconds=int(date))
 
-        parsed_datetime = datetime.datetime.strptime(str(date), format)
+        parsed_datetime = dateparser.parse(
+            str(date),
+            date_formats=[format],
+            settings={
+                "TIMEZONE": "UTC",
+                "RETURN_AS_TIMEZONE_AWARE": True,
+            },
+        )
+
         if self._is_naive(parsed_datetime):
             return parsed_datetime.replace(tzinfo=datetime.timezone.utc)
         return parsed_datetime
