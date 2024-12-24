@@ -5,8 +5,6 @@
 import datetime
 from typing import Union
 
-import dateparser
-
 
 class DatetimeParser:
     """
@@ -19,9 +17,6 @@ class DatetimeParser:
     """
 
     _UNIX_EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
-
-    def __init__(self):
-        self._parser = dateparser.date.DateDataParser
 
     def parse(self, date: Union[str, int], format: str) -> datetime.datetime:
         # "%s" is a valid (but unreliable) directive for formatting, but not for parsing
@@ -37,17 +32,7 @@ class DatetimeParser:
         elif format == "%ms":
             return self._UNIX_EPOCH + datetime.timedelta(milliseconds=int(date))
 
-        settings = dateparser.conf.Settings().replace(
-            **{"TIMEZONE": "UTC", "RETURN_AS_TIMEZONE_AWARE": True}
-        )
-
-        parsed_datetime = dateparser.date.parse_with_formats(
-            str(date), date_formats=[format], settings=settings
-        ).date_obj
-
-        if not parsed_datetime:
-            raise ValueError(f"Could not parse {date} as {format}")
-
+        parsed_datetime = datetime.datetime.strptime(str(date), format)
         if self._is_naive(parsed_datetime):
             return parsed_datetime.replace(tzinfo=datetime.timezone.utc)
         return parsed_datetime
@@ -68,13 +53,3 @@ class DatetimeParser:
 
     def _is_naive(self, dt: datetime.datetime) -> bool:
         return dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None
-
-    def isoformat(self, dt: datetime.datetime) -> str:
-        """
-        Convert a datetime object to an ISO 8601 formatted string.
-
-        :param dt: (datetime.datetime) The datetime object to format.
-
-        :return: str: The ISO 8601 formatted string representation of the datetime.
-        """
-        return dt.isoformat()
