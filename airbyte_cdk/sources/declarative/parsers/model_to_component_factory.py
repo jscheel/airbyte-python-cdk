@@ -26,7 +26,6 @@ from typing import (
 
 from isodate import parse_duration
 from pydantic.v1 import BaseModel
-from sources.declarative.transformations.datetime_normalizer import DateTimeNormalizer
 
 from airbyte_cdk.models import FailureType, Level
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
@@ -400,6 +399,7 @@ from airbyte_cdk.sources.declarative.transformations import (
     RemoveFields,
 )
 from airbyte_cdk.sources.declarative.transformations.add_fields import AddedFieldDefinition
+from airbyte_cdk.sources.declarative.transformations.datetime_normalizer import DateTimeNormalizer
 from airbyte_cdk.sources.declarative.transformations.flatten_fields import (
     FlattenFields,
 )
