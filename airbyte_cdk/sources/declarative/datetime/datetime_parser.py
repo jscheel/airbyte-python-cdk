@@ -20,6 +20,9 @@ class DatetimeParser:
 
     _UNIX_EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
 
+    def __init__(self):
+        self._parser = dateparser.date.DateDataParser
+
     def parse(self, date: Union[str, int], format: str) -> datetime.datetime:
         # "%s" is a valid (but unreliable) directive for formatting, but not for parsing
         # It is defined as
@@ -34,14 +37,15 @@ class DatetimeParser:
         elif format == "%ms":
             return self._UNIX_EPOCH + datetime.timedelta(milliseconds=int(date))
 
-        parsed_datetime = dateparser.parse(
-            str(date),
-            date_formats=[format],
-            settings={
-                "TIMEZONE": "UTC",
-                "RETURN_AS_TIMEZONE_AWARE": True,
-            },
-        )
+        settings = dateparser.conf.Settings().replace(**{
+            "TIMEZONE": "UTC",
+            "RETURN_AS_TIMEZONE_AWARE": True
+        })
+
+        parsed_datetime = dateparser.date.parse_with_formats(str(date), date_formats=[format], settings=settings).date_obj
+
+        if not parsed_datetime:
+            raise ValueError(f"Could not parse {date} as {format}")
 
         if self._is_naive(parsed_datetime):
             return parsed_datetime.replace(tzinfo=datetime.timezone.utc)
