@@ -1,16 +1,17 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
-
+import logging
 from dataclasses import InitVar, dataclass
 from typing import Any, Dict, List, Mapping, Optional
 
+import dateparser
 import dpath
-import dpath.exceptions
 
-from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
 from airbyte_cdk.sources.declarative.transformations import RecordTransformation
 from airbyte_cdk.sources.types import Config, FieldPointer, StreamSlice, StreamState
+
+logger = logging.getLogger("airbyte")
 
 
 @dataclass
@@ -36,8 +37,7 @@ class DateTimeNormalizer(RecordTransformation):
 
     field_pointers: List[FieldPointer]
     parameters: InitVar[Mapping[str, Any]]
-    datetime_format: str = ""
-    _parser = DatetimeParser()
+    datetime_format: Optional[str] = None
 
     def transform(
         self,
@@ -53,10 +53,21 @@ class DateTimeNormalizer(RecordTransformation):
         for pointer in self.field_pointers:
             try:
                 current_date_time_value: str | int = dpath.get(record, pointer)
-                parsed_datetime = self._parser.parse(
-                    date=current_date_time_value, format=self.datetime_format
-                )
-                dpath.set(record, pointer, self._parser.isoformat(parsed_datetime))
+                parsed_datetime = self.parse_datetime_to_rfc3339(current_date_time_value)
+                dpath.set(record, pointer, parsed_datetime)
             except dpath.exceptions.PathNotFound:
                 # if the (potentially nested) property does not exist, silently skip
                 pass
+
+    def parse_datetime_to_rfc3339(self, datetime_value: str) -> str:
+        value = dateparser.parse(
+            datetime_value,
+            # date_format will be used as the main source of format; will remove
+            date_formats=[self.datetime_format] if self.datetime_format else None,
+            settings={"TIMEZONE": "UTC", "RETURN_AS_TIMEZONE_AWARE": True},
+        )
+        if value:
+            return value.isoformat()
+        else:
+            logger.warning("Could not parse datetime value %s", datetime_value)
+            return datetime_value

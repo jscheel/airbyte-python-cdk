@@ -26,6 +26,7 @@ from typing import (
 
 from isodate import parse_duration
 from pydantic.v1 import BaseModel
+from sources.declarative.transformations.datetime_normalizer import DateTimeNormalizer
 
 from airbyte_cdk.models import FailureType, Level
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
@@ -178,6 +179,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     DatetimeBasedCursor as DatetimeBasedCursorModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    DateTimeNormalizer as DateTimeNormalizerModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     DeclarativeStream as DeclarativeStreamModel,
@@ -473,6 +477,7 @@ class ModelToComponentFactory:
             CustomPartitionRouterModel: self.create_custom_component,
             CustomTransformationModel: self.create_custom_component,
             DatetimeBasedCursorModel: self.create_datetime_based_cursor,
+            DateTimeNormalizerModel: self.create_datetime_normalizer,
             DeclarativeStreamModel: self.create_declarative_stream,
             DefaultErrorHandlerModel: self.create_default_error_handler,
             DefaultPaginatorModel: self.create_default_paginator,
@@ -1220,6 +1225,16 @@ class ModelToComponentFactory:
             is_compare_strictly=model.is_compare_strictly,
             config=config,
             parameters=model.parameters or {},
+        )
+
+    @staticmethod
+    def create_datetime_normalizer(
+        model: DateTimeNormalizerModel, config: Config, **kwargs: Any
+    ) -> DateTimeNormalizer:
+        return DateTimeNormalizer(
+            field_pointers=model.field_pointers,
+            datetime_format=model.datetime_format,
+            parameters={},
         )
 
     def create_declarative_stream(
