@@ -37,12 +37,13 @@ class DatetimeParser:
         elif format == "%ms":
             return self._UNIX_EPOCH + datetime.timedelta(milliseconds=int(date))
 
-        settings = dateparser.conf.Settings().replace(**{
-            "TIMEZONE": "UTC",
-            "RETURN_AS_TIMEZONE_AWARE": True
-        })
+        settings = dateparser.conf.Settings().replace(
+            **{"TIMEZONE": "UTC", "RETURN_AS_TIMEZONE_AWARE": True}
+        )
 
-        parsed_datetime = dateparser.date.parse_with_formats(str(date), date_formats=[format], settings=settings).date_obj
+        parsed_datetime = dateparser.date.parse_with_formats(
+            str(date), date_formats=[format], settings=settings
+        ).date_obj
 
         if not parsed_datetime:
             raise ValueError(f"Could not parse {date} as {format}")
