@@ -26,6 +26,7 @@ class DateTimeNormalizer(RecordTransformation):
             <other parameters..>
             transformations:
                 - type: DateTimeNormalizer
+                  datetime_format: "%Y-%m-%dT%H:%M:%SZ"
                   field_pointers:
                     - ["path", "to", "field1"]
                     - ["path2"]
