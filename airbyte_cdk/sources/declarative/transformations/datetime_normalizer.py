@@ -65,7 +65,6 @@ class DateTimeNormalizer(RecordTransformation):
             datetime_value,
             # date_format will be used as the main source of format; will remove
             date_formats=[self.datetime_format] if self.datetime_format else None,
-            settings={"TIMEZONE": "UTC", "RETURN_AS_TIMEZONE_AWARE": True},
         )
         if value:
             return value.isoformat()
