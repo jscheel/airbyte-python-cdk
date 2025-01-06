@@ -75,12 +75,12 @@ class RequestOption:
     def is_field_path(self) -> bool:
         """Returns whether this option uses a field path"""
         return self.field_path is not None
-    
+
     def inject_into_dict(
-            self,
-            target: MutableMapping[str, Any],
-            value: Any,
-            config: Config,
+        self,
+        target: MutableMapping[str, Any],
+        value: Any,
+        config: Config,
     ) -> None:
         """
         Inject a value into a target dict using either field_name or field_path
@@ -104,4 +104,8 @@ class RequestOption:
             current[final_key] = value
         else:
             assert self.field_name is not None
-            target[self.field_name.eval(config=config) if isinstance(self.field_name, InterpolatedString) else self.field_name] = value
+            target[
+                self.field_name.eval(config=config)
+                if isinstance(self.field_name, InterpolatedString)
+                else self.field_name
+            ] = value

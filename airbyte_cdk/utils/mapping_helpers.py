@@ -25,8 +25,7 @@ def has_nested_conflict(path1: List[str], value1: Any, path2: List[str], value2:
 
 
 def flatten_mapping(
-    mapping: Mapping[str, Any],
-    prefix: Optional[List[str]] = None
+    mapping: Mapping[str, Any], prefix: Optional[List[str]] = None
 ) -> List[tuple[List[str], Any]]:
     """
     Convert a nested mapping into a list of (path, value) pairs
