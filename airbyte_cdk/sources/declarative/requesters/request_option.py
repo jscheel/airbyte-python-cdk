@@ -22,22 +22,6 @@ class RequestOptionType(Enum):
 
 
 @dataclass
-class FieldName:
-    """Represents a direct field name reference"""
-
-    value: Union[InterpolatedString, str]
-    type: Literal["field_name"] = "field_name"
-
-
-@dataclass
-class FieldPath:
-    """Represents a path to a nested field"""
-
-    value: List[Union[InterpolatedString, str]]
-    type: Literal["field_path"] = "field_path"
-
-
-@dataclass
 class RequestOption:
     """
     Describes an option to set on a request
