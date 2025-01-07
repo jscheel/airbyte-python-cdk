@@ -41,15 +41,17 @@ class RequestOption:
         # Validate inputs
         if self.field_name is None and self.field_path is None:
             raise ValueError("RequestOption requires either a field_name or field_path")
-        
+
         if self.field_name is not None and self.field_path is not None:
             raise ValueError(
                 "Only one of field_name or field_path can be provided to RequestOption"
             )
-        
-        if self.field_name is not None and not isinstance(self.field_name, (str, InterpolatedString)):
+
+        if self.field_name is not None and not isinstance(
+            self.field_name, (str, InterpolatedString)
+        ):
             raise TypeError(f"field_name expects a string, but got {type(self.field_name)}")
-        
+
         if self.field_path is not None:
             if not isinstance(self.field_path, list):
                 raise TypeError(f"field_path expects a list, but got {type(self.field_path)}")
@@ -58,7 +60,9 @@ class RequestOption:
                     raise TypeError(f"field_path values must be strings, got {type(value)}")
 
         if self.field_path is not None and self.inject_into != RequestOptionType.body_json:
-            raise ValueError("Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types.")
+            raise ValueError(
+                "Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types."
+            )
 
         # Handle interpolation
         if self.field_name is not None:
@@ -93,7 +97,11 @@ class RequestOption:
             assert self.field_path is not None
             current = target
             *path_parts, final_key = [
-                str(segment.eval(config=config) if isinstance(segment, InterpolatedString) else segment)
+                str(
+                    segment.eval(config=config)
+                    if isinstance(segment, InterpolatedString)
+                    else segment
+                )
                 for segment in self.field_path
             ]
 

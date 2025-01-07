@@ -76,10 +76,18 @@ class DatetimeBasedCursor(DeclarativeCursor):
     cursor_datetime_formats: List[str] = field(default_factory=lambda: [])
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-
-        for option, name in [(self.start_time_option, "start_time_option"), (self.end_time_option, "end_time_option")]:
-            if option and option.field_name is None and option.inject_into != RequestOptionType.body_json:
-                raise ValueError(f"DatetimeBasedCursor requires a top-level field_name for non-body-json requests in {name}.")    
+        for option, name in [
+            (self.start_time_option, "start_time_option"),
+            (self.end_time_option, "end_time_option"),
+        ]:
+            if (
+                option
+                and option.field_name is None
+                and option.inject_into != RequestOptionType.body_json
+            ):
+                raise ValueError(
+                    f"DatetimeBasedCursor requires a top-level field_name for non-body-json requests in {name}."
+                )
 
         if (self.step and not self.cursor_granularity) or (
             not self.step and self.cursor_granularity
@@ -370,7 +378,7 @@ class DatetimeBasedCursor(DeclarativeCursor):
         options: MutableMapping[str, Any] = {}
         if not stream_slice:
             return options
-        
+
         if self.start_time_option and self.start_time_option.inject_into == option_type:
             start_time_value = stream_slice.get(self._partition_field_start.eval(self.config))
             # Support for injecting nested fields when injecting into body_json
@@ -379,7 +387,11 @@ class DatetimeBasedCursor(DeclarativeCursor):
             else:
                 assert self.start_time_option.field_name is not None
                 field_name = self.start_time_option.field_name
-                key = field_name.eval(self.config) if isinstance(field_name, InterpolatedString) else field_name
+                key = (
+                    field_name.eval(self.config)
+                    if isinstance(field_name, InterpolatedString)
+                    else field_name
+                )
                 options[key] = start_time_value
 
         if self.end_time_option and self.end_time_option.inject_into == option_type:
@@ -391,7 +403,11 @@ class DatetimeBasedCursor(DeclarativeCursor):
                 # For non-JSON requests, only support top-level field names
                 assert self.end_time_option.field_name is not None
                 field_name = self.end_time_option.field_name
-                key = field_name.eval(self.config) if isinstance(field_name, InterpolatedString) else field_name
+                key = (
+                    field_name.eval(self.config)
+                    if isinstance(field_name, InterpolatedString)
+                    else field_name
+                )
                 options[key] = end_time_value
 
         return options
