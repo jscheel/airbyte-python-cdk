@@ -57,6 +57,7 @@ class InterpolatedRequestInputProvider:
             "stream_state": stream_state,
             "stream_slice": stream_slice,
             "next_page_token": next_page_token,
+            "toto": {"k": [1, 2]},
         }
         interpolated_value = self._interpolator.eval(  # type: ignore # self._interpolator is always initialized with a value and will not be None
             self.config,

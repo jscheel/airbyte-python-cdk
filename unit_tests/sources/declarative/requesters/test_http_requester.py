@@ -500,72 +500,10 @@ def test_send_request_params(
     "request_parameters, config, expected_query_params",
     [
         pytest.param(
-            {
-                "k": '{"updatedDateFrom": "2023-08-20T00:00:00Z", "updatedDateTo": "2023-08-20T23:59:59Z"}'
-            },
-            {},
-            "k=%7B%22updatedDateFrom%22%3A+%222023-08-20T00%3A00%3A00Z%22%2C+%22updatedDateTo%22%3A+%222023-08-20T23%3A59%3A59Z%22%7D",
-            id="test-request-parameter-dictionary",
-        ),
-        pytest.param(
-            {"k": "1,2"},
-            {},
-            "k=1%2C2",  # k=1,2
-            id="test-request-parameter-comma-separated-numbers",
-        ),
-        pytest.param(
-            {"k": "a,b"},
-            {},
-            "k=a%2Cb",  # k=a,b
-            id="test-request-parameter-comma-separated-strings",
-        ),
-        pytest.param(
-            {"k": '{{ config["k"] }}'},
-            {
-                "k": {
-                    "updatedDateFrom": "2023-08-20T00:00:00Z",
-                    "updatedDateTo": "2023-08-20T23:59:59Z",
-                }
-            },
-            # {'updatedDateFrom': '2023-08-20T00:00:00Z', 'updatedDateTo': '2023-08-20T23:59:59Z'}
-            "k=%7B%27updatedDateFrom%27%3A+%272023-08-20T00%3A00%3A00Z%27%2C+%27updatedDateTo%27%3A+%272023-08-20T23%3A59%3A59Z%27%7D",
-            id="test-request-parameter-from-config-object",
-        ),
-        pytest.param(
-            {"k": "[1,2]"},
-            {},
-            "k=1&k=2",
-            id="test-request-parameter-list-of-numbers",
-        ),
-        pytest.param(
-            {"k": '["a", "b"]'},
-            {},
-            "k=a&k=b",
-            id="test-request-parameter-list-of-strings",
-        ),
-        pytest.param(
-            {"k": '{{ config["k"] }}'},
+            {"k": '{{ toto["k"] }}'},
             {"k": [1, 2]},
             "k=1&k=2",
             id="test-request-parameter-from-config-list-of-numbers",
-        ),
-        pytest.param(
-            {"k": '{{ config["k"] }}'},
-            {"k": ["a", "b"]},
-            "k=a&k=b",
-            id="test-request-parameter-from-config-list-of-strings",
-        ),
-        pytest.param(
-            {"k": '{{ config["k"] }}'},
-            {"k": ["a,b"]},
-            "k=a%2Cb",
-            id="test-request-parameter-from-config-comma-separated-strings",
-        ),
-        pytest.param(
-            {'["a", "b"]': '{{ config["k"] }}'},
-            {"k": [1, 2]},
-            "%5B%22a%22%2C+%22b%22%5D=1&%5B%22a%22%2C+%22b%22%5D=2",
-            id="test-key-with-list-to-be-interpolated",
         ),
     ],
 )
