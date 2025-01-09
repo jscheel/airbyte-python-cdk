@@ -20,7 +20,7 @@ keywords = ["airbyte", "connector-development-kit", "cdk"]
 
 # Python CDK uses dynamic versioning: https://github.com/mtkennerly/poetry-dynamic-versioning
 version = "0.0.0"  # Version will be calculated dynamically.
-requires-python = "^3.10,<3.13"
+requires-python = ">=3.10,<3.13"
 
 dependencies = [
   # https://peps.python.org/pep-0508/
