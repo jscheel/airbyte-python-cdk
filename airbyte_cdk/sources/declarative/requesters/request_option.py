@@ -64,7 +64,7 @@ class RequestOption:
                 "Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types."
             )
 
-        # Handle interpolation
+        # Convert field_name and field_path into InterpolatedString objects if they are strings
         if self.field_name is not None:
             self.field_name = InterpolatedString.create(self.field_name, parameters=parameters)
         if self.field_path is not None:
@@ -74,7 +74,7 @@ class RequestOption:
             ]
 
     @property
-    def is_field_path(self) -> bool:
+    def _is_field_path(self) -> bool:
         """Returns whether this option is a field path (ie, a nested field)"""
         return self.field_path is not None
 
@@ -94,15 +94,16 @@ class RequestOption:
             value: The value to inject
             config: The config object to use for interpolation
         """
+        if self._is_field_path:
+            if self.inject_into != RequestOptionType.body_json:
+                raise ValueError(
+                    "Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types."
+                )
 
-        assert not (
-            self.inject_into != RequestOptionType.body_json and self.is_field_path
-        ), "Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types."
-
-        if self.is_field_path:
-            assert self.field_path is not None
+            assert self.field_path is not None  # for type checker
             current = target
-
+            # Convert path segments into strings, evaluating any interpolated segments
+            # Example: ["data", "{{ config[user_type] }}", "id"] -> ["data", "admin", "id"]
             *path_parts, final_key = [
                 str(
                     segment.eval(config=config)
@@ -112,12 +113,12 @@ class RequestOption:
                 for segment in self.field_path
             ]
 
+            # Build a nested dictionary structure and set the final value at the deepest level
             for part in path_parts:
                 current = current.setdefault(part, {})
             current[final_key] = value
-
         else:
-            assert self.field_name is not None
+            # For non-nested fields, evaluate the field name if it's an interpolated string
             key = (
                 self.field_name.eval(config=config)
                 if isinstance(self.field_name, InterpolatedString)

@@ -161,23 +161,23 @@ def test_value_type_handling(value: Any, expected_type: Type):
 
 
 @pytest.mark.parametrize(
-    "field_name, field_path, inject_into, expected_is_field_path",
+    "field_name, field_path, inject_into, expected__is_field_path",
     [
         ("field", None, RequestOptionType.body_json, False),
         (None, ["data", "field"], RequestOptionType.body_json, True),
     ],
 )
-def test_is_field_path(
+def test__is_field_path(
     field_name: Optional[str],
     field_path: Optional[List[str]],
     inject_into: RequestOptionType,
-    expected_is_field_path: bool,
+    expected__is_field_path: bool,
 ):
-    """Test the is_field_path property"""
+    """Test the _is_field_path property"""
     request_option = RequestOption(
         field_name=field_name, field_path=field_path, inject_into=inject_into, parameters={}
     )
-    assert request_option.is_field_path == expected_is_field_path
+    assert request_option._is_field_path == expected__is_field_path
 
 
 def test_multiple_injections():
