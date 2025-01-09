@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023 Airbyte, inc., all rights reserved.
+# Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
 import pytest

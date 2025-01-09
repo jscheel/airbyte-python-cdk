@@ -204,4 +204,3 @@ def test_multiple_injections():
         "field1": "value1",
         "data": {"nested": {"field2": "value2"}},
     }
-

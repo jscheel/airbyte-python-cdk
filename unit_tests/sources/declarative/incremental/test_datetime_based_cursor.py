@@ -836,7 +836,7 @@ def test_given_different_format_and_slice_is_highest_when_close_slice_then_state
                     "queries": {
                         "time_range": {
                             "start": "2021-01-01T00:00:00.000000+0000",
-                            "end": "2021-01-04T00:00:00.000000+0000"
+                            "end": "2021-01-04T00:00:00.000000+0000",
                         }
                     }
                 }
@@ -869,12 +869,19 @@ def test_request_option(
     expected_body_data,
 ):
     start_request_option = (
-        RequestOption(inject_into=inject_into, parameters={}, field_name=field_name, field_path=field_path)
+        RequestOption(
+            inject_into=inject_into, parameters={}, field_name=field_name, field_path=field_path
+        )
         if inject_into
         else None
     )
     end_request_option = (
-        RequestOption(inject_into=inject_into, parameters={}, field_name="endtime" if field_name else None, field_path=["data", "queries", "time_range", "end"] if field_path else None)
+        RequestOption(
+            inject_into=inject_into,
+            parameters={},
+            field_name="endtime" if field_name else None,
+            field_path=["data", "queries", "time_range", "end"] if field_path else None,
+        )
         if inject_into
         else None
     )
