@@ -45,21 +45,6 @@ class ApiKeyAuthenticator(DeclarativeAuthenticator):
     config: Config
     parameters: InitVar[Mapping[str, Any]]
 
-    def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-        # Only body_json requests can specify a field_path. All other request types must use a top-level field_name
-        if (
-            self.request_option.field_name is None
-            and self.request_option.inject_into != RequestOptionType.body_json
-        ):
-            raise ValueError(
-                "ApiKeyAuthenticator requires a top-level field_name for non-body-json requests"
-            )
-
-        if self.request_option.field_name is not None:
-            self._field_name = InterpolatedString.create(
-                self.request_option.field_name, parameters=parameters
-            )
-
     @property
     def auth_header(self) -> str:
         options = self._get_request_options(RequestOptionType.header)
@@ -72,13 +57,7 @@ class ApiKeyAuthenticator(DeclarativeAuthenticator):
     def _get_request_options(self, option_type: RequestOptionType) -> Mapping[str, Any]:
         options: MutableMapping[str, Any] = {}
         if self.request_option.inject_into == option_type:
-            if option_type == RequestOptionType.body_json:
-                # For JSON body injection, we support both field_name and field_path injection.
-                # This allows nested structures to be injected like {"data": {"auth": {"token": "value"}}}
-                self.request_option.inject_into_dict(options, self.token, self.config)
-            else:
-                assert self._field_name is not None
-                options[self._field_name.eval(self.config)] = self.token
+            self.request_option.inject_into_request(options, self.token, self.config)
         return options
 
     def get_request_params(self) -> Mapping[str, Any]:

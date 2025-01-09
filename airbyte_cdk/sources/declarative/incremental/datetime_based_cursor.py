@@ -381,34 +381,11 @@ class DatetimeBasedCursor(DeclarativeCursor):
 
         if self.start_time_option and self.start_time_option.inject_into == option_type:
             start_time_value = stream_slice.get(self._partition_field_start.eval(self.config))
-            # Support for injecting nested fields when injecting into body_json
-            if option_type == RequestOptionType.body_json:
-                self.start_time_option.inject_into_dict(options, start_time_value, self.config)
-            else:
-                assert self.start_time_option.field_name is not None
-                field_name = self.start_time_option.field_name
-                key = (
-                    field_name.eval(self.config)
-                    if isinstance(field_name, InterpolatedString)
-                    else field_name
-                )
-                options[key] = start_time_value
+            self.start_time_option.inject_into_request(options, start_time_value, self.config)
 
         if self.end_time_option and self.end_time_option.inject_into == option_type:
             end_time_value = stream_slice.get(self._partition_field_end.eval(self.config))
-            if option_type == RequestOptionType.body_json:
-                # For JSON bodies, support both field_name and field_path to enable nested structures
-                self.end_time_option.inject_into_dict(options, end_time_value, self.config)
-            else:
-                # For non-JSON requests, only support top-level field names
-                assert self.end_time_option.field_name is not None
-                field_name = self.end_time_option.field_name
-                key = (
-                    field_name.eval(self.config)
-                    if isinstance(field_name, InterpolatedString)
-                    else field_name
-                )
-                options[key] = end_time_value
+            self.end_time_option.inject_into_request(options, end_time_value, self.config)
 
         return options
 

@@ -123,7 +123,7 @@ def test_request_option_validation(
         ),
     ],
 )
-def test_inject_into_dict_cases(
+def test_inject_into_request_cases(
     request_option_args: Dict[str, Any], value: Any, expected_result: Dict[str, Any]
 ):
     """Test various injection cases"""
@@ -131,7 +131,7 @@ def test_inject_into_dict_cases(
     target: Dict[str, Any] = {}
 
     request_option = RequestOption(**request_option_args, parameters={})
-    request_option.inject_into_dict(target, value, config)
+    request_option.inject_into_request(target, value, config)
     assert target == expected_result
 
 
@@ -169,7 +169,7 @@ def test_interpolation_cases(
         field_path=field_path, inject_into=RequestOptionType.body_json, parameters=parameters
     )
     target: Dict[str, Any] = {}
-    request_option.inject_into_dict(target, "test_value", config)
+    request_option.inject_into_request(target, "test_value", config)
     assert target == expected_structure
 
 
@@ -191,7 +191,7 @@ def test_value_type_handling(value: Any, expected_type: Type):
     request_option = RequestOption(
         field_path=["data", "test"], inject_into=RequestOptionType.body_json, parameters={}
     )
-    request_option.inject_into_dict(target, value, config)
+    request_option.inject_into_request(target, value, config)
     assert isinstance(target["data"]["test"], expected_type)
     assert target["data"]["test"] == value
 
@@ -225,7 +225,7 @@ def test_multiple_injections():
     option1 = RequestOption(
         field_name="field1", inject_into=RequestOptionType.body_json, parameters={}
     )
-    option1.inject_into_dict(target, "value1", config)
+    option1.inject_into_request(target, "value1", config)
 
     # Second injection with nested path
     option2 = RequestOption(
@@ -233,7 +233,7 @@ def test_multiple_injections():
         inject_into=RequestOptionType.body_json,
         parameters={},
     )
-    option2.inject_into_dict(target, "value2", config)
+    option2.inject_into_request(target, "value2", config)
 
     assert target == {
         "existing": "value",
