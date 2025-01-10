@@ -4,7 +4,7 @@
 import csv
 import gzip
 import json
-from io import BytesIO, StringIO
+from io import BufferedReader, BytesIO, StringIO
 
 import pytest
 import requests
@@ -122,19 +122,12 @@ def test_composite_raw_decoder_jsonline_parser(requests_mock, encoding: str):
 @pytest.mark.parametrize(
     "raw_data, expected",
     [
-        (json.dumps({"data-type": "string"}), {"data-type": "string"}),
-        (json.dumps({"data-type": "bytes"}).encode("utf-8"), {"data-type": "bytes"}),
-        (
-            bytearray(json.dumps({"data-type": "bytearray"}).encode("utf-8")),
-            {"data-type": "bytearray"},
-        ),
-        (json.dumps([{"id": 1}, {"id": 2}]), [{"id": 1}, {"id": 2}]),
+        (BufferedReader(BytesIO(b'{"data-type": "string"}')), {"data-type": "string"}),
+        (BufferedReader(BytesIO(b'[{"id": 1}, {"id": 2}]')), [{"id": 1}, {"id": 2}]),
     ],
     ids=[
-        "test_with_str",
-        "test_with_bytes",
-        "test_with_bytearray",
-        "test_with_string_data_containing_list",
+        "test_with_buffered_io_base_data_containing_string",
+        "test_with_buffered_io_base_data_containing_list",
     ],
 )
 def test_json_parser_with_valid_data(raw_data, expected):
