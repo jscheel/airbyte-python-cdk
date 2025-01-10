@@ -268,6 +268,22 @@ class CustomSchemaLoader(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class CustomSchemaNormalization(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    type: Literal["CustomSchemaNormalization"]
+    class_name: str = Field(
+        ...,
+        description="Fully-qualified name of the class that will be implementing the custom normalization. The format is `source_<name>.<package>.<class_name>`.",
+        examples=[
+            "source_amazon_seller_partner.components.LedgerDetailedViewReportsTypeTransformer"
+        ],
+        title="Class Name",
+    )
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
 class CustomStateMigration(BaseModel):
     class Config:
         extra = Extra.allow
@@ -489,8 +505,8 @@ class OAuthAuthenticator(BaseModel):
         ],
         title="Refresh Token",
     )
-    token_refresh_endpoint: str = Field(
-        ...,
+    token_refresh_endpoint: Optional[str] = Field(
+        None,
         description="The full URL to call to obtain a new access token.",
         examples=["https://connect.squareup.com/oauth2/token"],
         title="Token Refresh Endpoint",
@@ -500,6 +516,12 @@ class OAuthAuthenticator(BaseModel):
         description="The name of the property which contains the access token in the response from the token refresh endpoint.",
         examples=["access_token"],
         title="Access Token Property Name",
+    )
+    access_token_value: Optional[str] = Field(
+        None,
+        description="The value of the access_token to bypass the token refreshing using `refresh_token`.",
+        examples=["secret_access_token_value"],
+        title="Access Token Value",
     )
     expires_in_name: Optional[str] = Field(
         "expires_in",
@@ -528,7 +550,9 @@ class OAuthAuthenticator(BaseModel):
     scopes: Optional[List[str]] = Field(
         None,
         description="List of scopes that should be granted to the access token.",
-        examples=[["crm.list.read", "crm.objects.contacts.read", "crm.schema.contacts.read"]],
+        examples=[
+            ["crm.list.read", "crm.objects.contacts.read", "crm.schema.contacts.read"]
+        ],
         title="Scopes",
     )
     token_expiry_date: Optional[str] = Field(
@@ -710,6 +734,43 @@ class KeysToLower(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class KeysToSnakeCase(BaseModel):
+    type: Literal["KeysToSnakeCase"]
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class FlattenFields(BaseModel):
+    type: Literal["FlattenFields"]
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class KeysReplace(BaseModel):
+    type: Literal["KeysReplace"]
+    old: str = Field(
+        ...,
+        description="Old value to replace.",
+        examples=[
+            " ",
+            "{{ record.id }}",
+            "{{ config['id'] }}",
+            "{{ stream_slice['id'] }}",
+        ],
+        title="Old value",
+    )
+    new: str = Field(
+        ...,
+        description="New value to set.",
+        examples=[
+            "_",
+            "{{ record.id }}",
+            "{{ config['id'] }}",
+            "{{ stream_slice['id'] }}",
+        ],
+        title="New value",
+    )
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
 class IterableDecoder(BaseModel):
     type: Literal["IterableDecoder"]
 
@@ -802,104 +863,92 @@ class OauthConnectorInputSpecification(BaseModel):
         ...,
         description="The DeclarativeOAuth Specific string URL string template to initiate the authentication.\nThe placeholders are replaced during the processing to provide neccessary values.",
         examples=[
-            {
-                "consent_url": "https://domain.host.com/marketing_api/auth?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{state_key}={{state_key}}"
-            },
-            {
-                "consent_url": "https://endpoint.host.com/oauth2/authorize?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{scope_key}={urlEncoder:{{scope_key}}}&{state_key}={{state_key}}&subdomain={subdomain}"
-            },
+            "https://domain.host.com/marketing_api/auth?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{state_key}={{state_key}}",
+            "https://endpoint.host.com/oauth2/authorize?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{scope_key}={urlEncoder:{{scope_key}}}&{state_key}={{state_key}}&subdomain={subdomain}",
         ],
-        title="DeclarativeOAuth Consent URL",
+        title="Consent URL",
     )
     scope: Optional[str] = Field(
         None,
         description="The DeclarativeOAuth Specific string of the scopes needed to be grant for authenticated user.",
-        examples=[{"scope": "user:read user:read_orders workspaces:read"}],
-        title="(Optional) DeclarativeOAuth Scope",
+        examples=["user:read user:read_orders workspaces:read"],
+        title="Scopes",
     )
     access_token_url: str = Field(
         ...,
         description="The DeclarativeOAuth Specific URL templated string to obtain the `access_token`, `refresh_token` etc.\nThe placeholders are replaced during the processing to provide neccessary values.",
         examples=[
-            {
-                "access_token_url": "https://auth.host.com/oauth2/token?{client_id_key}={{client_id_key}}&{client_secret_key}={{client_secret_key}}&{auth_code_key}={{auth_code_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}"
-            }
+            "https://auth.host.com/oauth2/token?{client_id_key}={{client_id_key}}&{client_secret_key}={{client_secret_key}}&{auth_code_key}={{auth_code_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}"
         ],
-        title="DeclarativeOAuth Access Token URL",
+        title="Access Token URL",
     )
     access_token_headers: Optional[Dict[str, Any]] = Field(
         None,
         description="The DeclarativeOAuth Specific optional headers to inject while exchanging the `auth_code` to `access_token` during `completeOAuthFlow` step.",
         examples=[
-            {
-                "access_token_headers": {
-                    "Authorization": "Basic {base64Encoder:{client_id}:{client_secret}}"
-                }
-            }
+            {"Authorization": "Basic {base64Encoder:{client_id}:{client_secret}}"}
         ],
-        title="(Optional) DeclarativeOAuth Access Token Headers",
+        title="Access Token Headers",
     )
     access_token_params: Optional[Dict[str, Any]] = Field(
         None,
         description="The DeclarativeOAuth Specific optional query parameters to inject while exchanging the `auth_code` to `access_token` during `completeOAuthFlow` step.\nWhen this property is provided, the query params will be encoded as `Json` and included in the outgoing API request.",
         examples=[
             {
-                "access_token_params": {
-                    "{auth_code_key}": "{{auth_code_key}}",
-                    "{client_id_key}": "{{client_id_key}}",
-                    "{client_secret_key}": "{{client_secret_key}}",
-                }
+                "{auth_code_key}": "{{auth_code_key}}",
+                "{client_id_key}": "{{client_id_key}}",
+                "{client_secret_key}": "{{client_secret_key}}",
             }
         ],
-        title="(Optional) DeclarativeOAuth Access Token Query Params (Json Encoded)",
+        title="Access Token Query Params (Json Encoded)",
     )
     extract_output: List[str] = Field(
         ...,
         description="The DeclarativeOAuth Specific list of strings to indicate which keys should be extracted and returned back to the input config.",
-        examples=[{"extract_output": ["access_token", "refresh_token", "other_field"]}],
-        title="DeclarativeOAuth Extract Output",
+        examples=[["access_token", "refresh_token", "other_field"]],
+        title="Extract Output",
     )
     state: Optional[State] = Field(
         None,
         description="The DeclarativeOAuth Specific object to provide the criteria of how the `state` query param should be constructed,\nincluding length and complexity.",
-        examples=[{"state": {"min": 7, "max": 128}}],
-        title="(Optional) DeclarativeOAuth Configurable State Query Param",
+        examples=[{"min": 7, "max": 128}],
+        title="Configurable State Query Param",
     )
     client_id_key: Optional[str] = Field(
         None,
         description="The DeclarativeOAuth Specific optional override to provide the custom `client_id` key name, if required by data-provider.",
-        examples=[{"client_id_key": "my_custom_client_id_key_name"}],
-        title="(Optional) DeclarativeOAuth Client ID Key Override",
+        examples=["my_custom_client_id_key_name"],
+        title="Client ID Key Override",
     )
     client_secret_key: Optional[str] = Field(
         None,
         description="The DeclarativeOAuth Specific optional override to provide the custom `client_secret` key name, if required by data-provider.",
-        examples=[{"client_secret_key": "my_custom_client_secret_key_name"}],
-        title="(Optional) DeclarativeOAuth Client Secret Key Override",
+        examples=["my_custom_client_secret_key_name"],
+        title="Client Secret Key Override",
     )
     scope_key: Optional[str] = Field(
         None,
         description="The DeclarativeOAuth Specific optional override to provide the custom `scope` key name, if required by data-provider.",
-        examples=[{"scope_key": "my_custom_scope_key_key_name"}],
-        title="(Optional) DeclarativeOAuth Scope Key Override",
+        examples=["my_custom_scope_key_key_name"],
+        title="Scopes Key Override",
     )
     state_key: Optional[str] = Field(
         None,
         description="The DeclarativeOAuth Specific optional override to provide the custom `state` key name, if required by data-provider.",
-        examples=[{"state_key": "my_custom_state_key_key_name"}],
-        title="(Optional) DeclarativeOAuth State Key Override",
+        examples=["my_custom_state_key_key_name"],
+        title="State Key Override",
     )
     auth_code_key: Optional[str] = Field(
         None,
         description="The DeclarativeOAuth Specific optional override to provide the custom `code` key name to something like `auth_code` or `custom_auth_code`, if required by data-provider.",
-        examples=[{"auth_code_key": "my_custom_auth_code_key_name"}],
-        title="(Optional) DeclarativeOAuth Auth Code Key Override",
+        examples=["my_custom_auth_code_key_name"],
+        title="Auth Code Key Override",
     )
     redirect_uri_key: Optional[str] = Field(
         None,
         description="The DeclarativeOAuth Specific optional override to provide the custom `redirect_uri` key name to something like `callback_uri`, if required by data-provider.",
-        examples=[{"redirect_uri_key": "my_custom_redirect_uri_key_name"}],
-        title="(Optional) DeclarativeOAuth Redirect URI Key Override",
+        examples=["my_custom_redirect_uri_key_name"],
+        title="Redirect URI Key Override",
     )
 
 
@@ -907,24 +956,28 @@ class OAuthConfigSpecification(BaseModel):
     class Config:
         extra = Extra.allow
 
-    oauth_user_input_from_connector_config_specification: Optional[Dict[str, Any]] = Field(
-        None,
-        description="OAuth specific blob. This is a Json Schema used to validate Json configurations used as input to OAuth.\nMust be a valid non-nested JSON that refers to properties from ConnectorSpecification.connectionSpecification\nusing special annotation 'path_in_connector_config'.\nThese are input values the user is entering through the UI to authenticate to the connector, that might also shared\nas inputs for syncing data via the connector.\nExamples:\nif no connector values is shared during oauth flow, oauth_user_input_from_connector_config_specification=[]\nif connector values such as 'app_id' inside the top level are used to generate the API url for the oauth flow,\n  oauth_user_input_from_connector_config_specification={\n    app_id: {\n      type: string\n      path_in_connector_config: ['app_id']\n    }\n  }\nif connector values such as 'info.app_id' nested inside another object are used to generate the API url for the oauth flow,\n  oauth_user_input_from_connector_config_specification={\n    app_id: {\n      type: string\n      path_in_connector_config: ['info', 'app_id']\n    }\n  }",
-        examples=[
-            {"app_id": {"type": "string", "path_in_connector_config": ["app_id"]}},
-            {
-                "app_id": {
-                    "type": "string",
-                    "path_in_connector_config": ["info", "app_id"],
-                }
-            },
-        ],
-        title="OAuth user input",
+    oauth_user_input_from_connector_config_specification: Optional[Dict[str, Any]] = (
+        Field(
+            None,
+            description="OAuth specific blob. This is a Json Schema used to validate Json configurations used as input to OAuth.\nMust be a valid non-nested JSON that refers to properties from ConnectorSpecification.connectionSpecification\nusing special annotation 'path_in_connector_config'.\nThese are input values the user is entering through the UI to authenticate to the connector, that might also shared\nas inputs for syncing data via the connector.\nExamples:\nif no connector values is shared during oauth flow, oauth_user_input_from_connector_config_specification=[]\nif connector values such as 'app_id' inside the top level are used to generate the API url for the oauth flow,\n  oauth_user_input_from_connector_config_specification={\n    app_id: {\n      type: string\n      path_in_connector_config: ['app_id']\n    }\n  }\nif connector values such as 'info.app_id' nested inside another object are used to generate the API url for the oauth flow,\n  oauth_user_input_from_connector_config_specification={\n    app_id: {\n      type: string\n      path_in_connector_config: ['info', 'app_id']\n    }\n  }",
+            examples=[
+                {"app_id": {"type": "string", "path_in_connector_config": ["app_id"]}},
+                {
+                    "app_id": {
+                        "type": "string",
+                        "path_in_connector_config": ["info", "app_id"],
+                    }
+                },
+            ],
+            title="OAuth user input",
+        )
     )
-    oauth_connector_input_specification: Optional[OauthConnectorInputSpecification] = Field(
-        None,
-        description='The DeclarativeOAuth specific blob.\nPertains to the fields defined by the connector relating to the OAuth flow.\n\nInterpolation capabilities:\n- The variables placeholders are declared as `{my_var}`.\n- The nested resolution variables like `{{my_nested_var}}` is allowed as well.\n\n- The allowed interpolation context is:\n  + base64Encoder - encode to `base64`, {base64Encoder:{my_var_a}:{my_var_b}}\n  + base64Decorer - decode from `base64` encoded string, {base64Decoder:{my_string_variable_or_string_value}}\n  + urlEncoder - encode the input string to URL-like format, {urlEncoder:https://test.host.com/endpoint}\n  + urlDecorer - decode the input url-encoded string into text format, {urlDecoder:https%3A%2F%2Fairbyte.io}\n  + codeChallengeS256 - get the `codeChallenge` encoded value to provide additional data-provider specific authorisation values, {codeChallengeS256:{state_value}}\n\nExamples:\n  - The TikTok Marketing DeclarativeOAuth spec:\n  {\n    "oauth_connector_input_specification": {\n      "type": "object",\n      "additionalProperties": false,\n      "properties": {\n          "consent_url": "https://ads.tiktok.com/marketing_api/auth?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{state_key}={{state_key}}",\n          "access_token_url": "https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/",\n          "access_token_params": {\n              "{auth_code_key}": "{{auth_code_key}}",\n              "{client_id_key}": "{{client_id_key}}",\n              "{client_secret_key}": "{{client_secret_key}}"\n          },\n          "access_token_headers": {\n              "Content-Type": "application/json",\n              "Accept": "application/json"\n          },\n          "extract_output": ["data.access_token"],\n          "client_id_key": "app_id",\n          "client_secret_key": "secret",\n          "auth_code_key": "auth_code"\n      }\n    }\n  }',
-        title="DeclarativeOAuth Connector Specification",
+    oauth_connector_input_specification: Optional[OauthConnectorInputSpecification] = (
+        Field(
+            None,
+            description='The DeclarativeOAuth specific blob.\nPertains to the fields defined by the connector relating to the OAuth flow.\n\nInterpolation capabilities:\n- The variables placeholders are declared as `{my_var}`.\n- The nested resolution variables like `{{my_nested_var}}` is allowed as well.\n\n- The allowed interpolation context is:\n  + base64Encoder - encode to `base64`, {base64Encoder:{my_var_a}:{my_var_b}}\n  + base64Decorer - decode from `base64` encoded string, {base64Decoder:{my_string_variable_or_string_value}}\n  + urlEncoder - encode the input string to URL-like format, {urlEncoder:https://test.host.com/endpoint}\n  + urlDecorer - decode the input url-encoded string into text format, {urlDecoder:https%3A%2F%2Fairbyte.io}\n  + codeChallengeS256 - get the `codeChallenge` encoded value to provide additional data-provider specific authorisation values, {codeChallengeS256:{state_value}}\n\nExamples:\n  - The TikTok Marketing DeclarativeOAuth spec:\n  {\n    "oauth_connector_input_specification": {\n      "type": "object",\n      "additionalProperties": false,\n      "properties": {\n          "consent_url": "https://ads.tiktok.com/marketing_api/auth?{client_id_key}={{client_id_key}}&{redirect_uri_key}={urlEncoder:{{redirect_uri_key}}}&{state_key}={{state_key}}",\n          "access_token_url": "https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/",\n          "access_token_params": {\n              "{auth_code_key}": "{{auth_code_key}}",\n              "{client_id_key}": "{{client_id_key}}",\n              "{client_secret_key}": "{{client_secret_key}}"\n          },\n          "access_token_headers": {\n              "Content-Type": "application/json",\n              "Accept": "application/json"\n          },\n          "extract_output": ["data.access_token"],\n          "client_id_key": "app_id",\n          "client_secret_key": "secret",\n          "auth_code_key": "auth_code"\n      }\n    }\n  }',
+            title="DeclarativeOAuth Connector Specification",
+        )
     )
     complete_oauth_output_specification: Optional[Dict[str, Any]] = Field(
         None,
@@ -942,7 +995,9 @@ class OAuthConfigSpecification(BaseModel):
     complete_oauth_server_input_specification: Optional[Dict[str, Any]] = Field(
         None,
         description="OAuth specific blob. This is a Json Schema used to validate Json configurations persisted as Airbyte Server configurations.\nMust be a valid non-nested JSON describing additional fields configured by the Airbyte Instance or Workspace Admins to be used by the\nserver when completing an OAuth flow (typically exchanging an auth code for refresh token).\nExamples:\n    complete_oauth_server_input_specification={\n      client_id: {\n        type: string\n      },\n      client_secret: {\n        type: string\n      }\n    }",
-        examples=[{"client_id": {"type": "string"}, "client_secret": {"type": "string"}}],
+        examples=[
+            {"client_id": {"type": "string"}, "client_secret": {"type": "string"}}
+        ],
         title="OAuth input specification",
     )
     complete_oauth_server_output_specification: Optional[Dict[str, Any]] = Field(
@@ -1130,6 +1185,17 @@ class LegacySessionTokenAuthenticator(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class JsonLineParser(BaseModel):
+    type: Literal["JsonLineParser"]
+    encoding: Optional[str] = "utf-8"
+
+
+class CsvParser(BaseModel):
+    type: Literal["CsvParser"]
+    encoding: Optional[str] = "utf-8"
+    delimiter: Optional[str] = ","
+
+
 class AsyncJobStatusMap(BaseModel):
     type: Optional[Literal["AsyncJobStatusMap"]] = None
     running: List[str]
@@ -1213,6 +1279,8 @@ class ComponentMappingDefinition(BaseModel):
             "{{ components_values['updates'] }}",
             "{{ components_values['MetaData']['LastUpdatedTime'] }}",
             "{{ config['segment_id'] }}",
+            "{{ stream_slice['parent_id'] }}",
+            "{{ stream_slice['extra_fields']['name'] }}",
         ],
         title="Value",
     )
@@ -1505,8 +1573,19 @@ class RecordSelector(BaseModel):
         description="Responsible for filtering records to be emitted by the Source.",
         title="Record Filter",
     )
-    schema_normalization: Optional[SchemaNormalization] = SchemaNormalization.None_
+    schema_normalization: Optional[
+        Union[SchemaNormalization, CustomSchemaNormalization]
+    ] = Field(
+        SchemaNormalization.None_,
+        description="Responsible for normalization according to the schema.",
+        title="Schema Normalization",
+    )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class GzipParser(BaseModel):
+    type: Literal["GzipParser"]
+    inner_parser: Union[JsonLineParser, CsvParser]
 
 
 class Spec(BaseModel):
@@ -1537,6 +1616,11 @@ class CompositeErrorHandler(BaseModel):
         title="Error Handlers",
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class CompositeRawDecoder(BaseModel):
+    type: Literal["CompositeRawDecoder"]
+    parser: Union[GzipParser, JsonLineParser, CsvParser]
 
 
 class DeclarativeSource1(BaseModel):
@@ -1653,12 +1737,16 @@ class DeclarativeStream(BaseModel):
         description="Component used to coordinate how records are extracted across stream slices and request pages.",
         title="Retriever",
     )
-    incremental_sync: Optional[Union[CustomIncrementalSync, DatetimeBasedCursor]] = Field(
-        None,
-        description="Component used to fetch data incrementally based on a time field in the data.",
-        title="Incremental Sync",
+    incremental_sync: Optional[Union[CustomIncrementalSync, DatetimeBasedCursor]] = (
+        Field(
+            None,
+            description="Component used to fetch data incrementally based on a time field in the data.",
+            title="Incremental Sync",
+        )
     )
-    name: Optional[str] = Field("", description="The stream name.", example=["Users"], title="Name")
+    name: Optional[str] = Field(
+        "", description="The stream name.", example=["Users"], title="Name"
+    )
     primary_key: Optional[PrimaryKey] = Field(
         "", description="The primary key of the stream.", title="Primary Key"
     )
@@ -1675,7 +1763,17 @@ class DeclarativeStream(BaseModel):
         title="Schema Loader",
     )
     transformations: Optional[
-        List[Union[AddFields, CustomTransformation, RemoveFields, KeysToLower]]
+        List[
+            Union[
+                AddFields,
+                CustomTransformation,
+                RemoveFields,
+                KeysToLower,
+                KeysToSnakeCase,
+                FlattenFields,
+                KeysReplace,
+            ]
+        ]
     ] = Field(
         None,
         description="A list of transformations to be applied to each output record.",
@@ -1839,6 +1937,23 @@ class DynamicSchemaLoader(BaseModel):
         description="Component used to coordinate how records are extracted across stream slices and request pages.",
         title="Retriever",
     )
+    schema_transformations: Optional[
+        List[
+            Union[
+                AddFields,
+                CustomTransformation,
+                RemoveFields,
+                KeysToLower,
+                KeysToSnakeCase,
+                FlattenFields,
+                KeysReplace,
+            ]
+        ]
+    ] = Field(
+        None,
+        description="A list of transformations to be applied to the schema.",
+        title="Schema Transformations",
+    )
     schema_type_identifier: SchemaTypeIdentifier
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
@@ -1901,7 +2016,11 @@ class SimpleRetriever(BaseModel):
             CustomPartitionRouter,
             ListPartitionRouter,
             SubstreamPartitionRouter,
-            List[Union[CustomPartitionRouter, ListPartitionRouter, SubstreamPartitionRouter]],
+            List[
+                Union[
+                    CustomPartitionRouter, ListPartitionRouter, SubstreamPartitionRouter
+                ]
+            ],
         ]
     ] = Field(
         [],
@@ -1916,6 +2035,7 @@ class SimpleRetriever(BaseModel):
             IterableDecoder,
             XmlDecoder,
             GzipJsonDecoder,
+            CompositeRawDecoder,
         ]
     ] = Field(
         None,
@@ -1943,7 +2063,9 @@ class AsyncRetriever(BaseModel):
     )
     download_extractor: Optional[
         Union[CustomRecordExtractor, DpathExtractor, ResponseToFileExtractor]
-    ] = Field(None, description="Responsible for fetching the records from provided urls.")
+    ] = Field(
+        None, description="Responsible for fetching the records from provided urls."
+    )
     creation_requester: Union[CustomRequester, HttpRequester] = Field(
         ...,
         description="Requester component that describes how to prepare HTTP requests to send to the source API to create the async server-side job.",
@@ -1973,7 +2095,11 @@ class AsyncRetriever(BaseModel):
             CustomPartitionRouter,
             ListPartitionRouter,
             SubstreamPartitionRouter,
-            List[Union[CustomPartitionRouter, ListPartitionRouter, SubstreamPartitionRouter]],
+            List[
+                Union[
+                    CustomPartitionRouter, ListPartitionRouter, SubstreamPartitionRouter
+                ]
+            ],
         ]
     ] = Field(
         [],
@@ -2037,10 +2163,12 @@ class DynamicDeclarativeStream(BaseModel):
     stream_template: DeclarativeStream = Field(
         ..., description="Reference to the stream template.", title="Stream Template"
     )
-    components_resolver: Union[HttpComponentsResolver, ConfigComponentsResolver] = Field(
-        ...,
-        description="Component resolve and populates stream templates with components values.",
-        title="Components Resolver",
+    components_resolver: Union[HttpComponentsResolver, ConfigComponentsResolver] = (
+        Field(
+            ...,
+            description="Component resolve and populates stream templates with components values.",
+            title="Components Resolver",
+        )
     )
 
 

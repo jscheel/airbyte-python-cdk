@@ -67,7 +67,13 @@ from airbyte_cdk.sources.declarative.decoders import (
     PaginationDecoderDecorator,
     XmlDecoder,
 )
-from airbyte_cdk.sources.declarative.decoders.parsers import JsonParser
+from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import (
+    CompositeRawDecoder,
+    CsvParser,
+    GzipParser,
+    JsonLineParser,
+    JsonParser,
+)
 from airbyte_cdk.sources.declarative.extractors import (
     DpathExtractor,
     RecordFilter,
@@ -76,9 +82,6 @@ from airbyte_cdk.sources.declarative.extractors import (
 )
 from airbyte_cdk.sources.declarative.extractors.record_filter import (
     ClientSideIncrementalRecordFilterDecorator,
-)
-from airbyte_cdk.sources.declarative.extractors.record_selector import (
-    SCHEMA_TRANSFORMER_TYPE_MAPPING,
 )
 from airbyte_cdk.sources.declarative.incremental import (
     ChildPartitionResumableFullRefreshCursor,
@@ -95,7 +98,9 @@ from airbyte_cdk.sources.declarative.interpolation.interpolated_mapping import I
 from airbyte_cdk.sources.declarative.migrations.legacy_to_per_partition_state_migration import (
     LegacyToPerPartitionStateMigration,
 )
-from airbyte_cdk.sources.declarative.models import CustomStateMigration
+from airbyte_cdk.sources.declarative.models import (
+    CustomStateMigration,
+)
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     AddedFieldDefinition as AddedFieldDefinitionModel,
 )
@@ -127,6 +132,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     CompositeErrorHandler as CompositeErrorHandlerModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CompositeRawDecoder as CompositeRawDecoderModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ConcurrencyLevel as ConcurrencyLevelModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -134,6 +142,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ConstantBackoffStrategy as ConstantBackoffStrategyModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CsvParser as CsvParserModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     CursorPagination as CursorPaginationModel,
@@ -175,6 +186,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     CustomSchemaLoader as CustomSchemaLoader,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CustomSchemaNormalization as CustomSchemaNormalizationModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     CustomTransformation as CustomTransformationModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -199,7 +213,13 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     ExponentialBackoffStrategy as ExponentialBackoffStrategyModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    FlattenFields as FlattenFieldsModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     GzipJsonDecoder as GzipJsonDecoderModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    GzipParser as GzipParserModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpComponentsResolver as HttpComponentsResolverModel,
@@ -226,6 +246,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     JsonlDecoder as JsonlDecoderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    JsonLineParser as JsonLineParserModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     JsonParser as JsonParserModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -238,7 +261,13 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     JwtPayload as JwtPayloadModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    KeysReplace as KeysReplaceModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     KeysToLower as KeysToLowerModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    KeysToSnakeCase as KeysToSnakeCaseModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     LegacySessionTokenAuthenticator as LegacySessionTokenAuthenticatorModel,
@@ -289,6 +318,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     ResponseToFileExtractor as ResponseToFileExtractorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    SchemaNormalization as SchemaNormalizationModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SchemaTypeIdentifier as SchemaTypeIdentifierModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -326,6 +358,9 @@ from airbyte_cdk.sources.declarative.partition_routers import (
     PartitionRouter,
     SinglePartitionRouter,
     SubstreamPartitionRouter,
+)
+from airbyte_cdk.sources.declarative.partition_routers.async_job_partition_router import (
+    AsyncJobPartitionRouter,
 )
 from airbyte_cdk.sources.declarative.partition_routers.substream_partition_router import (
     ParentStreamConfig,
@@ -391,8 +426,17 @@ from airbyte_cdk.sources.declarative.transformations import (
     RemoveFields,
 )
 from airbyte_cdk.sources.declarative.transformations.add_fields import AddedFieldDefinition
+from airbyte_cdk.sources.declarative.transformations.flatten_fields import (
+    FlattenFields,
+)
+from airbyte_cdk.sources.declarative.transformations.keys_replace_transformation import (
+    KeysReplaceTransformation,
+)
 from airbyte_cdk.sources.declarative.transformations.keys_to_lower_transformation import (
     KeysToLowerTransformation,
+)
+from airbyte_cdk.sources.declarative.transformations.keys_to_snake_transformation import (
+    KeysToSnakeCaseTransformation,
 )
 from airbyte_cdk.sources.message import (
     InMemoryMessageRepository,
@@ -409,6 +453,11 @@ from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 
 ComponentDefinition = Mapping[str, Any]
+
+SCHEMA_TRANSFORMER_TYPE_MAPPING = {
+    SchemaNormalizationModel.None_: TransformConfig.NoTransform,
+    SchemaNormalizationModel.Default: TransformConfig.DefaultSchemaNormalization,
+}
 
 
 class ModelToComponentFactory:
@@ -444,6 +493,7 @@ class ModelToComponentFactory:
             BearerAuthenticatorModel: self.create_bearer_authenticator,
             CheckStreamModel: self.create_check_stream,
             CompositeErrorHandlerModel: self.create_composite_error_handler,
+            CompositeRawDecoderModel: self.create_composite_raw_decoder,
             ConcurrencyLevelModel: self.create_concurrency_level,
             ConstantBackoffStrategyModel: self.create_constant_backoff_strategy,
             CursorPaginationModel: self.create_cursor_pagination,
@@ -457,6 +507,7 @@ class ModelToComponentFactory:
             CustomRequesterModel: self.create_custom_component,
             CustomRetrieverModel: self.create_custom_component,
             CustomSchemaLoader: self.create_custom_component,
+            CustomSchemaNormalizationModel: self.create_custom_component,
             CustomStateMigration: self.create_custom_component,
             CustomPaginationStrategyModel: self.create_custom_component,
             CustomPartitionRouterModel: self.create_custom_component,
@@ -475,8 +526,13 @@ class ModelToComponentFactory:
             JsonDecoderModel: self.create_json_decoder,
             JsonlDecoderModel: self.create_jsonl_decoder,
             JsonParser: self.create_json_parser,
+            JsonLineParserModel: self.create_json_line_parser,
             GzipJsonDecoderModel: self.create_gzipjson_decoder,
+            GzipParserModel: self.create_gzip_parser,
             KeysToLowerModel: self.create_keys_to_lower_transformation,
+            KeysToSnakeCaseModel: self.create_keys_to_snake_transformation,
+            KeysReplaceModel: self.create_keys_replace_transformation,
+            FlattenFieldsModel: self.create_flatten_fields,
             IterableDecoderModel: self.create_iterable_decoder,
             XmlDecoderModel: self.create_xml_decoder,
             JsonFileSchemaLoaderModel: self.create_json_file_schema_loader,
@@ -591,6 +647,23 @@ class ModelToComponentFactory:
         self, model: KeysToLowerModel, config: Config, **kwargs: Any
     ) -> KeysToLowerTransformation:
         return KeysToLowerTransformation()
+
+    def create_keys_to_snake_transformation(
+        self, model: KeysToSnakeCaseModel, config: Config, **kwargs: Any
+    ) -> KeysToSnakeCaseTransformation:
+        return KeysToSnakeCaseTransformation()
+
+    def create_keys_replace_transformation(
+        self, model: KeysReplaceModel, config: Config, **kwargs: Any
+    ) -> KeysReplaceTransformation:
+        return KeysReplaceTransformation(
+            old=model.old, new=model.new, parameters=model.parameters or {}
+        )
+
+    def create_flatten_fields(
+        self, model: FlattenFieldsModel, config: Config, **kwargs: Any
+    ) -> FlattenFields:
+        return FlattenFields()
 
     @staticmethod
     def _json_schema_type_name_to_type(value_type: Optional[ValueType]) -> Optional[Type[Any]]:
@@ -1517,7 +1590,12 @@ class ModelToComponentFactory:
         )
 
     def create_http_requester(
-        self, model: HttpRequesterModel, decoder: Decoder, config: Config, *, name: str
+        self,
+        model: HttpRequesterModel,
+        config: Config,
+        decoder: Decoder = JsonDecoder(parameters={}),
+        *,
+        name: str,
     ) -> HttpRequester:
         authenticator = (
             self._create_component_from_model(
@@ -1643,6 +1721,13 @@ class ModelToComponentFactory:
             model.retriever, stream_slicer
         )
 
+        schema_transformations = []
+        if model.schema_transformations:
+            for transformation_model in model.schema_transformations:
+                schema_transformations.append(
+                    self._create_component_from_model(model=transformation_model, config=config)
+                )
+
         retriever = self._create_component_from_model(
             model=model.retriever,
             config=config,
@@ -1657,6 +1742,7 @@ class ModelToComponentFactory:
         return DynamicSchemaLoader(
             retriever=retriever,
             config=config,
+            schema_transformations=schema_transformations,
             schema_type_identifier=schema_type_identifier,
             parameters=model.parameters or {},
         )
@@ -1670,6 +1756,12 @@ class ModelToComponentFactory:
         model: JsonlDecoderModel, config: Config, **kwargs: Any
     ) -> JsonlDecoder:
         return JsonlDecoder(parameters={})
+
+    @staticmethod
+    def create_json_line_parser(
+        model: JsonLineParserModel, config: Config, **kwargs: Any
+    ) -> JsonLineParser:
+        return JsonLineParser(encoding=model.encoding)
 
     @staticmethod
     def create_iterable_decoder(
@@ -1686,6 +1778,22 @@ class ModelToComponentFactory:
         model: GzipJsonDecoderModel, config: Config, **kwargs: Any
     ) -> GzipJsonDecoder:
         return GzipJsonDecoder(parameters={}, encoding=model.encoding)
+
+    def create_gzip_parser(
+        self, model: GzipParserModel, config: Config, **kwargs: Any
+    ) -> GzipParser:
+        inner_parser = self._create_component_from_model(model=model.inner_parser, config=config)
+        return GzipParser(inner_parser=inner_parser)
+
+    @staticmethod
+    def create_csv_parser(model: CsvParserModel, config: Config, **kwargs: Any) -> CsvParser:
+        return CsvParser(encoding=model.encoding, delimiter=model.delimiter)
+
+    def create_composite_raw_decoder(
+        self, model: CompositeRawDecoderModel, config: Config, **kwargs: Any
+    ) -> CompositeRawDecoder:
+        parser = self._create_component_from_model(model=model.parser, config=config)
+        return CompositeRawDecoder(parser=parser)
 
     @staticmethod
     def create_json_parser(model: JsonParserModel, config: Config, **kwargs: Any) -> JsonParser:
@@ -1774,7 +1882,8 @@ class ModelToComponentFactory:
             return DeclarativeSingleUseRefreshTokenOauth2Authenticator(  # type: ignore
                 config,
                 InterpolatedString.create(
-                    model.token_refresh_endpoint, parameters=model.parameters or {}
+                    model.token_refresh_endpoint,  # type: ignore
+                    parameters=model.parameters or {},
                 ).eval(config),
                 access_token_name=InterpolatedString.create(
                     model.access_token_name or "access_token", parameters=model.parameters or {}
@@ -1808,6 +1917,7 @@ class ModelToComponentFactory:
         # ignore type error because fixing it would have a lot of dependencies, revisit later
         return DeclarativeOauth2Authenticator(  # type: ignore
             access_token_name=model.access_token_name or "access_token",
+            access_token_value=model.access_token_value,
             client_id=model.client_id,
             client_secret=model.client_secret,
             expires_in_name=model.expires_in_name or "expires_in",
@@ -1905,12 +2015,11 @@ class ModelToComponentFactory:
         config: Config,
         *,
         name: str,
-        transformations: List[RecordTransformation],
-        decoder: Optional[Decoder] = None,
-        client_side_incremental_sync: Optional[Dict[str, Any]] = None,
+        transformations: List[RecordTransformation] | None = None,
+        decoder: Decoder | None = None,
+        client_side_incremental_sync: Dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> RecordSelector:
-        assert model.schema_normalization is not None  # for mypy
         extractor = self._create_component_from_model(
             model=model.extractor, decoder=decoder, config=config
         )
@@ -1928,8 +2037,10 @@ class ModelToComponentFactory:
                 else None,
                 **client_side_incremental_sync,
             )
-        schema_normalization = TypeTransformer(
-            SCHEMA_TRANSFORMER_TYPE_MAPPING[model.schema_normalization]
+        schema_normalization = (
+            TypeTransformer(SCHEMA_TRANSFORMER_TYPE_MAPPING[model.schema_normalization])
+            if isinstance(model.schema_normalization, SchemaNormalizationModel)
+            else self._create_component_from_model(model.schema_normalization, config=config)  # type: ignore[arg-type] # custom normalization model expected here
         )
 
         return RecordSelector(
@@ -1937,7 +2048,7 @@ class ModelToComponentFactory:
             name=name,
             config=config,
             record_filter=record_filter,
-            transformations=transformations,
+            transformations=transformations or [],
             schema_normalization=schema_normalization,
             parameters=model.parameters or {},
         )
@@ -2237,18 +2348,24 @@ class ModelToComponentFactory:
             urls_extractor=urls_extractor,
         )
 
-        return AsyncRetriever(
+        async_job_partition_router = AsyncJobPartitionRouter(
             job_orchestrator_factory=lambda stream_slices: AsyncJobOrchestrator(
                 job_repository,
                 stream_slices,
-                JobTracker(
-                    1
-                ),  # FIXME eventually make the number of concurrent jobs in the API configurable. Until then, we limit to 1
+                JobTracker(1),
+                # FIXME eventually make the number of concurrent jobs in the API configurable. Until then, we limit to 1
                 self._message_repository,
-                has_bulk_parent=False,  # FIXME work would need to be done here in order to detect if a stream as a parent stream that is bulk
+                has_bulk_parent=False,
+                # FIXME work would need to be done here in order to detect if a stream as a parent stream that is bulk
             ),
-            record_selector=record_selector,
             stream_slicer=stream_slicer,
+            config=config,
+            parameters=model.parameters or {},
+        )
+
+        return AsyncRetriever(
+            record_selector=record_selector,
+            stream_slicer=async_job_partition_router,
             config=config,
             parameters=model.parameters or {},
         )
@@ -2362,7 +2479,7 @@ class ModelToComponentFactory:
             config=config,
             name="",
             primary_key=None,
-            stream_slicer=combined_slicers,
+            stream_slicer=stream_slicer if stream_slicer else combined_slicers,
             transformations=[],
         )
 
