@@ -14,7 +14,7 @@ from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import (
     CsvParser,
     GzipParser,
     JsonLineParser,
-    JsonParser
+    JsonParser,
 )
 
 
@@ -119,20 +119,27 @@ def test_composite_raw_decoder_jsonline_parser(requests_mock, encoding: str):
         counter += 1
     assert counter == 3
 
+
 @pytest.mark.parametrize(
-    "raw_data, expected",
+    "data, expected",
     [
-        (BufferedReader(BytesIO(b'{"data-type": "string"}')), {"data-type": "string"}),
-        (BufferedReader(BytesIO(b'[{"id": 1}, {"id": 2}]')), [{"id": 1}, {"id": 2}]),
+        ({"data-type": "string"}, {"data-type": "string"}),
+        ([{"id": 1}, {"id": 2}], [{"id": 1}, {"id": 2}]),
     ],
     ids=[
         "test_with_buffered_io_base_data_containing_string",
         "test_with_buffered_io_base_data_containing_list",
     ],
 )
-def test_json_parser_with_valid_data(raw_data, expected):
-    for i, actual in enumerate(JsonParser().parse(raw_data)):
-        if isinstance(expected, list):
-            assert actual == expected[i]
-        else:
-            assert actual == expected
+def test_json_parser_with_valid_data(data, expected):
+    encodings = ["utf-8", "utf", "iso-8859-1"]
+
+    for encoding in encodings:
+        raw_data = json.dumps(data).encode(encoding)
+        for i, actual in enumerate(
+            JsonParser(encoding=encoding).parse(BufferedReader(BytesIO(raw_data)))
+        ):
+            if isinstance(expected, list):
+                assert actual == expected[i]
+            else:
+                assert actual == expected

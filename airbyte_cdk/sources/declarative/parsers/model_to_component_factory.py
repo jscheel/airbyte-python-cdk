@@ -1752,6 +1752,10 @@ class ModelToComponentFactory:
         return JsonDecoder(parameters={})
 
     @staticmethod
+    def create_json_parser(model: JsonParserModel, config: Config, **kwargs: Any) -> JsonParser:
+        return JsonParser(encoding=model.encoding)
+
+    @staticmethod
     def create_jsonl_decoder(
         model: JsonlDecoderModel, config: Config, **kwargs: Any
     ) -> JsonlDecoder:
@@ -1794,10 +1798,6 @@ class ModelToComponentFactory:
     ) -> CompositeRawDecoder:
         parser = self._create_component_from_model(model=model.parser, config=config)
         return CompositeRawDecoder(parser=parser)
-
-    @staticmethod
-    def create_json_parser(model: JsonParserModel, config: Config, **kwargs: Any) -> JsonParser:
-        return JsonParser(parameters={})
 
     @staticmethod
     def create_json_file_schema_loader(

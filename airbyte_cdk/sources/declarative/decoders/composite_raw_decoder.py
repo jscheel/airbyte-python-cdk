@@ -41,18 +41,19 @@ class GzipParser(Parser):
         with gzip.GzipFile(fileobj=data, mode="rb") as gzipobj:
             yield from self.inner_parser.parse(gzipobj)
 
+
 @dataclass
 class JsonParser(Parser):
     """
     Parser strategy for converting JSON-structure str, bytes, or bytearray data into MutableMapping[str, Any].
     """
 
-    def parse(
-        self,
-        data: BufferedIOBase
-    ) -> Generator[MutableMapping[str, Any], None, None]:
+    encoding: Optional[str] = "utf-8"
+
+    def parse(self, data: BufferedIOBase) -> Generator[MutableMapping[str, Any], None, None]:
+        raw_data = data.read()
         try:
-            body_json = json.loads(data.decode("utf-8"))
+            body_json = json.loads(raw_data.decode(self.encoding))
         except json.JSONDecodeError:
             logger.warning(f"Data cannot be parsed into json: {data=}")
             yield {}

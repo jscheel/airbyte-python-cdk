@@ -678,7 +678,7 @@ definitions:
     properties:
       type:
         type: string
-        enum: [ CustomSchemaNormalization ]
+        enum: [CustomSchemaNormalization]
       class_name:
         title: Class Name
         description: Fully-qualified name of the class that will be implementing the custom normalization. The format is `source_<name>.<package>.<class_name>`.
@@ -2020,6 +2020,9 @@ definitions:
       type:
         type: string
         enum: [JsonParser]
+      encoding:
+        type: string
+        default: utf-8
   ListPartitionRouter:
     title: List Partition Router
     description: A Partition router that specifies a list of attributes where each attribute describes a portion of the complete data set for a stream. During a sync, each value is iterated over and can be used as input to outbound API requests.
