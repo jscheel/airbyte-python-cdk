@@ -76,19 +76,6 @@ class DatetimeBasedCursor(DeclarativeCursor):
     cursor_datetime_formats: List[str] = field(default_factory=lambda: [])
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-        for option, name in [
-            (self.start_time_option, "start_time_option"),
-            (self.end_time_option, "end_time_option"),
-        ]:
-            if (
-                option
-                and option.field_name is None
-                and option.inject_into != RequestOptionType.body_json
-            ):
-                raise ValueError(
-                    f"DatetimeBasedCursor requires a top-level field_name for non-body-json requests in {name}."
-                )
-
         if (self.step and not self.cursor_granularity) or (
             not self.step and self.cursor_granularity
         ):
