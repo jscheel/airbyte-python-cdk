@@ -48,7 +48,7 @@ class JsonParser(Parser):
     Parser strategy for converting JSON-structure str, bytes, or bytearray data into MutableMapping[str, Any].
     """
 
-    encoding: Optional[str] = "utf-8"
+    encoding: str = "utf-8"
 
     def parse(self, data: BufferedIOBase) -> Generator[MutableMapping[str, Any], None, None]:
         raw_data = data.read()

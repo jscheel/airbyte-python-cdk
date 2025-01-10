@@ -525,8 +525,8 @@ class ModelToComponentFactory:
             InlineSchemaLoaderModel: self.create_inline_schema_loader,
             JsonDecoderModel: self.create_json_decoder,
             JsonlDecoderModel: self.create_jsonl_decoder,
-            JsonParser: self.create_json_parser,
             JsonLineParserModel: self.create_json_line_parser,
+            JsonParserModel: self.create_json_parser,
             GzipJsonDecoderModel: self.create_gzipjson_decoder,
             GzipParserModel: self.create_gzip_parser,
             KeysToLowerModel: self.create_keys_to_lower_transformation,
@@ -1753,7 +1753,8 @@ class ModelToComponentFactory:
 
     @staticmethod
     def create_json_parser(model: JsonParserModel, config: Config, **kwargs: Any) -> JsonParser:
-        return JsonParser(encoding=model.encoding)
+        encoding = model.encoding or "utf-8"
+        return JsonParser(encoding=encoding)
 
     @staticmethod
     def create_jsonl_decoder(
