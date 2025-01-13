@@ -5,9 +5,9 @@
 from __future__ import annotations
 
 import datetime
-import importlib
 import inspect
 import re
+import sys
 import types
 from functools import partial
 from typing import (
@@ -1043,8 +1043,9 @@ class ModelToComponentFactory:
         return custom_component_class(**kwargs)
 
     def _get_components_module_object(
+        self,
         config: Config,
-    ) -> None:
+    ) -> types.ModuleType:
         """Get a components module object based on the provided config.
 
         If custom python components is provided, this will be loaded. Otherwise, we will
@@ -1054,17 +1055,20 @@ class ModelToComponentFactory:
         COMPONENTS_MODULE_NAME = "components"
 
         components_module: types.ModuleType
-        if INJECTED_COMPONENTS_PY in config:
-            # Create a new module object and execute the provided Python code text within it
-            components_module = types.ModuleType(name=COMPONENTS_MODULE_NAME)
-            python_text = config[INJECTED_COMPONENTS_PY]
-            exec(python_text, components_module.__dict__)
-            # Skip insert the module into sys.modules because we pass by reference below
-            # sys.modules[module_name] = components_module
-        else:
-            components_module = importlib.import_module(name=COMPONENTS_MODULE_NAME)
+        if not INJECTED_COMPONENTS_PY in config:
+            raise ValueError(
+                "Custom components must be defined in a module named `components`. Please provide a custom components module."
+            )
+
+        # Create a new module object and execute the provided Python code text within it
+        components_module = types.ModuleType(name=COMPONENTS_MODULE_NAME)
+        python_text = config[INJECTED_COMPONENTS_PY]
+        exec(python_text, components_module.__dict__)
+        sys.modules[COMPONENTS_MODULE_NAME] = components_module
+        return components_module
 
     def _get_class_from_fully_qualified_class_name(
+        self,
         full_qualified_class_name: str,
         components_module: types.ModuleType,
     ) -> Any:
@@ -1086,7 +1090,7 @@ class ModelToComponentFactory:
         module_name = split[:-2]
         class_name = split[-1]
 
-        if module_name != "components":
+        if "components" not in split:
             raise ValueError(
                 f"Custom components must be defined in a module named `components`. Found {module_name} instead."
             )

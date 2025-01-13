@@ -3,6 +3,7 @@
 #
 
 import json
+import logging
 import os
 import types
 from collections.abc import Mapping
@@ -11,6 +12,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 import yaml
+from airbyte_protocol_dataclasses.models.airbyte_protocol import AirbyteCatalog
 
 from airbyte_cdk.cli.source_declarative_manifest._run import (
     create_declarative_source,
@@ -54,16 +56,16 @@ def test_components_module_from_string() -> None:
 
 
 def get_py_components_config_dict() -> dict[str, Any]:
-    manifest_dict = yaml.safe_load(
-        Path(get_fixture_path("resources/valid_py_components_manifest.yaml")).read_text(),
-    )
+    connector_dir = Path(get_fixture_path("resources/source_the_guardian_api"))
+    manifest_yml_path: Path = connector_dir / "manifest.yaml"
+    custom_py_code_path: Path = connector_dir / "components.py"
+    manifest_dict = yaml.safe_load(manifest_yml_path.read_text())
     assert manifest_dict, "Failed to load the manifest file."
     assert isinstance(
         manifest_dict, Mapping
     ), f"Manifest file is type {type(manifest_dict).__name__}, not a mapping: {manifest_dict}"
 
-    custom_py_code_path = get_fixture_path("resources/valid_py_components_code.py")
-    custom_py_code = Path(custom_py_code_path).read_text()
+    custom_py_code = custom_py_code_path.read_text()
     combined_config_dict = {
         "__injected_declarative_manifest": manifest_dict,
         "__injected_components_py": custom_py_code,
@@ -88,4 +90,4 @@ def test_given_injected_declarative_manifest_and_py_components() -> None:
             ["check", "--config", temp_config_file.name],
         )
         assert isinstance(source, ManifestDeclarativeSource)
-        source.check(logger=None, config=source._source_config)
+        source.check(logger=logging.getLogger(), config=py_components_config_dict)
