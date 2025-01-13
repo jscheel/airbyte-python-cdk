@@ -1042,8 +1042,8 @@ class ModelToComponentFactory:
         }
         return custom_component_class(**kwargs)
 
+    @staticmethod
     def _get_components_module_object(
-        self,
         config: Config,
     ) -> types.ModuleType:
         """Get a components module object based on the provided config.
@@ -1067,8 +1067,8 @@ class ModelToComponentFactory:
         sys.modules[COMPONENTS_MODULE_NAME] = components_module
         return components_module
 
+    @staticmethod
     def _get_class_from_fully_qualified_class_name(
-        self,
         full_qualified_class_name: str,
         components_module: types.ModuleType,
     ) -> Any:
@@ -1092,7 +1092,13 @@ class ModelToComponentFactory:
 
         if module_name != "components":
             raise ValueError(
-                f"Custom components must be defined in a module named `components`. Found {module_name} instead."
+                "Custom components must be defined in a module named "
+                f"`components`. Found `{module_name}` instead."
+            )
+        if module_name_full != "source_declarative_manifest.components":
+            raise ValueError(
+                "Custom components must be defined in a module named "
+                f"`source_declarative_manifest.components`. Found `{module_name_full}` instead."
             )
 
         try:

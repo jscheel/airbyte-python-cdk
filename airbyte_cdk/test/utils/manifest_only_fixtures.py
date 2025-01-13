@@ -5,7 +5,6 @@ import importlib.util
 import types
 from pathlib import Path
 from types import ModuleType
-from typing import Optional
 
 import pytest
 
@@ -31,7 +30,7 @@ def connector_dir(request: pytest.FixtureRequest) -> Path:
 
 
 @pytest.fixture(scope="session")
-def components_module(connector_dir: Path) -> Optional[ModuleType]:
+def components_module(connector_dir: Path) -> ModuleType | None:
     """Load and return the components module from the connector directory.
 
     This assumes the components module is located at <connector_dir>/components.py.
@@ -52,7 +51,7 @@ def components_module(connector_dir: Path) -> Optional[ModuleType]:
     return components_module
 
 
-def components_module_from_string(components_py_text: str) -> Optional[ModuleType]:
+def components_module_from_string(components_py_text: str) -> ModuleType | None:
     """Load and return the components module from a provided string containing the python code.
 
     This assumes the components module is located at <connector_dir>/components.py.
