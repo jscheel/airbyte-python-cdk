@@ -1087,10 +1087,10 @@ class ModelToComponentFactory:
         """
         split = full_qualified_class_name.split(".")
         module_name_full = ".".join(split[:-1])
-        module_name = split[:-2]
+        module_name = split[-2]
         class_name = split[-1]
 
-        if "components" not in split:
+        if module_name != "components":
             raise ValueError(
                 f"Custom components must be defined in a module named `components`. Found {module_name} instead."
             )
