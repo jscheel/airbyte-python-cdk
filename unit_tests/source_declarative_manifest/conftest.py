@@ -65,21 +65,3 @@ def valid_local_config_file():
 @pytest.fixture
 def invalid_local_config_file():
     return get_fixture_path("resources/invalid_local_pokeapi_config.json")
-
-
-@pytest.fixture
-def py_components_config_dict() -> dict[str, Any]:
-    manifest_dict = yaml.safe_load(
-        get_fixture_path("resources/valid_py_components.yaml"),
-    )
-    custom_py_code_path = get_fixture_path("resources/valid_py_components_code.py")
-    custom_py_code = Path(custom_py_code_path).read_text()
-    combined_config_dict = {
-        "__injected_declarative_manifest": manifest_dict,
-        "__injected_components_py": custom_py_code,
-        "__injected_components_py_checksum": {
-            "md5": hash_text(custom_py_code, "md5"),
-            "sha256": hash_text(custom_py_code, "sha256"),
-        },
-    }
-    return combined_config_dict

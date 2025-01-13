@@ -12,7 +12,7 @@ check:
 definitions:
   streams:
     pokemon:
-      type: components.CustomDeclarativeStream
+      type: DeclarativeStream
       name: pokemon
       retriever:
         type: SimpleRetriever
