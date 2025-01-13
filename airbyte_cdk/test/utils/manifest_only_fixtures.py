@@ -56,8 +56,6 @@ def components_module_from_string(components_py_text: str) -> Optional[ModuleTyp
     """Load and return the components module from a provided string containing the python code.
 
     This assumes the components module is located at <connector_dir>/components.py.
-
-    TODO: Make new unit test to leverage this fixture
     """
     module_name = "components"
 
