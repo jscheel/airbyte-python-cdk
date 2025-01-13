@@ -2,6 +2,7 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 #
 
+import datetime
 import json
 import logging
 import os
@@ -17,8 +18,10 @@ from airbyte_protocol_dataclasses.models.airbyte_protocol import AirbyteCatalog
 from airbyte_cdk.cli.source_declarative_manifest._run import (
     create_declarative_source,
 )
+from airbyte_cdk.models import ConfiguredAirbyteCatalog, ConfiguredAirbyteStream
 from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.test.utils.manifest_only_fixtures import components_module_from_string
+from unit_tests.connector_builder.test_connector_builder_handler import configured_catalog
 from unit_tests.source_declarative_manifest.conftest import hash_text
 
 SAMPLE_COMPONENTS_PY_TEXT = """
@@ -84,6 +87,10 @@ def get_py_components_config_dict() -> dict[str, Any]:
 
 def test_given_injected_declarative_manifest_and_py_components() -> None:
     py_components_config_dict = get_py_components_config_dict()
+    # Truncate the start_date to speed up tests
+    py_components_config_dict["start_date"] = (
+        datetime.datetime.now() - datetime.timedelta(days=2)
+    ).strftime("%Y-%m-%d")
     assert isinstance(py_components_config_dict, dict)
     assert "__injected_declarative_manifest" in py_components_config_dict
     assert "__injected_components_py" in py_components_config_dict
@@ -101,7 +108,22 @@ def test_given_injected_declarative_manifest_and_py_components() -> None:
             logger=logging.getLogger(), config=py_components_config_dict
         )
         assert isinstance(catalog, AirbyteCatalog)
+        configured_catalog = ConfiguredAirbyteCatalog(
+            streams=[
+                ConfiguredAirbyteStream(
+                    stream=stream,
+                    sync_mode="full_refresh",
+                    destination_sync_mode="overwrite",
+                )
+                for stream in catalog.streams
+            ]
+        )
 
-        # source.read(
-        #     logger=logging.getLogger(), config=py_components_config_dict, catalog=None, state=None
-        # )
+        msg_iterator = source.read(
+            logger=logging.getLogger(),
+            config=py_components_config_dict,
+            catalog=configured_catalog,
+            state=None,
+        )
+        for msg in msg_iterator:
+            assert msg
