@@ -59,6 +59,9 @@ def get_py_components_config_dict() -> dict[str, Any]:
     connector_dir = Path(get_fixture_path("resources/source_the_guardian_api"))
     manifest_yml_path: Path = connector_dir / "manifest.yaml"
     custom_py_code_path: Path = connector_dir / "components.py"
+    config_yaml_path: Path = connector_dir / "valid_config.yaml"
+    secrets_yaml_path: Path = connector_dir / "secrets.yaml"
+
     manifest_dict = yaml.safe_load(manifest_yml_path.read_text())
     assert manifest_dict, "Failed to load the manifest file."
     assert isinstance(
@@ -74,6 +77,8 @@ def get_py_components_config_dict() -> dict[str, Any]:
             "sha256": hash_text(custom_py_code, "sha256"),
         },
     }
+    combined_config_dict.update(yaml.safe_load(config_yaml_path.read_text()))
+    combined_config_dict.update(yaml.safe_load(secrets_yaml_path.read_text()))
     return combined_config_dict
 
 
@@ -82,6 +87,7 @@ def test_given_injected_declarative_manifest_and_py_components() -> None:
     assert isinstance(py_components_config_dict, dict)
     assert "__injected_declarative_manifest" in py_components_config_dict
     assert "__injected_components_py" in py_components_config_dict
+
     with NamedTemporaryFile(delete=False, suffix=".json") as temp_config_file:
         json_str = json.dumps(py_components_config_dict)
         Path(temp_config_file.name).write_text(json_str)
@@ -91,3 +97,11 @@ def test_given_injected_declarative_manifest_and_py_components() -> None:
         )
         assert isinstance(source, ManifestDeclarativeSource)
         source.check(logger=logging.getLogger(), config=py_components_config_dict)
+        catalog: AirbyteCatalog = source.discover(
+            logger=logging.getLogger(), config=py_components_config_dict
+        )
+        assert isinstance(catalog, AirbyteCatalog)
+
+        # source.read(
+        #     logger=logging.getLogger(), config=py_components_config_dict, catalog=None, state=None
+        # )
