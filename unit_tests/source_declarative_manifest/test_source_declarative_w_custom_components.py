@@ -12,6 +12,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any
 
+import pytest
 import yaml
 from airbyte_protocol_dataclasses.models.airbyte_protocol import AirbyteCatalog
 
@@ -85,6 +86,10 @@ def get_py_components_config_dict() -> dict[str, Any]:
     return combined_config_dict
 
 
+@pytest.mark.skipif(
+    condition=not Path(get_fixture_path("resources/source_the_guardian_api/secrets.yaml")).exists(),
+    reason="Skipped due to missing 'secrets.yaml'.",
+)
 def test_given_injected_declarative_manifest_and_py_components() -> None:
     py_components_config_dict = get_py_components_config_dict()
     # Truncate the start_date to speed up tests
