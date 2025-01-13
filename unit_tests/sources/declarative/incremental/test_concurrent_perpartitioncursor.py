@@ -1838,3 +1838,241 @@ def test_incremental_error__parent_state(
             if message.state
         ]
         assert final_state[-1] == expected_state
+
+
+LISTPARTITION_MANIFEST: MutableMapping[str, Any] = {
+    "version": "0.51.42",
+    "type": "DeclarativeSource",
+    "check": {"type": "CheckStream", "stream_names": ["post_comments"]},
+    "definitions": {
+        "basic_authenticator": {
+            "type": "BasicHttpAuthenticator",
+            "username": "{{ config['credentials']['email'] + '/token' }}",
+            "password": "{{ config['credentials']['api_token'] }}",
+        },
+        "retriever": {
+            "type": "SimpleRetriever",
+            "requester": {
+                "type": "HttpRequester",
+                "url_base": "https://api.example.com",
+                "http_method": "GET",
+                "authenticator": "#/definitions/basic_authenticator",
+            },
+            "record_selector": {
+                "type": "RecordSelector",
+                "extractor": {
+                    "type": "DpathExtractor",
+                    "field_path": ["{{ parameters.get('data_path') or parameters['name'] }}"],
+                },
+                "schema_normalization": "Default",
+            },
+            "paginator": {
+                "type": "DefaultPaginator",
+                "page_size_option": {
+                    "type": "RequestOption",
+                    "field_name": "per_page",
+                    "inject_into": "request_parameter",
+                },
+                "pagination_strategy": {
+                    "type": "CursorPagination",
+                    "page_size": 100,
+                    "cursor_value": "{{ response.get('next_page', {}) }}",
+                    "stop_condition": "{{ not response.get('next_page', {}) }}",
+                },
+                "page_token_option": {"type": "RequestPath"},
+            },
+        },
+        "cursor_incremental_sync": {
+            "type": "DatetimeBasedCursor",
+            "cursor_datetime_formats": ["%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S%z"],
+            "datetime_format": "%Y-%m-%dT%H:%M:%SZ",
+            "cursor_field": "{{ parameters.get('cursor_field',  'updated_at') }}",
+            "start_datetime": {"datetime": "{{ config.get('start_date')}}"},
+            "start_time_option": {
+                "inject_into": "request_parameter",
+                "field_name": "start_time",
+                "type": "RequestOption",
+            },
+        },
+        "post_comments_stream": {
+            "type": "DeclarativeStream",
+            "name": "post_comments",
+            "primary_key": ["id"],
+            "schema_loader": {
+                "type": "InlineSchemaLoader",
+                "schema": {
+                    "$schema": "http://json-schema.org/schema#",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "updated_at": {"type": "string", "format": "date-time"},
+                        "post_id": {"type": "integer"},
+                        "comment": {"type": "string"},
+                    },
+                    "type": "object",
+                },
+            },
+            "retriever": {
+                "type": "SimpleRetriever",
+                "requester": {
+                    "type": "HttpRequester",
+                    "url_base": "https://api.example.com",
+                    "path": "/community/posts/{{ stream_slice.id }}/comments",
+                    "http_method": "GET",
+                    "authenticator": "#/definitions/basic_authenticator",
+                },
+                "record_selector": {
+                    "type": "RecordSelector",
+                    "extractor": {
+                        "type": "DpathExtractor",
+                        "field_path": ["{{ parameters.get('data_path') or parameters['name'] }}"],
+                    },
+                    "schema_normalization": "Default",
+                },
+                "paginator": "#/definitions/retriever/paginator",
+                "partition_router": {
+                    "type": "ListPartitionRouter",
+                    "cursor_field": "id",
+                    "values": ["1", "2", "3"],
+                },
+            },
+            "incremental_sync": {
+                "$ref": "#/definitions/cursor_incremental_sync",
+                "is_client_side_incremental": True
+            },
+            "$parameters": {
+                "name": "post_comments",
+                "path": "community/posts/{{ stream_slice.id }}/comments",
+                "data_path": "comments",
+                "cursor_field": "updated_at",
+                "primary_key": "id",
+            },
+        },
+    },
+    "streams": [
+        {"$ref": "#/definitions/post_comments_stream"},
+    ],
+    "concurrency_level": {
+        "type": "ConcurrencyLevel",
+        "default_concurrency": "{{ config['num_workers'] or 10 }}",
+        "max_concurrency": 25,
+    },
+}
+
+@pytest.mark.parametrize(
+    "test_name, manifest, mock_requests, expected_records, initial_state, expected_state",
+    [
+        (
+            "test_incremental_parent_state",
+            LISTPARTITION_MANIFEST,
+            [
+                # Fetch the first page of comments for post 1
+                (
+                    "https://api.example.com/community/posts/1/comments?per_page=100",
+                    {
+                        "comments": [
+                            {"id": 9, "post_id": 1, "updated_at": "2023-01-01T00:00:00Z"},
+                            {"id": 10, "post_id": 1, "updated_at": "2024-01-25T00:00:00Z"},
+                            {"id": 11, "post_id": 1, "updated_at": "2024-01-24T00:00:00Z"},
+                        ],
+                        "next_page": "https://api.example.com/community/posts/1/comments?per_page=100&page=2",
+                    },
+                ),
+                # Fetch the second page of comments for post 1
+                (
+                    "https://api.example.com/community/posts/1/comments?per_page=100&page=2",
+                    {"comments": [{"id": 12, "post_id": 1, "updated_at": "2024-01-23T00:00:00Z"}]},
+                ),
+                # Fetch the first page of comments for post 2
+                (
+                    "https://api.example.com/community/posts/2/comments?per_page=100",
+                    {
+                        "comments": [
+                            {"id": 20, "post_id": 2, "updated_at": "2024-01-22T00:00:00Z"}
+                        ],
+                        "next_page": "https://api.example.com/community/posts/2/comments?per_page=100&page=2",
+                    },
+                ),
+                # Fetch the second page of comments for post 2
+                (
+                    "https://api.example.com/community/posts/2/comments?per_page=100&page=2",
+                    {"comments": [{"id": 21, "post_id": 2, "updated_at": "2024-01-21T00:00:00Z"}]},
+                ),
+                # Fetch the first page of comments for post 3
+                (
+                    "https://api.example.com/community/posts/3/comments?per_page=100",
+                    {"comments": [{"id": 30, "post_id": 3, "updated_at": "2024-01-09T00:00:00Z"}]},
+                ),
+            ],
+            # Expected records
+            [
+                {"id": 10, "post_id": 1, "updated_at": "2024-01-25T00:00:00Z"},
+                {"id": 11, "post_id": 1, "updated_at": "2024-01-24T00:00:00Z"},
+                {"id": 12, "post_id": 1, "updated_at": "2024-01-23T00:00:00Z"},
+                {"id": 20, "post_id": 2, "updated_at": "2024-01-22T00:00:00Z"},
+                {"id": 21, "post_id": 2, "updated_at": "2024-01-21T00:00:00Z"},
+                {"id": 30, "post_id": 3, "updated_at": "2024-01-09T00:00:00Z"},
+            ],
+            # Initial state
+            [
+                AirbyteStateMessage(
+                    type=AirbyteStateType.STREAM,
+                    stream=AirbyteStreamState(
+                        stream_descriptor=StreamDescriptor(
+                            name="post_comment_votes", namespace=None
+                        ),
+                        stream_state=AirbyteStateBlob(
+                            {
+                             'state': {'updated_at': '2024-01-10T00:00:00Z'},
+                             'states': [{'cursor': {'updated_at': '2024-01-25T00:00:00Z'},
+                                         'partition': {'id': '1'}},
+                                        {'cursor': {'updated_at': '2024-01-22T00:00:00Z'},
+                                         'partition': {'id': '2'}},
+                                        {'cursor': {'updated_at': '2024-01-09T00:00:00Z'},
+                                         'partition': {'id': '3'}}],
+                             'use_global_cursor': False}
+                        ),
+                    ),
+                )
+            ],
+            # Expected state
+            {'lookback_window': 1,
+             'state': {'updated_at': '2024-01-25T00:00:00Z'},
+             'states': [{'cursor': {'updated_at': '2024-01-25T00:00:00Z'},
+                         'partition': {'id': '1'}},
+                        {'cursor': {'updated_at': '2024-01-22T00:00:00Z'},
+                         'partition': {'id': '2'}},
+                        {'cursor': {'updated_at': '2024-01-09T00:00:00Z'},
+                         'partition': {'id': '3'}}],
+             },
+        ),
+    ],
+)
+def test_incremental_list_partition_router(
+    test_name, manifest, mock_requests, expected_records, initial_state, expected_state
+):
+    """
+    Test ConcurrentPerPartitionCursor with ListPartitionRouter
+    """
+
+    _stream_name = "post_comments"
+    config = {
+        "start_date": "2024-01-01T00:00:01Z",
+        "credentials": {"email": "email", "api_token": "api_token"},
+    }
+
+    with requests_mock.Mocker() as m:
+        for url, response in mock_requests:
+            m.get(url, json=response)
+
+        output = _run_read(manifest, config, _stream_name, initial_state)
+        output_data = [message.record.data for message in output if message.record]
+
+        assert set(tuple(sorted(d.items())) for d in output_data) == set(
+            tuple(sorted(d.items())) for d in expected_records
+        )
+        final_state = [
+            orjson.loads(orjson.dumps(message.state.stream.stream_state))
+            for message in output
+            if message.state
+        ]
+        assert final_state[-1] == expected_state

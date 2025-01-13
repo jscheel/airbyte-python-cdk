@@ -226,7 +226,6 @@ class ConcurrentCursor(Cursor):
         )
 
     def observe(self, record: Record) -> None:
-        print(f"Observing record: {record}")
         most_recent_cursor_value = self._most_recent_cursor_value_per_partition.get(
             record.associated_slice
         )
