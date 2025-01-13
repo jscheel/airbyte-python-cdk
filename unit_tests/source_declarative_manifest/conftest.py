@@ -4,8 +4,7 @@
 
 import hashlib
 import os
-from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import pytest
 import yaml
