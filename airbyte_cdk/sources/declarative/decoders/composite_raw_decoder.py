@@ -54,23 +54,36 @@ class JsonParser(Parser):
         Attempts to deserialize data using orjson library. As an extra layer of safety we fallback on the json library to deserialize the data.
         """
         raw_data = data.read()
-        try:
-            body_json = orjson.loads(raw_data.decode(self.encoding))
-        except Exception:
-            try:
-                body_json = json.loads(raw_data.decode(self.encoding))
-            except Exception as exc:
-                raise AirbyteTracedException(
-                    message="Response JSON data failed to be parsed. See logs for more inforation.",
-                    internal_message=f"Response JSON data faild to be parsed: {exc=}, {raw_data=}",
-                    failure_type=FailureType.system_error,
-                    exception=exc,
-                )
+
+        body_json = self._parse_orjson(raw_data) or self._parse_json(raw_data)
+
+        if body_json is None:
+            raise AirbyteTracedException(
+                message="Response JSON data failed to be parsed. See logs for more information.",
+                internal_message=f"Response JSON data failed to be parsed.",
+                failure_type=FailureType.system_error,
+            )
 
         if isinstance(body_json, list):
             yield from body_json
         else:
             yield from [body_json]
+
+    def _parse_orjson(self, raw_data: bytes) -> Optional[MutableMapping[str, Any]]:
+        try:
+            return orjson.loads(raw_data.decode(self.encoding))
+        except Exception as exc:
+            logger.warning(
+                f"Failed to parse JSON data using orjson library. Falling back to json library. {exc=}"
+            )
+            return None
+
+    def _parse_json(self, raw_data: bytes) -> Optional[MutableMapping[str, Any]]:
+        try:
+            return json.loads(raw_data.decode(self.encoding))
+        except Exception as exc:
+            logger.error(f"Failed to parse JSON data using json library. {exc=}")
+            return None
 
 
 @dataclass
