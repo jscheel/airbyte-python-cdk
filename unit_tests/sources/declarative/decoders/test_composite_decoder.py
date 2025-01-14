@@ -121,11 +121,11 @@ def test_composite_raw_decoder_jsonline_parser(requests_mock, encoding: str):
 
 
 @pytest.mark.parametrize(
-    "data",
+    "test_data",
     [
         ({"data-type": "string"}),
-        ([{"id": 1}, {"id": 2}]),
-        ({"id": 170_141_183_460_469_231_731_687_303_715_884_105_727}),
+        ([{"id": "1"}, {"id": "2"}]),
+        ({"id": "170141183460469231731687303715884105727"}),
         ({}),
         ({"nested": {"foo": {"bar": "baz"}}}),
     ],
@@ -137,15 +137,15 @@ def test_composite_raw_decoder_jsonline_parser(requests_mock, encoding: str):
         "nested_structure",
     ],
 )
-def test_json_parser_with_valid_data(data):
+def test_composite_raw_decoder_json_parser(requests_mock, test_data):
     encodings = ["utf-8", "utf", "iso-8859-1"]
-
     for encoding in encodings:
-        raw_data = json.dumps(data).encode(encoding)
-        for i, actual in enumerate(
-            JsonParser(encoding=encoding).parse(BufferedReader(BytesIO(raw_data)))
-        ):
-            if isinstance(data, list):
-                assert actual == data[i]
-            else:
-                assert actual == data
+        raw_data = json.dumps(test_data).encode(encoding=encoding)
+        requests_mock.register_uri("GET", "https://airbyte.io/", content=raw_data)
+        response = requests.get("https://airbyte.io/", stream=True)
+        composite_raw_decoder = CompositeRawDecoder(parser=JsonParser(encoding=encoding))
+        actual = list(composite_raw_decoder.decode(response))
+        if isinstance(test_data, list):
+            assert actual == test_data
+        else:
+            assert actual == [test_data]

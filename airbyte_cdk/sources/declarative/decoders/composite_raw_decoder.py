@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from io import BufferedIOBase, TextIOWrapper
 from typing import Any, Generator, MutableMapping, Optional
 
+import orjson
 import requests
 
 from airbyte_cdk.models import FailureType
@@ -46,30 +47,27 @@ class GzipParser(Parser):
 
 @dataclass
 class JsonParser(Parser):
-    """
-    Parser strategy for converting JSON-structure str, bytes, or bytearray data into MutableMapping[str, Any].
-    """
-
     encoding: str = "utf-8"
 
     def parse(self, data: BufferedIOBase) -> Generator[MutableMapping[str, Any], None, None]:
         raw_data = data.read()
         try:
-            body_json = json.loads(raw_data.decode(self.encoding))
-        except json.JSONDecodeError as exc:
-            raise AirbyteTracedException(
-                message="JSON data failed to be parsed. See logs for more inforation.",
-                internal_message=f"JSON data faild to be parsed: {exc=}",
-                failure_type=FailureType.system_error,
-                exception=exc,
-            )
+            body_json = orjson.loads(raw_data.decode(self.encoding))
+        except Exception:
+            try:
+                body_json = json.loads(raw_data.decode(self.encoding))
+            except Exception as exc:
+                raise AirbyteTracedException(
+                    message="Response JSON data failed to be parsed. See logs for more inforation.",
+                    internal_message=f"Response JSON data faild to be parsed: {exc=}, {raw_data=}",
+                    failure_type=FailureType.system_error,
+                    exception=exc,
+                )
 
-        if not isinstance(body_json, list):
-            body_json = [body_json]
-        if len(body_json) == 0:
-            yield {}
-        else:
+        if isinstance(body_json, list):
             yield from body_json
+        else:
+            yield from [body_json]
 
 
 @dataclass
