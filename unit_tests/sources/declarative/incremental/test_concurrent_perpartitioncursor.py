@@ -320,7 +320,7 @@ def _run_read(
                 ),
                 # Fetch the first page of votes for comment 10 of post 1
                 (
-                    "https://api.example.com/community/posts/1/comments/10/votes?per_page=100&start_time=2024-01-02T00:00:00Z",
+                    "https://api.example.com/community/posts/1/comments/10/votes?per_page=100&start_time=2024-01-01T00:00:01Z",
                     {
                         "votes": [
                             {"id": 100, "comment_id": 10, "created_at": "2024-01-15T00:00:00Z"}
@@ -339,7 +339,7 @@ def _run_read(
                 ),
                 # Fetch the first page of votes for comment 11 of post 1
                 (
-                    "https://api.example.com/community/posts/1/comments/11/votes?per_page=100&start_time=2024-01-03T00:00:00Z",
+                    "https://api.example.com/community/posts/1/comments/11/votes?per_page=100&start_time=2024-01-02T00:00:00Z",
                     {
                         "votes": [
                             {"id": 102, "comment_id": 11, "created_at": "2024-01-13T00:00:00Z"}
@@ -449,6 +449,7 @@ def _run_read(
                                         "cursor": {"created_at": "2024-01-03T00:00:00Z"},
                                     },
                                 ],
+                                "lookback_window": 86400,
                             }
                         ),
                     ),
@@ -673,7 +674,7 @@ def run_incremental_parent_state_test(
                 ),
                 # Fetch the first page of votes for comment 10 of post 1
                 (
-                    "https://api.example.com/community/posts/1/comments/10/votes?per_page=100&start_time=2024-01-02T00:00:00Z",
+                    "https://api.example.com/community/posts/1/comments/10/votes?per_page=100&start_time=2024-01-01T00:00:01Z",
                     {
                         "votes": [
                             {"id": 100, "comment_id": 10, "created_at": "2024-01-15T00:00:00Z"}
@@ -692,7 +693,7 @@ def run_incremental_parent_state_test(
                 ),
                 # Fetch the first page of votes for comment 11 of post 1
                 (
-                    "https://api.example.com/community/posts/1/comments/11/votes?per_page=100&start_time=2024-01-03T00:00:00Z",
+                    "https://api.example.com/community/posts/1/comments/11/votes?per_page=100&start_time=2024-01-02T00:00:00Z",
                     {
                         "votes": [
                             {"id": 102, "comment_id": 11, "created_at": "2024-01-13T00:00:00Z"}
@@ -844,6 +845,7 @@ def run_incremental_parent_state_test(
                                         "cursor": {"created_at": "2024-01-03T00:00:00Z"},
                                     },
                                 ],
+                                "lookback_window": 86400,
                             }
                         ),
                     ),

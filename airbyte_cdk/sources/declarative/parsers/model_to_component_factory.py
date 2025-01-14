@@ -875,6 +875,7 @@ class ModelToComponentFactory:
         config: Config,
         stream_state: MutableMapping[str, Any],
         message_repository: Optional[MessageRepository] = None,
+        runtime_lookback_window: Optional[int] = None,
         **kwargs: Any,
     ) -> ConcurrentCursor:
         component_type = component_definition.get("type")
@@ -931,6 +932,11 @@ class ModelToComponentFactory:
             evaluated_lookback_window = interpolated_lookback_window.eval(config=config)
             if evaluated_lookback_window:
                 lookback_window = parse_duration(evaluated_lookback_window)
+
+        if runtime_lookback_window and lookback_window:
+            lookback_window = max(lookback_window, runtime_lookback_window)
+        elif runtime_lookback_window:
+            lookback_window = runtime_lookback_window
 
         connector_state_converter: DateTimeStreamStateConverter
         connector_state_converter = CustomFormatConcurrentStreamStateConverter(

@@ -335,11 +335,27 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                         partition_router=partition_router,
                     )
 
+                    retriever = declarative_stream.retriever
+
+                    # This is an optimization so that we don't invoke any cursor or state management flows within the
+                    # low-code framework because state management is handled through the ConcurrentCursor.
+                    if declarative_stream and isinstance(retriever, SimpleRetriever):
+                        # Also a temporary hack. In the legacy Stream implementation, as part of the read,
+                        # set_initial_state() is called to instantiate incoming state on the cursor. Although we no
+                        # longer rely on the legacy low-code cursor for concurrent checkpointing, low-code components
+                        # like StopConditionPaginationStrategyDecorator and ClientSideIncrementalRecordFilterDecorator
+                        # still rely on a DatetimeBasedCursor that is properly initialized with state.
+                        if retriever.cursor:
+                            retriever.cursor.set_initial_state(stream_state=stream_state)
+                        # We zero it out here, but since this is a cursor reference, the state is still properly
+                        # instantiated for the other components that reference it
+                        retriever.cursor = None
+
                     partition_generator = StreamSlicerPartitionGenerator(
                         DeclarativePartitionFactory(
                             declarative_stream.name,
                             declarative_stream.get_json_schema(),
-                            declarative_stream.retriever,
+                            retriever,
                             self.message_repository,
                         ),
                         cursor,

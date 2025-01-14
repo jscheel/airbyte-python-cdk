@@ -7,6 +7,7 @@ import logging
 import threading
 from collections import OrderedDict
 from copy import deepcopy
+from datetime import timedelta
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional
 
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
@@ -31,8 +32,10 @@ class ConcurrentCursorFactory:
     def __init__(self, create_function: Callable[..., Cursor]):
         self._create_function = create_function
 
-    def create(self, stream_state: Mapping[str, Any]) -> Cursor:
-        return self._create_function(stream_state=stream_state)
+    def create(self, stream_state: Mapping[str, Any], runtime_lookback_window: Any) -> Cursor:
+        return self._create_function(
+            stream_state=stream_state, runtime_lookback_window=runtime_lookback_window
+        )
 
 
 class ConcurrentPerPartitionCursor(Cursor):
@@ -125,7 +128,6 @@ class ConcurrentPerPartitionCursor(Cursor):
         return state
 
     def close_partition(self, partition: Partition) -> None:
-        print(f"Closing partition {self._to_partition_key(partition._stream_slice.partition)}")
         self._cursor_per_partition[
             self._to_partition_key(partition._stream_slice.partition)
         ].close_partition(partition=partition)
@@ -139,7 +141,6 @@ class ConcurrentPerPartitionCursor(Cursor):
             cursor_state = cursor._connector_state_converter.convert_to_state_message(
                 cursor._cursor_field, cursor.state
             )
-            print(f"State {cursor_state} {cursor.state}")
             if (
                 self._to_partition_key(partition._stream_slice.partition)
                 in self._finished_partitions
@@ -265,9 +266,13 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._new_global_cursor = deepcopy(stream_state)
 
         else:
+            self._lookback_window = stream_state.get("lookback_window")
+
             for state in stream_state["states"]:
                 self._cursor_per_partition[self._to_partition_key(state["partition"])] = (
-                    self._create_cursor(state["cursor"])
+                    self._create_cursor(
+                        state["cursor"], runtime_lookback_window=self._lookback_window
+                    )
                 )
                 self._semaphore_per_partition[self._to_partition_key(state["partition"])] = (
                     threading.Semaphore(0)
@@ -292,8 +297,12 @@ class ConcurrentPerPartitionCursor(Cursor):
     def _to_dict(self, partition_key: str) -> Mapping[str, Any]:
         return self._partition_serializer.to_partition(partition_key)
 
-    def _create_cursor(self, cursor_state: Any) -> Cursor:
-        cursor = self._cursor_factory.create(stream_state=deepcopy(cursor_state))
+    def _create_cursor(self, cursor_state: Any, runtime_lookback_window: Any = None) -> Cursor:
+        if runtime_lookback_window:
+            runtime_lookback_window = timedelta(seconds=runtime_lookback_window)
+        cursor = self._cursor_factory.create(
+            stream_state=deepcopy(cursor_state), runtime_lookback_window=runtime_lookback_window
+        )
         return cursor
 
     def should_be_synced(self, record: Record) -> bool:
