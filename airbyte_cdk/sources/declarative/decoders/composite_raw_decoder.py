@@ -50,6 +50,9 @@ class JsonParser(Parser):
     encoding: str = "utf-8"
 
     def parse(self, data: BufferedIOBase) -> Generator[MutableMapping[str, Any], None, None]:
+        """
+        Attempts to deserialize data using orjson library. As an extra layer of safety we fallback on the json library to deserialize the data.
+        """
         raw_data = data.read()
         try:
             body_json = orjson.loads(raw_data.decode(self.encoding))

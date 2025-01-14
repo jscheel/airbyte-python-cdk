@@ -805,14 +805,6 @@ class GzipJsonDecoder(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
-class JsonParser(BaseModel):
-    class Config:
-        extra = Extra.allow
-
-    type: Literal["JsonParser"]
-    encoding: Optional[str] = "utf-8"
-
-
 class MinMaxDatetime(BaseModel):
     type: Literal["MinMaxDatetime"]
     datetime: str = Field(
@@ -1179,6 +1171,14 @@ class LegacySessionTokenAuthenticator(BaseModel):
         title="Validate Session Path",
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class JsonParser(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    type: Literal["JsonParser"]
+    encoding: Optional[str] = "utf-8"
 
 
 class JsonLineParser(BaseModel):
@@ -1579,7 +1579,7 @@ class RecordSelector(BaseModel):
 
 class GzipParser(BaseModel):
     type: Literal["GzipParser"]
-    inner_parser: Union[JsonLineParser, CsvParser]
+    inner_parser: Union[JsonLineParser, CsvParser, JsonParser]
 
 
 class Spec(BaseModel):
@@ -1614,7 +1614,7 @@ class CompositeErrorHandler(BaseModel):
 
 class CompositeRawDecoder(BaseModel):
     type: Literal["CompositeRawDecoder"]
-    parser: Union[GzipParser, JsonLineParser, CsvParser]
+    parser: Union[GzipParser, JsonParser, JsonLineParser, CsvParser]
 
 
 class DeclarativeSource1(BaseModel):
