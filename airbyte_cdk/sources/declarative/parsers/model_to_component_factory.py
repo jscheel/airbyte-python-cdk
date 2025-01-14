@@ -1037,13 +1037,19 @@ class ModelToComponentFactory:
         self, model: CursorPaginationModel, config: Config, decoder: Decoder, **kwargs: Any
     ) -> CursorPaginationStrategy:
         if isinstance(decoder, PaginationDecoderDecorator):
-            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)) or (
+                isinstance(decoder.decoder, CompositeRawDecoder)
+                and not isinstance(decoder.decoder.parser, JsonParser)
+            ):
                 raise ValueError(
                     f"Provided decoder of {type(decoder.decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )
             decoder_to_use = decoder
         else:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder, (JsonDecoder, XmlDecoder)) or (
+                isinstance(decoder, CompositeRawDecoder)
+                and not isinstance(decoder.parser, JsonParser)
+            ):
                 raise ValueError(
                     f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )
@@ -1520,7 +1526,10 @@ class ModelToComponentFactory:
         cursor_used_for_stop_condition: Optional[DeclarativeCursor] = None,
     ) -> Union[DefaultPaginator, PaginatorTestReadDecorator]:
         if decoder:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder, (JsonDecoder, XmlDecoder)) or (
+                isinstance(decoder, CompositeRawDecoder)
+                and not isinstance(decoder.parser, JsonParser)
+            ):
                 raise ValueError(
                     f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )
@@ -1942,7 +1951,10 @@ class ModelToComponentFactory:
         model: OffsetIncrementModel, config: Config, decoder: Decoder, **kwargs: Any
     ) -> OffsetIncrement:
         if isinstance(decoder, PaginationDecoderDecorator):
-            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)):
+            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)) or (
+                isinstance(decoder.decoder, CompositeRawDecoder)
+                and not isinstance(decoder.decoder.parser, JsonParser)
+            ):
                 raise ValueError(
                     f"Provided decoder of {type(decoder.decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
                 )
