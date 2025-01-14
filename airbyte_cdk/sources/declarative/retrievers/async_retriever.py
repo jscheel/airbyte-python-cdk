@@ -16,6 +16,7 @@ from airbyte_cdk.sources.declarative.partition_routers import SinglePartitionRou
 from airbyte_cdk.sources.declarative.retrievers import Retriever
 from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
 from airbyte_cdk.sources.source import ExperimentalClassWarning
+from airbyte_cdk.sources.streams.concurrent.cursor import Cursor
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
@@ -34,6 +35,7 @@ class AsyncRetriever(Retriever):
     stream_slicer: StreamSlicer = field(
         default_factory=lambda: SinglePartitionRouter(parameters={})
     )
+    cursor: Optional[Cursor] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
         self._job_orchestrator_factory = self.job_orchestrator_factory

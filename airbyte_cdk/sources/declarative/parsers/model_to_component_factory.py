@@ -1396,7 +1396,10 @@ class ModelToComponentFactory:
     ) -> Optional[PartitionRouter]:
         if (
             hasattr(model, "partition_router")
-            and isinstance(model, SimpleRetrieverModel)
+            and (
+                isinstance(model, SimpleRetrieverModel)
+                or isinstance(model, AsyncRetrieverModel)  # TODO: check
+            )
             and model.partition_router
         ):
             stream_slicer_model = model.partition_router
@@ -2244,11 +2247,12 @@ class ModelToComponentFactory:
                 extractor=download_extractor,
                 name=name,
                 record_filter=None,
-                transformations=[],
+                transformations=transformations,
                 schema_normalization=TypeTransformer(TransformConfig.NoTransform),
                 config=config,
                 parameters={},
             ),
+            cursor=stream_slicer,
             primary_key=None,
             name=job_download_components_name,
             paginator=(
@@ -2311,6 +2315,7 @@ class ModelToComponentFactory:
             record_selector=record_selector,
             stream_slicer=stream_slicer,
             config=config,
+            cursor=stream_slicer,
             parameters=model.parameters or {},
         )
 

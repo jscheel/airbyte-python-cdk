@@ -5,6 +5,8 @@ import logging
 from dataclasses import InitVar, dataclass, field
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Union
 
+from sources.declarative.retrievers import AsyncRetriever
+
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.declarative.incremental import (
     GlobalSubstreamCursor,
@@ -189,7 +191,7 @@ class DeclarativeStream(Stream):
         return None
 
     def get_cursor(self) -> Optional[Cursor]:
-        if self.retriever and isinstance(self.retriever, SimpleRetriever):
+        if self.retriever and isinstance(self.retriever, SimpleRetriever | AsyncRetriever):
             return self.retriever.cursor
         return None
 
