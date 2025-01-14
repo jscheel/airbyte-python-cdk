@@ -126,11 +126,15 @@ def test_composite_raw_decoder_jsonline_parser(requests_mock, encoding: str):
         ({"data-type": "string"}),
         ([{"id": 1}, {"id": 2}]),
         ({"id": 170_141_183_460_469_231_731_687_303_715_884_105_727}),
+        ({}),
+        ({"nested": {"foo": {"bar": "baz"}}}),
     ],
     ids=[
-        "test_with_buffered_io_base_data_containing_string",
-        "test_with_buffered_io_base_data_containing_list",
-        "test_with_buffered_io_base_data_containing_int128",
+        "valid_dict",
+        "list_of_dicts",
+        "int128",
+        "empty_object",
+        "nested_structure",
     ],
 )
 def test_json_parser_with_valid_data(data):
