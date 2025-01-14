@@ -107,14 +107,11 @@ class ConcurrentPerPartitionCursor(Cursor):
     def state(self) -> MutableMapping[str, Any]:
         states = []
         for partition_tuple, cursor in self._cursor_per_partition.items():
-            cursor_state = cursor._connector_state_converter.convert_to_state_message(
-                self.cursor_field, cursor.state
-            )
-            if cursor_state:
+            if cursor.state:
                 states.append(
                     {
                         "partition": self._to_dict(partition_tuple),
-                        "cursor": copy.deepcopy(cursor_state),
+                        "cursor": copy.deepcopy(cursor.state),
                     }
                 )
         state: dict[str, Any] = {"states": states}
@@ -138,9 +135,6 @@ class ConcurrentPerPartitionCursor(Cursor):
             cursor = self._cursor_per_partition[
                 self._to_partition_key(partition._stream_slice.partition)
             ]
-            cursor_state = cursor._connector_state_converter.convert_to_state_message(
-                cursor._cursor_field, cursor.state
-            )
             if (
                 self._to_partition_key(partition._stream_slice.partition)
                 in self._finished_partitions
@@ -152,9 +146,9 @@ class ConcurrentPerPartitionCursor(Cursor):
                 if (
                     self._new_global_cursor is None
                     or self._new_global_cursor[self.cursor_field.cursor_field_key]
-                    < cursor_state[self.cursor_field.cursor_field_key]
+                    < cursor.state[self.cursor_field.cursor_field_key]
                 ):
-                    self._new_global_cursor = copy.deepcopy(cursor_state)
+                    self._new_global_cursor = copy.deepcopy(cursor.state)
 
     def ensure_at_least_one_state_emitted(self) -> None:
         """

@@ -304,7 +304,8 @@ class PerPartitionCursor(DeclarativeCursor):
 
     def should_be_synced(self, record: Record) -> bool:
         if (
-            self._to_partition_key(record.associated_slice.partition)
+            record.associated_slice
+            and self._to_partition_key(record.associated_slice.partition)
             not in self._cursor_per_partition
         ):
             partition_state = (
