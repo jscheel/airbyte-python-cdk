@@ -673,9 +673,9 @@ def test_group_streams():
     assert isinstance(concurrent_stream_4, DefaultStream)
     assert concurrent_stream_4.name == "arcana_personas"
     assert isinstance(concurrent_stream_5, DefaultStream)
-    assert concurrent_stream_5.name == "async_job_stream"
+    assert concurrent_stream_5.name == "palace_enemies"
     assert isinstance(concurrent_stream_6, DefaultStream)
-    assert concurrent_stream_6.name == "palace_enemies"
+    assert concurrent_stream_6.name == "async_job_stream"
 
 
 @freezegun.freeze_time(time_to_freeze=datetime(2024, 9, 1, 0, 0, 0, 0, tzinfo=timezone.utc))

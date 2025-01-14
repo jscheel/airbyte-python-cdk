@@ -339,11 +339,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                         DeclarativePartitionFactory(
                             declarative_stream.name,
                             declarative_stream.get_json_schema(),
-                            self._retriever_factory(
-                                name_to_stream_mapping[declarative_stream.name],
-                                config,
-                                stream_state,
-                            ),
+                            declarative_stream.retriever,
                             self.message_repository,
                         ),
                         cursor,
