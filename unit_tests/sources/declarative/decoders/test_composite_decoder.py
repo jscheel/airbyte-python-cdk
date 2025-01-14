@@ -121,17 +121,19 @@ def test_composite_raw_decoder_jsonline_parser(requests_mock, encoding: str):
 
 
 @pytest.mark.parametrize(
-    "data, expected",
+    "data",
     [
-        ({"data-type": "string"}, {"data-type": "string"}),
-        ([{"id": 1}, {"id": 2}], [{"id": 1}, {"id": 2}]),
+        ({"data-type": "string"}),
+        ([{"id": 1}, {"id": 2}]),
+        ({"id": 170_141_183_460_469_231_731_687_303_715_884_105_727}),
     ],
     ids=[
         "test_with_buffered_io_base_data_containing_string",
         "test_with_buffered_io_base_data_containing_list",
+        "test_with_buffered_io_base_data_containing_int128",
     ],
 )
-def test_json_parser_with_valid_data(data, expected):
+def test_json_parser_with_valid_data(data):
     encodings = ["utf-8", "utf", "iso-8859-1"]
 
     for encoding in encodings:
@@ -139,7 +141,7 @@ def test_json_parser_with_valid_data(data, expected):
         for i, actual in enumerate(
             JsonParser(encoding=encoding).parse(BufferedReader(BytesIO(raw_data)))
         ):
-            if isinstance(expected, list):
-                assert actual == expected[i]
+            if isinstance(data, list):
+                assert actual == data[i]
             else:
-                assert actual == expected
+                assert actual == data

@@ -9,7 +9,9 @@ from typing import Any, Generator, MutableMapping, Optional
 
 import requests
 
+from airbyte_cdk.models import FailureType
 from airbyte_cdk.sources.declarative.decoders.decoder import Decoder
+from airbyte_cdk.utils import AirbyteTracedException
 
 logger = logging.getLogger("airbyte")
 
@@ -54,9 +56,13 @@ class JsonParser(Parser):
         raw_data = data.read()
         try:
             body_json = json.loads(raw_data.decode(self.encoding))
-        except json.JSONDecodeError:
-            logger.warning(f"Data cannot be parsed into json: {data=}")
-            yield {}
+        except json.JSONDecodeError as exc:
+            raise AirbyteTracedException(
+                message="JSON data failed to be parsed. See logs for more inforation.",
+                internal_message=f"JSON data faild to be parsed: {exc=}",
+                failure_type=FailureType.system_error,
+                exception=exc,
+            )
 
         if not isinstance(body_json, list):
             body_json = [body_json]
