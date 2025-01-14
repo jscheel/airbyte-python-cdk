@@ -738,7 +738,7 @@ def test_create_concurrent_cursor():
     assert locations_cursor._slice_range == isodate.Duration(months=1)
     assert locations_cursor._lookback_window == timedelta(days=5)
     assert locations_cursor._cursor_granularity == timedelta(days=1)
-    assert locations_cursor.state == {
+    assert locations_cursor._concurrent_state == {
         "slices": [
             {
                 "start": datetime(2024, 7, 1, 0, 0, 0, 0, tzinfo=timezone.utc),
