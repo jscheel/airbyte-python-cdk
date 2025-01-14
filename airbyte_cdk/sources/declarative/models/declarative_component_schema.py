@@ -268,6 +268,22 @@ class CustomSchemaLoader(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class CustomSchemaNormalization(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    type: Literal["CustomSchemaNormalization"]
+    class_name: str = Field(
+        ...,
+        description="Fully-qualified name of the class that will be implementing the custom normalization. The format is `source_<name>.<package>.<class_name>`.",
+        examples=[
+            "source_amazon_seller_partner.components.LedgerDetailedViewReportsTypeTransformer"
+        ],
+        title="Class Name",
+    )
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
 class CustomStateMigration(BaseModel):
     class Config:
         extra = Extra.allow
@@ -489,8 +505,8 @@ class OAuthAuthenticator(BaseModel):
         ],
         title="Refresh Token",
     )
-    token_refresh_endpoint: str = Field(
-        ...,
+    token_refresh_endpoint: Optional[str] = Field(
+        None,
         description="The full URL to call to obtain a new access token.",
         examples=["https://connect.squareup.com/oauth2/token"],
         title="Token Refresh Endpoint",
@@ -500,6 +516,12 @@ class OAuthAuthenticator(BaseModel):
         description="The name of the property which contains the access token in the response from the token refresh endpoint.",
         examples=["access_token"],
         title="Access Token Property Name",
+    )
+    access_token_value: Optional[str] = Field(
+        None,
+        description="The value of the access_token to bypass the token refreshing using `refresh_token`.",
+        examples=["secret_access_token_value"],
+        title="Access Token Value",
     )
     expires_in_name: Optional[str] = Field(
         "expires_in",
@@ -715,8 +737,30 @@ class KeysToSnakeCase(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class KeysReplace(BaseModel):
+    type: Literal["KeysReplace"]
+    old: str = Field(
+        ...,
+        description="Old value to replace.",
+        examples=[" ", "{{ record.id }}", "{{ config['id'] }}", "{{ stream_slice['id'] }}"],
+        title="Old value",
+    )
+    new: str = Field(
+        ...,
+        description="New value to set.",
+        examples=["_", "{{ record.id }}", "{{ config['id'] }}", "{{ stream_slice['id'] }}"],
+        title="New value",
+    )
+    parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
 class FlattenFields(BaseModel):
     type: Literal["FlattenFields"]
+    flatten_lists: Optional[bool] = Field(
+        True,
+        description="Whether to flatten lists or leave it as is. Default is True.",
+        title="Flatten Lists",
+    )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
@@ -1119,6 +1163,17 @@ class LegacySessionTokenAuthenticator(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class JsonLineParser(BaseModel):
+    type: Literal["JsonLineParser"]
+    encoding: Optional[str] = "utf-8"
+
+
+class CsvParser(BaseModel):
+    type: Literal["CsvParser"]
+    encoding: Optional[str] = "utf-8"
+    delimiter: Optional[str] = ","
+
+
 class AsyncJobStatusMap(BaseModel):
     type: Optional[Literal["AsyncJobStatusMap"]] = None
     running: List[str]
@@ -1202,6 +1257,8 @@ class ComponentMappingDefinition(BaseModel):
             "{{ components_values['updates'] }}",
             "{{ components_values['MetaData']['LastUpdatedTime'] }}",
             "{{ config['segment_id'] }}",
+            "{{ stream_slice['parent_id'] }}",
+            "{{ stream_slice['extra_fields']['name'] }}",
         ],
         title="Value",
     )
@@ -1494,8 +1551,17 @@ class RecordSelector(BaseModel):
         description="Responsible for filtering records to be emitted by the Source.",
         title="Record Filter",
     )
-    schema_normalization: Optional[SchemaNormalization] = SchemaNormalization.None_
+    schema_normalization: Optional[Union[SchemaNormalization, CustomSchemaNormalization]] = Field(
+        SchemaNormalization.None_,
+        description="Responsible for normalization according to the schema.",
+        title="Schema Normalization",
+    )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class GzipParser(BaseModel):
+    type: Literal["GzipParser"]
+    inner_parser: Union[JsonLineParser, CsvParser]
 
 
 class Spec(BaseModel):
@@ -1526,6 +1592,11 @@ class CompositeErrorHandler(BaseModel):
         title="Error Handlers",
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class CompositeRawDecoder(BaseModel):
+    type: Literal["CompositeRawDecoder"]
+    parser: Union[GzipParser, JsonLineParser, CsvParser]
 
 
 class DeclarativeSource1(BaseModel):
@@ -1671,6 +1742,8 @@ class DeclarativeStream(BaseModel):
                 RemoveFields,
                 KeysToLower,
                 KeysToSnakeCase,
+                FlattenFields,
+                KeysReplace,
             ]
         ]
     ] = Field(
@@ -1836,6 +1909,23 @@ class DynamicSchemaLoader(BaseModel):
         description="Component used to coordinate how records are extracted across stream slices and request pages.",
         title="Retriever",
     )
+    schema_transformations: Optional[
+        List[
+            Union[
+                AddFields,
+                CustomTransformation,
+                RemoveFields,
+                KeysToLower,
+                KeysToSnakeCase,
+                FlattenFields,
+                KeysReplace,
+            ]
+        ]
+    ] = Field(
+        None,
+        description="A list of transformations to be applied to the schema.",
+        title="Schema Transformations",
+    )
     schema_type_identifier: SchemaTypeIdentifier
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
@@ -1913,6 +2003,7 @@ class SimpleRetriever(BaseModel):
             IterableDecoder,
             XmlDecoder,
             GzipJsonDecoder,
+            CompositeRawDecoder,
         ]
     ] = Field(
         None,
