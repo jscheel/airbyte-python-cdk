@@ -69,7 +69,7 @@ class JsonParser(Parser):
         else:
             yield from [body_json]
 
-    def _parse_orjson(self, raw_data: bytes) -> Optional[MutableMapping[str, Any]]:
+    def _parse_orjson(self, raw_data: bytes) -> Optional[Any]:
         try:
             return orjson.loads(raw_data.decode(self.encoding))
         except Exception as exc:
@@ -78,7 +78,7 @@ class JsonParser(Parser):
             )
             return None
 
-    def _parse_json(self, raw_data: bytes) -> Optional[MutableMapping[str, Any]]:
+    def _parse_json(self, raw_data: bytes) -> Optional[Any]:
         try:
             return json.loads(raw_data.decode(self.encoding))
         except Exception as exc:
