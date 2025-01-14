@@ -243,13 +243,12 @@ SUBSTREAM_MANIFEST: MutableMapping[str, Any] = {
 
 SUBSTREAM_MANIFEST_NO_DEPENDENCY = deepcopy(SUBSTREAM_MANIFEST)
 # Disable incremental_dependency
-SUBSTREAM_MANIFEST_NO_DEPENDENCY["definitions"]["post_comments_stream"]["retriever"]["partition_router"][
-    "parent_stream_configs"
-][0]["incremental_dependency"] = False
-SUBSTREAM_MANIFEST_NO_DEPENDENCY["definitions"]["post_comment_votes_stream"]["retriever"]["partition_router"][
-    "parent_stream_configs"
-][0]["incremental_dependency"] = False
-
+SUBSTREAM_MANIFEST_NO_DEPENDENCY["definitions"]["post_comments_stream"]["retriever"][
+    "partition_router"
+]["parent_stream_configs"][0]["incremental_dependency"] = False
+SUBSTREAM_MANIFEST_NO_DEPENDENCY["definitions"]["post_comment_votes_stream"]["retriever"][
+    "partition_router"
+]["parent_stream_configs"][0]["incremental_dependency"] = False
 
 
 def _run_read(
@@ -1518,18 +1517,22 @@ def test_incremental_parent_state_no_slices(
                         },
                         "cursor": {"created_at": "2024-01-03T00:00:00Z"},
                     },
-                    {'cursor': {'created_at': '2024-01-03T00:00:00Z'},
-                     'partition': {'id': 12,
-                                   'parent_slice': {'id': 1, 'parent_slice': {}}}},
-                    {'cursor': {'created_at': '2024-01-03T00:00:00Z'},
-                     'partition': {'id': 20,
-                                   'parent_slice': {'id': 2, 'parent_slice': {}}}},
-                    {'cursor': {'created_at': '2024-01-03T00:00:00Z'},
-                     'partition': {'id': 21,
-                                   'parent_slice': {'id': 2, 'parent_slice': {}}}},
-                    {'cursor': {'created_at': '2024-01-03T00:00:00Z'},
-                     'partition': {'id': 30,
-                                   'parent_slice': {'id': 3, 'parent_slice': {}}}}
+                    {
+                        "cursor": {"created_at": "2024-01-03T00:00:00Z"},
+                        "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
+                    },
+                    {
+                        "cursor": {"created_at": "2024-01-03T00:00:00Z"},
+                        "partition": {"id": 20, "parent_slice": {"id": 2, "parent_slice": {}}},
+                    },
+                    {
+                        "cursor": {"created_at": "2024-01-03T00:00:00Z"},
+                        "partition": {"id": 21, "parent_slice": {"id": 2, "parent_slice": {}}},
+                    },
+                    {
+                        "cursor": {"created_at": "2024-01-03T00:00:00Z"},
+                        "partition": {"id": 30, "parent_slice": {"id": 3, "parent_slice": {}}},
+                    },
                 ],
                 "parent_state": {
                     "post_comments": {
@@ -1937,7 +1940,7 @@ LISTPARTITION_MANIFEST: MutableMapping[str, Any] = {
             },
             "incremental_sync": {
                 "$ref": "#/definitions/cursor_incremental_sync",
-                "is_client_side_incremental": True
+                "is_client_side_incremental": True,
             },
             "$parameters": {
                 "name": "post_comments",
@@ -1957,6 +1960,7 @@ LISTPARTITION_MANIFEST: MutableMapping[str, Any] = {
         "max_concurrency": 25,
     },
 }
+
 
 @pytest.mark.parametrize(
     "test_name, manifest, mock_requests, expected_records, initial_state, expected_state",
@@ -2022,28 +2026,37 @@ LISTPARTITION_MANIFEST: MutableMapping[str, Any] = {
                         ),
                         stream_state=AirbyteStateBlob(
                             {
-                             'state': {'updated_at': '2024-01-10T00:00:00Z'},
-                             'states': [{'cursor': {'updated_at': '2024-01-25T00:00:00Z'},
-                                         'partition': {'id': '1'}},
-                                        {'cursor': {'updated_at': '2024-01-22T00:00:00Z'},
-                                         'partition': {'id': '2'}},
-                                        {'cursor': {'updated_at': '2024-01-09T00:00:00Z'},
-                                         'partition': {'id': '3'}}],
-                             'use_global_cursor': False}
+                                "state": {"updated_at": "2024-01-10T00:00:00Z"},
+                                "states": [
+                                    {
+                                        "cursor": {"updated_at": "2024-01-25T00:00:00Z"},
+                                        "partition": {"id": "1"},
+                                    },
+                                    {
+                                        "cursor": {"updated_at": "2024-01-22T00:00:00Z"},
+                                        "partition": {"id": "2"},
+                                    },
+                                    {
+                                        "cursor": {"updated_at": "2024-01-09T00:00:00Z"},
+                                        "partition": {"id": "3"},
+                                    },
+                                ],
+                                "use_global_cursor": False,
+                            }
                         ),
                     ),
                 )
             ],
             # Expected state
-            {'lookback_window': 1,
-             'state': {'updated_at': '2024-01-25T00:00:00Z'},
-             'states': [{'cursor': {'updated_at': '2024-01-25T00:00:00Z'},
-                         'partition': {'id': '1'}},
-                        {'cursor': {'updated_at': '2024-01-22T00:00:00Z'},
-                         'partition': {'id': '2'}},
-                        {'cursor': {'updated_at': '2024-01-09T00:00:00Z'},
-                         'partition': {'id': '3'}}],
-             },
+            {
+                "lookback_window": 1,
+                "state": {"updated_at": "2024-01-25T00:00:00Z"},
+                "states": [
+                    {"cursor": {"updated_at": "2024-01-25T00:00:00Z"}, "partition": {"id": "1"}},
+                    {"cursor": {"updated_at": "2024-01-22T00:00:00Z"}, "partition": {"id": "2"}},
+                    {"cursor": {"updated_at": "2024-01-09T00:00:00Z"}, "partition": {"id": "3"}},
+                ],
+            },
         ),
     ],
 )

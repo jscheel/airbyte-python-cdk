@@ -191,11 +191,7 @@ class ConcurrentPerPartitionCursor(Cursor):
 
         cursor = self._cursor_per_partition.get(self._to_partition_key(partition.partition))
         if not cursor:
-            partition_state = (
-                self._global_cursor
-                if self._global_cursor
-                else self._NO_CURSOR_STATE
-            )
+            partition_state = self._global_cursor if self._global_cursor else self._NO_CURSOR_STATE
             cursor = self._create_cursor(partition_state)
             self._cursor_per_partition[self._to_partition_key(partition.partition)] = cursor
             self._semaphore_per_partition[self._to_partition_key(partition.partition)] = (
@@ -286,9 +282,6 @@ class ConcurrentPerPartitionCursor(Cursor):
         self._partition_router.set_initial_state(stream_state)
 
     def observe(self, record: Record) -> None:
-        print("Observing record in concirrent perpartition ", self._to_partition_key(record.associated_slice.partition), record, self._cursor_per_partition[
-            self._to_partition_key(record.associated_slice.partition)
-        ].state)
         self._cursor_per_partition[
             self._to_partition_key(record.associated_slice.partition)
         ].observe(record)
