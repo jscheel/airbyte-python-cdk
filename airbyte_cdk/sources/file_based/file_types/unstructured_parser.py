@@ -58,6 +58,7 @@ def optional_decode(contents: Union[str, bytes]) -> str:
 
 def _import_unstructured() -> None:
     """Dynamically imported as needed, due to slow import speed."""
+    # dummy change
     global unstructured_partition_pdf
     global unstructured_partition_docx
     global unstructured_partition_pptx
