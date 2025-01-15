@@ -20,7 +20,7 @@ from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import (
     PerPartitionKeySerializer,
 )
-from airbyte_cdk.sources.streams.concurrent.cursor import Cursor, CursorField
+from airbyte_cdk.sources.streams.concurrent.cursor import ConcurrentCursor, Cursor, CursorField
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
 
@@ -28,10 +28,12 @@ logger = logging.getLogger("airbyte")
 
 
 class ConcurrentCursorFactory:
-    def __init__(self, create_function: Callable[..., Cursor]):
+    def __init__(self, create_function: Callable[..., ConcurrentCursor]):
         self._create_function = create_function
 
-    def create(self, stream_state: Mapping[str, Any], runtime_lookback_window: Any) -> Cursor:
+    def create(
+        self, stream_state: Mapping[str, Any], runtime_lookback_window: Any
+    ) -> ConcurrentCursor:
         return self._create_function(
             stream_state=stream_state, runtime_lookback_window=runtime_lookback_window
         )
@@ -80,7 +82,7 @@ class ConcurrentPerPartitionCursor(Cursor):
 
         # The dict is ordered to ensure that once the maximum number of partitions is reached,
         # the oldest partitions can be efficiently removed, maintaining the most recent partitions.
-        self._cursor_per_partition: OrderedDict[str, Cursor] = OrderedDict()
+        self._cursor_per_partition: OrderedDict[str, ConcurrentCursor] = OrderedDict()
         self._semaphore_per_partition: OrderedDict[str, threading.Semaphore] = OrderedDict()
         self._finished_partitions: set[str] = set()
         self._lock = threading.Lock()
@@ -119,7 +121,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         return state
 
     def close_partition(self, partition: Partition) -> None:
-        partition_key = self._to_partition_key(partition._stream_slice.partition)
+        partition_key = self._to_partition_key(partition.to_slice().partition)
         self._cursor_per_partition[partition_key].close_partition(partition=partition)
         with self._lock:
             self._semaphore_per_partition[partition_key].acquire()
@@ -276,7 +278,9 @@ class ConcurrentPerPartitionCursor(Cursor):
     def _to_dict(self, partition_key: str) -> Mapping[str, Any]:
         return self._partition_serializer.to_partition(partition_key)
 
-    def _create_cursor(self, cursor_state: Any, runtime_lookback_window: Any = None) -> Cursor:
+    def _create_cursor(
+        self, cursor_state: Any, runtime_lookback_window: Any = None
+    ) -> ConcurrentCursor:
         if runtime_lookback_window:
             runtime_lookback_window = timedelta(seconds=runtime_lookback_window)
         cursor = self._cursor_factory.create(
@@ -287,31 +291,7 @@ class ConcurrentPerPartitionCursor(Cursor):
     def should_be_synced(self, record: Record) -> bool:
         return self._get_cursor(record).should_be_synced(record)
 
-    def is_greater_than_or_equal(self, first: Record, second: Record) -> bool:
-        if not first.associated_slice or not second.associated_slice:
-            raise ValueError(
-                f"Both records should have an associated slice but got {first.associated_slice} and {second.associated_slice}"
-            )
-        if first.associated_slice.partition != second.associated_slice.partition:
-            raise ValueError(
-                f"To compare records, partition should be the same but got {first.associated_slice.partition} and {second.associated_slice.partition}"
-            )
-
-        return self._get_cursor(first).is_greater_than_or_equal(
-            self._convert_record_to_cursor_record(first),
-            self._convert_record_to_cursor_record(second),
-        )
-
-    @staticmethod
-    def _convert_record_to_cursor_record(record: Record) -> Record:
-        return Record(
-            record.data,
-            StreamSlice(partition={}, cursor_slice=record.associated_slice.cursor_slice)
-            if record.associated_slice
-            else None,
-        )
-
-    def _get_cursor(self, record: Record) -> Cursor:
+    def _get_cursor(self, record: Record) -> ConcurrentCursor:
         if not record.associated_slice:
             raise ValueError(
                 "Invalid state as stream slices that are emitted should refer to an existing cursor"
