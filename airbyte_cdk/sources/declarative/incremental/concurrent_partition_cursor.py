@@ -11,7 +11,6 @@ from datetime import timedelta
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional
 
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
-from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
 from airbyte_cdk.sources.declarative.incremental.global_substream_cursor import (
     Timer,
     iterate_with_last_flag_and_state,
@@ -40,20 +39,16 @@ class ConcurrentCursorFactory:
 
 class ConcurrentPerPartitionCursor(Cursor):
     """
-    Manages state per partition when a stream has many partitions, to prevent data loss or duplication.
+    Manages state per partition when a stream has many partitions, preventing data loss or duplication.
 
-    **Partition Limitation and Limit Reached Logic**
+    Attributes:
+        DEFAULT_MAX_PARTITIONS_NUMBER (int): Maximum number of partitions to retain in memory (default is 10,000).
 
-    - **DEFAULT_MAX_PARTITIONS_NUMBER**: The maximum number of partitions to keep in memory (default is 10,000).
-    - **_cursor_per_partition**: An ordered dictionary that stores cursors for each partition.
-    - **_over_limit**: A counter that increments each time an oldest partition is removed when the limit is exceeded.
+    - **Partition Limitation Logic**
+      Ensures the number of tracked partitions does not exceed the specified limit to prevent memory overuse. Oldest partitions are removed when the limit is reached.
 
-    The class ensures that the number of partitions tracked does not exceed the `DEFAULT_MAX_PARTITIONS_NUMBER` to prevent excessive memory usage.
-
-    - When the number of partitions exceeds the limit, the oldest partitions are removed from `_cursor_per_partition`, and `_over_limit` is incremented accordingly.
-    - The `limit_reached` method returns `True` when `_over_limit` exceeds `DEFAULT_MAX_PARTITIONS_NUMBER`, indicating that the global cursor should be used instead of per-partition cursors.
-
-    This approach avoids unnecessary switching to a global cursor due to temporary spikes in partition counts, ensuring that switching is only done when a sustained high number of partitions is observed.
+    - **Global Cursor Fallback**
+      New partitions use global state as the initial state to progress the state for deleted or new partitions. The history data added after the initial sync will be missing.
     """
 
     DEFAULT_MAX_PARTITIONS_NUMBER = 10000
@@ -73,7 +68,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         connector_state_manager: ConnectorStateManager,
         cursor_field: CursorField,
     ) -> None:
-        self._global_cursor: Mapping[str, Any] = {}
+        self._global_cursor: Optional[StreamState] = {}
         self._stream_name = stream_name
         self._stream_namespace = stream_namespace
         self._message_repository = message_repository
@@ -86,15 +81,14 @@ class ConcurrentPerPartitionCursor(Cursor):
         # The dict is ordered to ensure that once the maximum number of partitions is reached,
         # the oldest partitions can be efficiently removed, maintaining the most recent partitions.
         self._cursor_per_partition: OrderedDict[str, Cursor] = OrderedDict()
-        self._state = {"states": []}
-        self._semaphore_per_partition = OrderedDict()
-        self._finished_partitions = set()
+        self._semaphore_per_partition: OrderedDict[str, threading.Semaphore] = OrderedDict()
+        self._finished_partitions: set[str] = set()
         self._lock = threading.Lock()
         self._timer = Timer()
-        self._new_global_cursor = None
-        self._lookback_window = 0
-        self._parent_state = None
-        self._over_limit = 0
+        self._new_global_cursor: Optional[StreamState] = None
+        self._lookback_window: int = 0
+        self._parent_state: Optional[StreamState] = None
+        self._over_limit: int = 0
         self._partition_serializer = PerPartitionKeySerializer()
 
         self._set_initial_state(stream_state)
@@ -125,23 +119,14 @@ class ConcurrentPerPartitionCursor(Cursor):
         return state
 
     def close_partition(self, partition: Partition) -> None:
-        self._cursor_per_partition[
-            self._to_partition_key(partition._stream_slice.partition)
-        ].close_partition(partition=partition)
+        partition_key = self._to_partition_key(partition._stream_slice.partition)
+        self._cursor_per_partition[partition_key].close_partition(partition=partition)
         with self._lock:
-            self._semaphore_per_partition[
-                self._to_partition_key(partition._stream_slice.partition)
-            ].acquire()
-            cursor = self._cursor_per_partition[
-                self._to_partition_key(partition._stream_slice.partition)
-            ]
+            self._semaphore_per_partition[partition_key].acquire()
+            cursor = self._cursor_per_partition[partition_key]
             if (
-                self._to_partition_key(partition._stream_slice.partition)
-                in self._finished_partitions
-                and self._semaphore_per_partition[
-                    self._to_partition_key(partition._stream_slice.partition)
-                ]._value
-                == 0
+                partition_key in self._finished_partitions
+                and self._semaphore_per_partition[partition_key]._value == 0
             ):
                 if (
                     self._new_global_cursor is None
@@ -260,7 +245,7 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._new_global_cursor = deepcopy(stream_state)
 
         else:
-            self._lookback_window = stream_state.get("lookback_window")
+            self._lookback_window = int(stream_state.get("lookback_window", 0))
 
             for state in stream_state["states"]:
                 self._cursor_per_partition[self._to_partition_key(state["partition"])] = (

@@ -1037,7 +1037,7 @@ class ModelToComponentFactory:
         stream_namespace: Optional[str],
         config: Config,
         stream_state: MutableMapping[str, Any],
-        partition_router,
+        partition_router: PartitionRouter,
         **kwargs: Any,
     ) -> ConcurrentPerPartitionCursor:
         component_type = component_definition.get("type")

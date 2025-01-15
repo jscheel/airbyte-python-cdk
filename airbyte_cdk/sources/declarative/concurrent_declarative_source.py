@@ -324,15 +324,17 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     )
                     partition_router = declarative_stream.retriever.stream_slicer._partition_router
 
-                    cursor = self._constructor.create_concurrent_cursor_from_perpartition_cursor(
-                        state_manager=state_manager,
-                        model_type=DatetimeBasedCursorModel,
-                        component_definition=incremental_sync_component_definition,
-                        stream_name=declarative_stream.name,
-                        stream_namespace=declarative_stream.namespace,
-                        config=config or {},
-                        stream_state=stream_state,
-                        partition_router=partition_router,
+                    perpartition_cursor = (
+                        self._constructor.create_concurrent_cursor_from_perpartition_cursor(
+                            state_manager=state_manager,
+                            model_type=DatetimeBasedCursorModel,
+                            component_definition=incremental_sync_component_definition,
+                            stream_name=declarative_stream.name,
+                            stream_namespace=declarative_stream.namespace,
+                            config=config or {},
+                            stream_state=stream_state,
+                            partition_router=partition_router,
+                        )
                     )
 
                     retriever = declarative_stream.retriever
@@ -358,7 +360,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             retriever,
                             self.message_repository,
                         ),
-                        cursor,
+                        perpartition_cursor,
                     )
 
                     concurrent_streams.append(
@@ -368,9 +370,9 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             json_schema=declarative_stream.get_json_schema(),
                             availability_strategy=AlwaysAvailableAvailabilityStrategy(),
                             primary_key=get_primary_key_from_stream(declarative_stream.primary_key),
-                            cursor_field=cursor.cursor_field.cursor_field_key,
+                            cursor_field=perpartition_cursor.cursor_field.cursor_field_key,
                             logger=self.logger,
-                            cursor=cursor,
+                            cursor=perpartition_cursor,
                         )
                     )
                 else:
