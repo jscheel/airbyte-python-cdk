@@ -121,7 +121,14 @@ class ConcurrentPerPartitionCursor(Cursor):
         return state
 
     def close_partition(self, partition: Partition) -> None:
-        partition_key = self._to_partition_key(partition.to_slice().partition)
+        # Attempt to retrieve the stream slice
+        stream_slice: Optional[StreamSlice] = partition.to_slice()  # type: ignore[assignment]
+
+        # Ensure stream_slice is not None
+        if stream_slice is None:
+            raise ValueError("stream_slice cannot be None")
+
+        partition_key = self._to_partition_key(stream_slice.partition)
         self._cursor_per_partition[partition_key].close_partition(partition=partition)
         with self._lock:
             self._semaphore_per_partition[partition_key].acquire()
@@ -268,6 +275,10 @@ class ConcurrentPerPartitionCursor(Cursor):
         self._partition_router.set_initial_state(stream_state)
 
     def observe(self, record: Record) -> None:
+        if not record.associated_slice:
+            raise ValueError(
+                "Invalid state as stream slices that are emitted should refer to an existing cursor"
+            )
         self._cursor_per_partition[
             self._to_partition_key(record.associated_slice.partition)
         ].observe(record)
