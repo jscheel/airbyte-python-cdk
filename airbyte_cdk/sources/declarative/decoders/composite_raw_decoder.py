@@ -47,13 +47,16 @@ class GzipParser(Parser):
 
 @dataclass
 class JsonParser(Parser):
-    encoding: str = "utf-8"
+    encoding: str
 
     def parse(self, data: BufferedIOBase) -> Generator[MutableMapping[str, Any], None, None]:
         """
         Attempts to deserialize data using orjson library. As an extra layer of safety we fallback on the json library to deserialize the data.
         """
         raw_data = data.read()
+        print("\n\n=====================\n\n")
+        print(raw_data.decode(self.encoding))
+        print("\n\n=====================\n\n")
 
         body_json = self._parse_orjson(raw_data) or self._parse_json(raw_data)
 
@@ -74,7 +77,7 @@ class JsonParser(Parser):
             return orjson.loads(raw_data.decode(self.encoding))
         except Exception as exc:
             logger.warning(
-                f"Failed to parse JSON data using orjson library. Falling back to json library. {exc=}"
+                f"Failed to parse JSON data using orjson library. Falling back to json library. {exc}"
             )
             return None
 
@@ -82,7 +85,7 @@ class JsonParser(Parser):
         try:
             return json.loads(raw_data.decode(self.encoding))
         except Exception as exc:
-            logger.error(f"Failed to parse JSON data using json library. {exc=}")
+            logger.error(f"Failed to parse JSON data using json library. {exc}")
             return None
 
 
