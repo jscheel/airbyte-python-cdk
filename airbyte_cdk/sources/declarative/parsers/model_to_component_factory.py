@@ -1794,8 +1794,8 @@ class ModelToComponentFactory:
     def create_zipfile_decoder(
         self, model: ZipfileDecoderModel, config: Config, **kwargs: Any
     ) -> ZipfileDecoder:
-        inner_parser = self._create_component_from_model(model=model.inner_parser, config=config)
-        return ZipfileDecoder(parameters={}, inner_parser=inner_parser)
+        parser = self._create_component_from_model(model=model.parser, config=config)
+        return ZipfileDecoder(parser=parser)
 
     def create_gzip_parser(
         self, model: GzipParserModel, config: Config, **kwargs: Any
