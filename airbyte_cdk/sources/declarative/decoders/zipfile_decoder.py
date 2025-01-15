@@ -12,23 +12,17 @@ from typing import Any, Generator, Mapping, MutableMapping, Optional
 import requests
 
 from airbyte_cdk.sources.declarative.decoders import Decoder
-from airbyte_cdk.sources.declarative.decoders.parsers import JsonParser, Parser
+from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import Parser
 
 logger = logging.getLogger("airbyte")
 
 
 @dataclass
 class ZipfileDecoder(Decoder):
-    parameters: InitVar[Mapping[str, Any]]
-    parser: Optional[Parser] = None
-
-    def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-        self._parser = (
-            self.parser(parameters=parameters) if self.parser else JsonParser(parameters=parameters)
-        )
+    parser: Parser
 
     def is_stream_response(self) -> bool:
-        return False
+        return True
 
     def decode(
         self, response: requests.Response
@@ -43,12 +37,7 @@ class ZipfileDecoder(Decoder):
             )
             yield {}
 
-        for gzip_filename in zip_file.namelist():
-            with zip_file.open(gzip_filename) as file:
-                try:
-                    for data in gzip.open(file):
-                        yield from self._parser.parse(data)
-                except gzip.BadGzipFile as e:
-                    logger.exception(e)
-                    logger.error(f"Fail to read contents of zipped response: {e}")
-                    yield {}
+        for filename in zip_file.namelist():
+            with zip_file.open(filename) as file:
+                buffered_file = io.BufferedReader(file)
+                yield from self.parser.parse(buffered_file)

@@ -4,7 +4,9 @@
 
 from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import (
     CompositeRawDecoder,
+    GzipParser,
     JsonParser,
+    Parser,
 )
 from airbyte_cdk.sources.declarative.decoders.decoder import Decoder
 from airbyte_cdk.sources.declarative.decoders.json_decoder import (

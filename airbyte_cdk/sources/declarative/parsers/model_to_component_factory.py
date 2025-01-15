@@ -1794,12 +1794,14 @@ class ModelToComponentFactory:
     def create_zipfile_decoder(
         self, model: ZipfileDecoderModel, config: Config, **kwargs: Any
     ) -> ZipfileDecoder:
-        parser = (
-            self._create_component_from_model(model=model.parser, config=config)
-            if model.parser
-            else None
-        )
-        return ZipfileDecoder(parameters={}, parser=parser)
+        inner_parser = self._create_component_from_model(model=model.inner_parser, config=config)
+        return ZipfileDecoder(parameters={}, inner_parser=inner_parser)
+
+    def create_gzip_parser(
+        self, model: GzipParserModel, config: Config, **kwargs: Any
+    ) -> GzipParser:
+        inner_parser = self._create_component_from_model(model=model.inner_parser, config=config)
+        return GzipParser(inner_parser=inner_parser)
 
     @staticmethod
     def create_csv_parser(model: CsvParserModel, config: Config, **kwargs: Any) -> CsvParser:
