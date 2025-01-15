@@ -1047,8 +1047,7 @@ class ModelToComponentFactory:
             decoder_to_use = decoder
         else:
             raise ValueError(
-                f"Provided decoder of {type(inner_decoder)=} is not supported. "
-                "Please set as JsonDecoder, XmlDecoder, or a CompositeRawDecoder with JsonParser instead."
+                self._UNSUPPORTED_DECODER_ERROR.format(decoder_type=type(inner_decoder))
             )
 
         return CursorPaginationStrategy(
@@ -1525,9 +1524,7 @@ class ModelToComponentFactory:
             if self._is_supported_decoder_for_pagination(decoder):
                 decoder_to_use = PaginationDecoderDecorator(decoder=decoder)
             else:
-                raise ValueError(
-                    f"Provided decoder of {type(decoder)=} is not supported. Please set as JsonDecoder, XmlDecoder, or a CompositeRawDecoder with JsonParser instead."
-                )
+                raise ValueError(self._UNSUPPORTED_DECODER_ERROR.format(decoder_type=type(decoder)))
         else:
             decoder_to_use = PaginationDecoderDecorator(decoder=JsonDecoder(parameters={}))
         page_size_option = (
@@ -1953,8 +1950,7 @@ class ModelToComponentFactory:
             decoder_to_use = decoder
         else:
             raise ValueError(
-                f"Provided decoder of {type(inner_decoder)=} is not supported. "
-                "Please set as JsonDecoder, XmlDecoder, or a CompositeRawDecoder with JsonParser instead."
+                self._UNSUPPORTED_DECODER_ERROR.format(decoder_type=type(inner_decoder))
             )
 
         return OffsetIncrement(
@@ -2545,6 +2541,12 @@ class ModelToComponentFactory:
             components_mapping=components_mapping,
             parameters=model.parameters or {},
         )
+
+    _UNSUPPORTED_DECODER_ERROR = (
+        "Specified decoder of {decoder_type} is not supported for pagination."
+        "Please set as `JsonDecoder`, `XmlDecoder`, or a `CompositeRawDecoder` with an inner_parser of `JsonParser` or `GzipParser` instead."
+        "If using `GzipParser`, please ensure that the lowest level inner_parser is a `JsonParser`."
+    )
 
     def _is_supported_decoder_for_pagination(self, decoder: Decoder) -> bool:
         if isinstance(decoder, (JsonDecoder, XmlDecoder)):

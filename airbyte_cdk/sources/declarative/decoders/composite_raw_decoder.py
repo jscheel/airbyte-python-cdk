@@ -47,7 +47,7 @@ class GzipParser(Parser):
 
 @dataclass
 class JsonParser(Parser):
-    encoding: str
+    encoding: str = "utf-8"
 
     def parse(self, data: BufferedIOBase) -> Generator[MutableMapping[str, Any], None, None]:
         """
@@ -72,7 +72,7 @@ class JsonParser(Parser):
         try:
             return orjson.loads(raw_data.decode(self.encoding))
         except Exception as exc:
-            logger.warning(
+            logger.debug(
                 f"Failed to parse JSON data using orjson library. Falling back to json library. {exc}"
             )
             return None
