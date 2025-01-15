@@ -54,10 +54,6 @@ class JsonParser(Parser):
         Attempts to deserialize data using orjson library. As an extra layer of safety we fallback on the json library to deserialize the data.
         """
         raw_data = data.read()
-        print("\n\n=====================\n\n")
-        print(raw_data.decode(self.encoding))
-        print("\n\n=====================\n\n")
-
         body_json = self._parse_orjson(raw_data) or self._parse_json(raw_data)
 
         if body_json is None:
