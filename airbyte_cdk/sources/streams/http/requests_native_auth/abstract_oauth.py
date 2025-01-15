@@ -54,7 +54,12 @@ class AbstractOauth2Authenticator(AuthBase):
 
     def get_auth_header(self) -> Mapping[str, Any]:
         """HTTP header to set on the requests"""
-        return {"Authorization": f"Bearer {self.get_access_token()}"}
+        token = self.access_token if self._is_access_token_flow else self.get_access_token()
+        return {"Authorization": f"Bearer {token}"}
+
+    @property
+    def _is_access_token_flow(self) -> bool:
+        return self.get_token_refresh_endpoint() is None and self.access_token is not None
 
     def get_access_token(self) -> str:
         """Returns the access token"""
@@ -76,10 +81,10 @@ class AbstractOauth2Authenticator(AuthBase):
         Override to define additional parameters
         """
         payload: MutableMapping[str, Any] = {
-            "grant_type": self.get_grant_type(),
-            "client_id": self.get_client_id(),
-            "client_secret": self.get_client_secret(),
-            "refresh_token": self.get_refresh_token(),
+            self.get_grant_type_name(): self.get_grant_type(),
+            self.get_client_id_name(): self.get_client_id(),
+            self.get_client_secret_name(): self.get_client_secret(),
+            self.get_refresh_token_name(): self.get_refresh_token(),
         }
 
         if self.get_scopes():
@@ -121,7 +126,7 @@ class AbstractOauth2Authenticator(AuthBase):
         try:
             response = requests.request(
                 method="POST",
-                url=self.get_token_refresh_endpoint(),
+                url=self.get_token_refresh_endpoint(),  # type: ignore # returns None, if not provided, but str | bytes is expected.
                 data=self.build_refresh_request_body(),
             )
             if response.ok:
@@ -198,16 +203,28 @@ class AbstractOauth2Authenticator(AuthBase):
         return None
 
     @abstractmethod
-    def get_token_refresh_endpoint(self) -> str:
+    def get_token_refresh_endpoint(self) -> Optional[str]:
         """Returns the endpoint to refresh the access token"""
+
+    @abstractmethod
+    def get_client_id_name(self) -> str:
+        """The client id name to authenticate"""
 
     @abstractmethod
     def get_client_id(self) -> str:
         """The client id to authenticate"""
 
     @abstractmethod
+    def get_client_secret_name(self) -> str:
+        """The client secret name to authenticate"""
+
+    @abstractmethod
     def get_client_secret(self) -> str:
         """The client secret to authenticate"""
+
+    @abstractmethod
+    def get_refresh_token_name(self) -> str:
+        """The refresh token name to authenticate"""
 
     @abstractmethod
     def get_refresh_token(self) -> Optional[str]:
@@ -240,6 +257,10 @@ class AbstractOauth2Authenticator(AuthBase):
     @abstractmethod
     def get_grant_type(self) -> str:
         """Returns grant_type specified for requesting access_token"""
+
+    @abstractmethod
+    def get_grant_type_name(self) -> str:
+        """Returns grant_type specified name for requesting access_token"""
 
     @property
     @abstractmethod
