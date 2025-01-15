@@ -2560,6 +2560,6 @@ class ModelToComponentFactory:
         if isinstance(parser, JsonParser):
             return True
         elif isinstance(parser, GzipParser):
-            return self._is_supported_parser_for_pagination(parser.inner_parser)
+            return isinstance(parser.inner_parser, JsonParser)
         else:
             return False
