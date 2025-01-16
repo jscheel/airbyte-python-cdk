@@ -3,28 +3,22 @@
 import copy
 from copy import deepcopy
 from typing import Any, List, Mapping, MutableMapping, Optional, Union
-from unittest.mock import MagicMock
 
 import pytest
-import requests_mock
 from orjson import orjson
 
 from airbyte_cdk.models import (
-    AirbyteMessage,
     AirbyteStateBlob,
     AirbyteStateMessage,
     AirbyteStateType,
-    AirbyteStream,
     AirbyteStreamState,
-    ConfiguredAirbyteCatalog,
-    ConfiguredAirbyteStream,
-    DestinationSyncMode,
     StreamDescriptor,
-    SyncMode,
 )
 from airbyte_cdk.sources.declarative.concurrent_declarative_source import (
     ConcurrentDeclarativeSource,
 )
+from airbyte_cdk.test.catalog_builder import CatalogBuilder, ConfiguredAirbyteStreamBuilder
+from airbyte_cdk.test.entrypoint_wrapper import EntrypointOutput, read
 
 SUBSTREAM_MANIFEST: MutableMapping[str, Any] = {
     "version": "0.51.42",
@@ -239,6 +233,47 @@ SUBSTREAM_MANIFEST: MutableMapping[str, Any] = {
         "default_concurrency": "{{ config['num_workers'] or 10 }}",
         "max_concurrency": 25,
     },
+    "spec": {
+        "type": "Spec",
+        "documentation_url": "https://airbyte.com/#yaml-from-manifest",
+        "connection_specification": {
+            "title": "Test Spec",
+            "type": "object",
+            "required": ["credentials", "start_date"],
+            "additionalProperties": False,
+            "properties": {
+                "credentials": {
+                    "type": "object",
+                    "required": ["email", "api_token"],
+                    "properties": {
+                        "email": {
+                            "type": "string",
+                            "title": "Email",
+                            "description": "The email for authentication.",
+                        },
+                        "api_token": {
+                            "type": "string",
+                            "airbyte_secret": True,
+                            "title": "API Token",
+                            "description": "The API token for authentication.",
+                        },
+                    },
+                },
+                "start_date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "Start Date",
+                    "description": "The date from which to start syncing data.",
+                },
+            },
+        },
+    },
+}
+
+STREAM_NAME = "post_comment_votes"
+CONFIG = {
+    "start_date": "2024-01-01T00:00:01Z",
+    "credentials": {"email": "email", "api_token": "api_token"},
 }
 
 SUBSTREAM_MANIFEST_NO_DEPENDENCY = deepcopy(SUBSTREAM_MANIFEST)
@@ -250,38 +285,64 @@ SUBSTREAM_MANIFEST_NO_DEPENDENCY["definitions"]["post_comment_votes_stream"]["re
     "partition_router"
 ]["parent_stream_configs"][0]["incremental_dependency"] = False
 
+import orjson
+import requests_mock
+
+
+def run_mocked_test(
+    mock_requests, manifest, config, stream_name, initial_state, expected_records, expected_state
+):
+    """
+    Helper function to mock requests, run the test, and verify the results.
+
+    Args:
+        mock_requests (list): List of tuples containing the URL and response data to mock.
+        manifest (dict): Manifest configuration for the source.
+        config (dict): Source configuration.
+        stream_name (str): Name of the stream being tested.
+        initial_state (dict): Initial state for the stream.
+        expected_records (list): Expected records to be returned by the stream.
+        expected_state (dict): Expected state after processing the records.
+
+    Raises:
+        AssertionError: If the test output does not match the expected records or state.
+    """
+    with requests_mock.Mocker() as m:
+        for url, response in mock_requests:
+            if response is None:
+                m.get(url, status_code=404)
+            else:
+                m.get(url, json=response)
+
+        output = _run_read(manifest, config, stream_name, initial_state)
+
+        # Verify records
+        assert sorted(
+            [r.record.data for r in output.records], key=lambda x: orjson.dumps(x)
+        ) == sorted(expected_records, key=lambda x: orjson.dumps(x))
+
+        # Verify state
+        final_state = output.state_messages[-1].state.stream.stream_state
+        assert final_state == AirbyteStateBlob(expected_state)
+
 
 def _run_read(
     manifest: Mapping[str, Any],
     config: Mapping[str, Any],
     stream_name: str,
     state: Optional[Union[List[AirbyteStateMessage], MutableMapping[str, Any]]] = None,
-) -> List[AirbyteMessage]:
-    catalog = ConfiguredAirbyteCatalog(
-        streams=[
-            ConfiguredAirbyteStream(
-                stream=AirbyteStream(
-                    name=stream_name,
-                    json_schema={},
-                    supported_sync_modes=[SyncMode.full_refresh, SyncMode.incremental],
-                ),
-                sync_mode=SyncMode.incremental,
-                destination_sync_mode=DestinationSyncMode.append,
-            )
-        ]
-    )
+) -> EntrypointOutput:
     source = ConcurrentDeclarativeSource(
-        source_config=manifest, config=config, catalog=catalog, state=state
+        source_config=manifest, config=config, catalog=None, state=state
     )
-    messages = []
-    try:
-        for message in source.read(
-            logger=source.logger, config=config, catalog=catalog, state=state
-        ):
-            messages.append(message)
-    except Exception:
-        pass  # Ignore exceptions in tests
-    return messages
+    output = read(
+        source,
+        config,
+        CatalogBuilder()
+        .with_stream(ConfiguredAirbyteStreamBuilder().with_name(stream_name))
+        .build(),
+    )
+    return output
 
 
 @pytest.mark.parametrize(
@@ -511,29 +572,15 @@ def test_incremental_parent_state_no_incremental_dependency(
     parent stream requests use the incoming config as query parameters and the substream state messages does not
     contain parent stream state.
     """
-
-    _stream_name = "post_comment_votes"
-    config = {
-        "start_date": "2024-01-01T00:00:01Z",
-        "credentials": {"email": "email", "api_token": "api_token"},
-    }
-
-    with requests_mock.Mocker() as m:
-        for url, response in mock_requests:
-            m.get(url, json=response)
-
-        output = _run_read(manifest, config, _stream_name, initial_state)
-        output_data = [message.record.data for message in output if message.record]
-
-        assert set(tuple(sorted(d.items())) for d in output_data) == set(
-            tuple(sorted(d.items())) for d in expected_records
-        )
-        final_state = [
-            orjson.loads(orjson.dumps(message.state.stream.stream_state))
-            for message in output
-            if message.state
-        ]
-        assert final_state[-1] == expected_state
+    run_mocked_test(
+        mock_requests,
+        manifest,
+        CONFIG,
+        STREAM_NAME,
+        initial_state,
+        expected_records,
+        expected_state,
+    )
 
 
 def run_incremental_parent_state_test(
@@ -562,6 +609,7 @@ def run_incremental_parent_state_test(
         "start_date": "2024-01-01T00:00:01Z",
         "credentials": {"email": "email", "api_token": "api_token"},
     }
+    expected_states = [AirbyteStateBlob(s) for s in expected_states]
 
     with requests_mock.Mocker() as m:
         for url, response in mock_requests:
@@ -569,12 +617,11 @@ def run_incremental_parent_state_test(
 
         # Run the initial read
         output = _run_read(manifest, config, _stream_name, initial_state)
-        output_data = [message.record.data for message in output if message.record]
 
         # Assert that output_data equals expected_records
-        assert sorted(output_data, key=lambda x: orjson.dumps(x)) == sorted(
-            expected_records, key=lambda x: orjson.dumps(x)
-        )
+        assert sorted(
+            [r.record.data for r in output.records], key=lambda x: orjson.dumps(x)
+        ) == sorted(expected_records, key=lambda x: orjson.dumps(x))
 
         # Collect the intermediate states and records produced before each state
         cumulative_records = []
@@ -582,14 +629,9 @@ def run_incremental_parent_state_test(
         final_states = []  # To store the final state after each read
 
         # Store the final state after the initial read
-        final_state_initial = [
-            orjson.loads(orjson.dumps(message.state.stream.stream_state))
-            for message in output
-            if message.state
-        ]
-        final_states.append(final_state_initial[-1])
+        final_states.append(output.state_messages[-1].state.stream.stream_state)
 
-        for message in output:
+        for message in output.records_and_state_messages:
             if message.type.value == "RECORD":
                 record_data = message.record.data
                 cumulative_records.append(record_data)
@@ -602,9 +644,7 @@ def run_incremental_parent_state_test(
         # For each intermediate state, perform another read starting from that state
         for state, records_before_state in intermediate_states[:-1]:
             output_intermediate = _run_read(manifest, config, _stream_name, [state])
-            records_from_state = [
-                message.record.data for message in output_intermediate if message.record
-            ]
+            records_from_state = [r.record.data for r in output_intermediate.records]
 
             # Combine records produced before the state with records from the new read
             cumulative_records_state = records_before_state + records_from_state
@@ -626,8 +666,7 @@ def run_incremental_parent_state_test(
             # Store the final state after each intermediate read
             final_state_intermediate = [
                 orjson.loads(orjson.dumps(message.state.stream.stream_state))
-                for message in output_intermediate
-                if message.state
+                for message in output_intermediate.state_messages
             ]
             final_states.append(final_state_intermediate[-1])
 
@@ -923,7 +962,6 @@ def test_incremental_parent_state(
         "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
     }
     additional_expected_state["states"].append(empty_state)
-    print(manifest)
     run_incremental_parent_state_test(
         manifest,
         mock_requests,
@@ -1137,28 +1175,15 @@ def test_incremental_parent_state_migration(
     """
     Test incremental partition router with parent state migration
     """
-    _stream_name = "post_comment_votes"
-    config = {
-        "start_date": "2024-01-01T00:00:01Z",
-        "credentials": {"email": "email", "api_token": "api_token"},
-    }
-
-    with requests_mock.Mocker() as m:
-        for url, response in mock_requests:
-            m.get(url, json=response)
-
-        output = _run_read(manifest, config, _stream_name, initial_state)
-        output_data = [message.record.data for message in output if message.record]
-
-        assert set(tuple(sorted(d.items())) for d in output_data) == set(
-            tuple(sorted(d.items())) for d in expected_records
-        )
-        final_state = [
-            orjson.loads(orjson.dumps(message.state.stream.stream_state))
-            for message in output
-            if message.state
-        ]
-        assert final_state[-1] == expected_state
+    run_mocked_test(
+        mock_requests,
+        manifest,
+        CONFIG,
+        STREAM_NAME,
+        initial_state,
+        expected_records,
+        expected_state,
+    )
 
 
 @pytest.mark.parametrize(
@@ -1336,26 +1361,15 @@ def test_incremental_parent_state_no_slices(
     """
     Test incremental partition router with no parent records
     """
-    _stream_name = "post_comment_votes"
-    config = {
-        "start_date": "2024-01-01T00:00:01Z",
-        "credentials": {"email": "email", "api_token": "api_token"},
-    }
-
-    with requests_mock.Mocker() as m:
-        for url, response in mock_requests:
-            m.get(url, json=response)
-
-        output = _run_read(manifest, config, _stream_name, initial_state)
-        output_data = [message.record.data for message in output if message.record]
-
-        assert output_data == expected_records
-        final_state = [
-            orjson.loads(orjson.dumps(message.state.stream.stream_state))
-            for message in output
-            if message.state
-        ]
-        assert final_state[-1] == expected_state
+    run_mocked_test(
+        mock_requests,
+        manifest,
+        CONFIG,
+        STREAM_NAME,
+        initial_state,
+        expected_records,
+        expected_state,
+    )
 
 
 @pytest.mark.parametrize(
@@ -1574,26 +1588,15 @@ def test_incremental_parent_state_no_records(
     """
     Test incremental partition router with no child records
     """
-    _stream_name = "post_comment_votes"
-    config = {
-        "start_date": "2024-01-01T00:00:01Z",
-        "credentials": {"email": "email", "api_token": "api_token"},
-    }
-
-    with requests_mock.Mocker() as m:
-        for url, response in mock_requests:
-            m.get(url, json=response)
-
-        output = _run_read(manifest, config, _stream_name, initial_state)
-        output_data = [message.record.data for message in output if message.record]
-
-        assert output_data == expected_records
-        final_state = [
-            orjson.loads(orjson.dumps(message.state.stream.stream_state))
-            for message in output
-            if message.state
-        ]
-        assert final_state[-1] == expected_state
+    run_mocked_test(
+        mock_requests,
+        manifest,
+        CONFIG,
+        STREAM_NAME,
+        initial_state,
+        expected_records,
+        expected_state,
+    )
 
 
 @pytest.mark.parametrize(
@@ -1827,28 +1830,15 @@ def test_incremental_parent_state_no_records(
 def test_incremental_error__parent_state(
     test_name, manifest, mock_requests, expected_records, initial_state, expected_state
 ):
-    _stream_name = "post_comment_votes"
-    config = {
-        "start_date": "2024-01-01T00:00:01Z",
-        "credentials": {"email": "email", "api_token": "api_token"},
-    }
-
-    with requests_mock.Mocker() as m:
-        for url, response in mock_requests:
-            m.get(url, json=response)
-
-        output = _run_read(manifest, config, _stream_name, initial_state)
-        output_data = [message.record.data for message in output if message.record]
-
-        assert set(tuple(sorted(d.items())) for d in output_data) == set(
-            tuple(sorted(d.items())) for d in expected_records
-        )
-        final_state = [
-            orjson.loads(orjson.dumps(message.state.stream.stream_state))
-            for message in output
-            if message.state
-        ]
-        assert final_state[-1] == expected_state
+    run_mocked_test(
+        mock_requests,
+        manifest,
+        CONFIG,
+        STREAM_NAME,
+        initial_state,
+        expected_records,
+        expected_state,
+    )
 
 
 LISTPARTITION_MANIFEST: MutableMapping[str, Any] = {
@@ -1967,6 +1957,41 @@ LISTPARTITION_MANIFEST: MutableMapping[str, Any] = {
         "default_concurrency": "{{ config['num_workers'] or 10 }}",
         "max_concurrency": 25,
     },
+    "spec": {
+        "type": "Spec",
+        "documentation_url": "https://airbyte.com/#yaml-from-manifest",
+        "connection_specification": {
+            "title": "Test Spec",
+            "type": "object",
+            "required": ["credentials", "start_date"],
+            "additionalProperties": False,
+            "properties": {
+                "credentials": {
+                    "type": "object",
+                    "required": ["email", "api_token"],
+                    "properties": {
+                        "email": {
+                            "type": "string",
+                            "title": "Email",
+                            "description": "The email for authentication.",
+                        },
+                        "api_token": {
+                            "type": "string",
+                            "airbyte_secret": True,
+                            "title": "API Token",
+                            "description": "The API token for authentication.",
+                        },
+                    },
+                },
+                "start_date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "Start Date",
+                    "description": "The date from which to start syncing data.",
+                },
+            },
+        },
+    },
 }
 
 
@@ -2066,29 +2091,15 @@ def test_incremental_list_partition_router(
     """
     Test ConcurrentPerPartitionCursor with ListPartitionRouter
     """
-
-    _stream_name = "post_comments"
-    config = {
-        "start_date": "2024-01-01T00:00:01Z",
-        "credentials": {"email": "email", "api_token": "api_token"},
-    }
-
-    with requests_mock.Mocker() as m:
-        for url, response in mock_requests:
-            m.get(url, json=response)
-
-        output = _run_read(manifest, config, _stream_name, initial_state)
-        output_data = [message.record.data for message in output if message.record]
-
-        assert set(tuple(sorted(d.items())) for d in output_data) == set(
-            tuple(sorted(d.items())) for d in expected_records
-        )
-        final_state = [
-            orjson.loads(orjson.dumps(message.state.stream.stream_state))
-            for message in output
-            if message.state
-        ]
-        assert final_state[-1] == expected_state
+    run_mocked_test(
+        mock_requests,
+        manifest,
+        CONFIG,
+        "post_comments",
+        initial_state,
+        expected_records,
+        expected_state,
+    )
 
 
 @pytest.mark.parametrize(
@@ -2187,29 +2198,12 @@ def test_incremental_error(
     """
     Test with failed request.
     """
-
-    _stream_name = "post_comments"
-    config = {
-        "start_date": "2024-01-01T00:00:01Z",
-        "credentials": {"email": "email", "api_token": "api_token"},
-    }
-
-    with requests_mock.Mocker() as m:
-        for url, response in mock_requests:
-            if response is None:
-                m.get(url, status_code=404)
-            else:
-                m.get(url, json=response)
-
-        output = _run_read(manifest, config, _stream_name, initial_state)
-        output_data = [message.record.data for message in output if message.record]
-
-        assert set(tuple(sorted(d.items())) for d in output_data) == set(
-            tuple(sorted(d.items())) for d in expected_records
-        )
-        final_state = [
-            orjson.loads(orjson.dumps(message.state.stream.stream_state))
-            for message in output
-            if message.state
-        ]
-        assert final_state[-1] == expected_state
+    run_mocked_test(
+        mock_requests,
+        manifest,
+        CONFIG,
+        "post_comments",
+        initial_state,
+        expected_records,
+        expected_state,
+    )

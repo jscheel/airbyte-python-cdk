@@ -172,9 +172,9 @@ class ConcurrentPerPartitionCursor(Cursor):
         slices = self._partition_router.stream_slices()
         self._timer.start()
         for partition in slices:
-            yield from self.generate_slices_from_partition(partition)
+            yield from self._generate_slices_from_partition(partition)
 
-    def generate_slices_from_partition(self, partition: StreamSlice) -> Iterable[StreamSlice]:
+    def _generate_slices_from_partition(self, partition: StreamSlice) -> Iterable[StreamSlice]:
         # Ensure the maximum number of partitions is not exceeded
         self._ensure_partition_limit()
 
