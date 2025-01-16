@@ -54,7 +54,7 @@ from airbyte_cdk.sources.declarative.auth.token_provider import (
     SessionTokenProvider,
     TokenProvider,
 )
-from airbyte_cdk.sources.declarative.checks import CheckStream
+from airbyte_cdk.sources.declarative.checks import CheckDynamicStream, CheckStream
 from airbyte_cdk.sources.declarative.concurrency_level import ConcurrencyLevel
 from airbyte_cdk.sources.declarative.datetime import MinMaxDatetime
 from airbyte_cdk.sources.declarative.declarative_stream import DeclarativeStream
@@ -123,6 +123,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     BearerAuthenticator as BearerAuthenticatorModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CheckDynamicStream as CheckDynamicStreamModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     CheckStream as CheckStreamModel,
@@ -497,6 +500,7 @@ class ModelToComponentFactory:
             BasicHttpAuthenticatorModel: self.create_basic_http_authenticator,
             BearerAuthenticatorModel: self.create_bearer_authenticator,
             CheckStreamModel: self.create_check_stream,
+            CheckDynamicStreamModel: self.create_check_dynamic_stream,
             CompositeErrorHandlerModel: self.create_composite_error_handler,
             CompositeRawDecoderModel: self.create_composite_raw_decoder,
             ConcurrencyLevelModel: self.create_concurrency_level,
@@ -850,6 +854,12 @@ class ModelToComponentFactory:
     @staticmethod
     def create_check_stream(model: CheckStreamModel, config: Config, **kwargs: Any) -> CheckStream:
         return CheckStream(stream_names=model.stream_names, parameters={})
+
+    @staticmethod
+    def create_check_dynamic_stream(
+        model: CheckDynamicStreamModel, config: Config, **kwargs: Any
+    ) -> CheckDynamicStream:
+        return CheckDynamicStream(stream_count=model.stream_count, parameters={})
 
     def create_composite_error_handler(
         self, model: CompositeErrorHandlerModel, config: Config, **kwargs: Any
@@ -1930,6 +1940,9 @@ class ModelToComponentFactory:
                 refresh_request_body=InterpolatedMapping(
                     model.refresh_request_body or {}, parameters=model.parameters or {}
                 ).eval(config),
+                refresh_request_headers=InterpolatedMapping(
+                    model.refresh_request_headers or {}, parameters=model.parameters or {}
+                ).eval(config),
                 scopes=model.scopes,
                 token_expiry_date_format=model.token_expiry_date_format,
                 message_repository=self._message_repository,
@@ -1949,6 +1962,7 @@ class ModelToComponentFactory:
             grant_type_name=model.grant_type_name or "grant_type",
             grant_type=model.grant_type or "refresh_token",
             refresh_request_body=model.refresh_request_body,
+            refresh_request_headers=model.refresh_request_headers,
             refresh_token_name=model.refresh_token_name or "refresh_token",
             refresh_token=model.refresh_token,
             scopes=model.scopes,
