@@ -1513,6 +1513,7 @@ definitions:
         anyOf:
           - "$ref": "#/definitions/JsonDecoder"
           - "$ref": "#/definitions/XmlDecoder"
+          - "$ref": "#/definitions/CompositeRawDecoder"
       $parameters:
         type: object
         additionalProperties: true
@@ -3112,6 +3113,8 @@ definitions:
           - "$ref": "#/definitions/IterableDecoder"
           - "$ref": "#/definitions/XmlDecoder"
           - "$ref": "#/definitions/GzipJsonDecoder"
+          - "$ref": "#/definitions/CompositeRawDecoder"
+          - "$ref": "#/definitions/ZipfileDecoder"
       download_decoder:
         title: Download Decoder
         description: Component decoding the download response so records can be extracted.
@@ -3122,6 +3125,8 @@ definitions:
           - "$ref": "#/definitions/IterableDecoder"
           - "$ref": "#/definitions/XmlDecoder"
           - "$ref": "#/definitions/GzipJsonDecoder"
+          - "$ref": "#/definitions/CompositeRawDecoder"
+          - "$ref": "#/definitions/ZipfileDecoder"
       $parameters:
         type: object
         additionalProperties: true

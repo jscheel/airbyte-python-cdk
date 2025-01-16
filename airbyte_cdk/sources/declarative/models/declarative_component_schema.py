@@ -1874,7 +1874,7 @@ class SessionTokenAuthenticator(BaseModel):
         description="Authentication method to use for requests sent to the API, specifying how to inject the session token.",
         title="Data Request Authentication",
     )
-    decoder: Optional[Union[JsonDecoder, XmlDecoder]] = Field(
+    decoder: Optional[Union[JsonDecoder, XmlDecoder, CompositeRawDecoder]] = Field(
         None, description="Component used to decode the response.", title="Decoder"
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
@@ -2156,6 +2156,8 @@ class AsyncRetriever(BaseModel):
             IterableDecoder,
             XmlDecoder,
             GzipJsonDecoder,
+            CompositeRawDecoder,
+            ZipfileDecoder,
         ]
     ] = Field(
         None,
@@ -2170,6 +2172,8 @@ class AsyncRetriever(BaseModel):
             IterableDecoder,
             XmlDecoder,
             GzipJsonDecoder,
+            CompositeRawDecoder,
+            ZipfileDecoder,
         ]
     ] = Field(
         None,
