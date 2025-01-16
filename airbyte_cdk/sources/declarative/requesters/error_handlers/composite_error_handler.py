@@ -8,6 +8,7 @@ from typing import Any, List, Mapping, Optional, Union
 import requests
 
 from airbyte_cdk.sources.streams.http.error_handlers import ErrorHandler
+from airbyte_cdk.sources.streams.http.error_handlers.backoff_strategy import BackoffStrategy
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
     ErrorResolution,
     ResponseAction,
@@ -78,9 +79,14 @@ class CompositeErrorHandler(ErrorHandler):
 
         return create_fallback_error_resolution(response_or_exception)
 
-    def backoff_strategies(self):
-        [
-        [error_handler1.strateokfaosdkf
-        [error_handler2.strateokfaosdkf
-        ]
-        return list(map(lambda error_handler: error_handler.backoff_strategies, self.error_handlers))
+    @property
+    def backoff_strategies(self) -> Optional[List[BackoffStrategy]]:
+        """
+        Combines backoff strategies from all child error handlers into a single flattened list.
+        Returns None if no handlers have strategies defined.
+        """
+        all_strategies = []
+        for handler in self.error_handlers:
+            if hasattr(handler, "backoff_strategies") and handler.backoff_strategies:
+                all_strategies.extend(handler.backoff_strategies)
+        return all_strategies if all_strategies else None

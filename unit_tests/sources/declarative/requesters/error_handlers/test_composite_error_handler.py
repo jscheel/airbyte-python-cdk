@@ -9,6 +9,9 @@ import requests
 
 from airbyte_cdk.models import FailureType
 from airbyte_cdk.sources.declarative.requesters.error_handlers import HttpResponseFilter
+from airbyte_cdk.sources.declarative.requesters.error_handlers.backoff_strategies import (
+    ConstantBackoffStrategy,
+)
 from airbyte_cdk.sources.declarative.requesters.error_handlers.composite_error_handler import (
     CompositeErrorHandler,
 )
@@ -272,3 +275,40 @@ def test_max_time_is_max_of_underlying_handlers(test_name, max_times, expected_m
 
     max_time = composite_error_handler.max_time
     assert max_time == expected_max_time
+
+
+@pytest.mark.parametrize(
+    "test_name, handler_strategies, expected_strategies",
+    [
+        ("test_empty_strategies", [None, None], None),
+        (
+            "test_single_handler_with_strategy",
+            [[ConstantBackoffStrategy(5, {}, {})], None],
+            [ConstantBackoffStrategy(5, {}, {})],
+        ),
+        (
+            "test_multiple_handlers_with_strategies",
+            [[ConstantBackoffStrategy(5, {}, {})], [ConstantBackoffStrategy(10, {}, {})]],
+            [ConstantBackoffStrategy(5, {}, {}), ConstantBackoffStrategy(10, {}, {})],
+        ),
+        (
+            "test_some_handlers_without_strategies",
+            [[ConstantBackoffStrategy(5, {}, {})], None, [ConstantBackoffStrategy(10, {}, {})]],
+            [ConstantBackoffStrategy(5, {}, {}), ConstantBackoffStrategy(10, {}, {})],
+        ),
+    ],
+)
+def test_composite_error_handler_backoff_strategies(
+    test_name, handler_strategies, expected_strategies
+):
+    parameters = {}
+    config = {}
+
+    error_handlers = [
+        DefaultErrorHandler(backoff_strategies=strategies, parameters=parameters, config=config)
+        for strategies in handler_strategies
+    ]
+
+    composite_handler = CompositeErrorHandler(error_handlers=error_handlers, parameters=parameters)
+
+    assert composite_handler.backoff_strategies == expected_strategies
