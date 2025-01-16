@@ -1,9 +1,9 @@
-import copy
-import logging
-
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+
+import copy
+import logging
 import threading
 from collections import OrderedDict
 from copy import deepcopy
@@ -171,6 +171,9 @@ class ConcurrentPerPartitionCursor(Cursor):
         self._message_repository.emit_message(state_message)
 
     def stream_slices(self) -> Iterable[StreamSlice]:
+        if self._timer.is_running():
+            raise RuntimeError("stream_slices has been executed more than once.")
+
         slices = self._partition_router.stream_slices()
         self._timer.start()
         for partition in slices:
