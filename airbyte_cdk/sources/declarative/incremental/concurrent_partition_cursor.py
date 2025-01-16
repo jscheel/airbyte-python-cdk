@@ -56,6 +56,8 @@ class ConcurrentPerPartitionCursor(Cursor):
     DEFAULT_MAX_PARTITIONS_NUMBER = 10000
     _NO_STATE: Mapping[str, Any] = {}
     _NO_CURSOR_STATE: Mapping[str, Any] = {}
+    _GLOBAL_STATE_KEY = "state"
+    _PERPARTITION_STATE_KEY = "states"
     _KEY = 0
     _VALUE = 1
 
@@ -110,10 +112,10 @@ class ConcurrentPerPartitionCursor(Cursor):
                         "cursor": copy.deepcopy(cursor.state),
                     }
                 )
-        state: dict[str, Any] = {"states": states}
+        state: dict[str, Any] = {self._PERPARTITION_STATE_KEY: states}
 
         if self._global_cursor:
-            state["state"] = self._global_cursor
+            state[self._GLOBAL_STATE_KEY] = self._global_cursor
         if self._lookback_window is not None:
             state["lookback_window"] = self._lookback_window
         if self._parent_state is not None:
@@ -259,7 +261,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         if not stream_state:
             return
 
-        if "states" not in stream_state:
+        if self._PERPARTITION_STATE_KEY not in stream_state:
             # We assume that `stream_state` is in a global format that can be applied to all partitions.
             # Example: {"global_state_format_key": "global_state_format_value"}
             self._global_cursor = deepcopy(stream_state)
@@ -268,7 +270,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         else:
             self._lookback_window = int(stream_state.get("lookback_window", 0))
 
-            for state in stream_state["states"]:
+            for state in stream_state[self._PERPARTITION_STATE_KEY]:
                 self._cursor_per_partition[self._to_partition_key(state["partition"])] = (
                     self._create_cursor(state["cursor"])
                 )
@@ -277,9 +279,9 @@ class ConcurrentPerPartitionCursor(Cursor):
                 )
 
             # set default state for missing partitions if it is per partition with fallback to global
-            if "state" in stream_state:
-                self._global_cursor = deepcopy(stream_state["state"])
-                self._new_global_cursor = deepcopy(stream_state["state"])
+            if self._GLOBAL_STATE_KEY in stream_state:
+                self._global_cursor = deepcopy(stream_state[self._GLOBAL_STATE_KEY])
+                self._new_global_cursor = deepcopy(stream_state[self._GLOBAL_STATE_KEY])
 
         # Set parent state for partition routers based on parent streams
         self._partition_router.set_initial_state(stream_state)
