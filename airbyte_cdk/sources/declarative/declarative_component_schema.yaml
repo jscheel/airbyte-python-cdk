@@ -2913,6 +2913,7 @@ definitions:
           - "$ref": "#/definitions/XmlDecoder"
           - "$ref": "#/definitions/GzipJsonDecoder"
           - "$ref": "#/definitions/CompositeRawDecoder"
+          - "$ref": "#/definitions/ZipfileDecoder"
       $parameters:
         type: object
         additionalProperties: true

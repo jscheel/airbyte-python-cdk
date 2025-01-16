@@ -1222,9 +1222,6 @@ class LegacySessionTokenAuthenticator(BaseModel):
 
 
 class JsonParser(BaseModel):
-    class Config:
-        extra = Extra.allow
-
     type: Literal["JsonParser"]
     encoding: Optional[str] = "utf-8"
 
@@ -2082,6 +2079,7 @@ class SimpleRetriever(BaseModel):
             XmlDecoder,
             GzipJsonDecoder,
             CompositeRawDecoder,
+            ZipfileDecoder,
         ]
     ] = Field(
         None,
