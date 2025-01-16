@@ -77,3 +77,10 @@ class CompositeErrorHandler(ErrorHandler):
             return matched_error_resolution
 
         return create_fallback_error_resolution(response_or_exception)
+
+    def backoff_strategies(self):
+        [
+        [error_handler1.strateokfaosdkf
+        [error_handler2.strateokfaosdkf
+        ]
+        return list(map(lambda error_handler: error_handler.backoff_strategies, self.error_handlers))
