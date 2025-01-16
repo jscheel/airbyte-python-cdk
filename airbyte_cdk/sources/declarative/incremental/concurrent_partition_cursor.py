@@ -218,13 +218,19 @@ class ConcurrentPerPartitionCursor(Cursor):
 
     def _set_initial_state(self, stream_state: StreamState) -> None:
         """
-        Set the initial state for the cursors.
+        Initialize the cursor's state using the provided `stream_state`.
 
-        This method initializes the state for each partition cursor using the provided stream state.
-        If a partition state is provided in the stream state, it will update the corresponding partition cursor with this state.
+        This method supports global and per-partition state initialization.
 
-        Additionally, it sets the parent state for partition routers that are based on parent streams. If a partition router
-        does not have parent streams, this step will be skipped due to the default PartitionRouter implementation.
+        - **Global State**: If `states` is missing, the `state` is treated as global and applied to all partitions.
+          The `global state` holds a single cursor position representing the latest processed record across all partitions.
+
+        - **Lookback Window**: Configured via `lookback_window`, it defines the period (in seconds) for reprocessing records.
+          This ensures robustness in case of upstream data delays or reordering. If not specified, it defaults to 0.
+
+        - **Per-Partition State**: If `states` is present, each partition's cursor state is initialized separately.
+
+        - **Parent State**: (if available) Used to initialize partition routers based on parent streams.
 
         Args:
             stream_state (StreamState): The state of the streams to be set. The format of the stream state should be:
@@ -239,6 +245,10 @@ class ConcurrentPerPartitionCursor(Cursor):
                             }
                         }
                     ],
+                    "state": {
+                        "last_updated": "2023-05-27T00:00:00Z"
+                    },
+                    lookback_window: 10,
                     "parent_state": {
                         "parent_stream_name": {
                             "last_updated": "2023-05-27T00:00:00Z"
