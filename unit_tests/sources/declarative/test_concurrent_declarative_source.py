@@ -173,19 +173,48 @@ _MANIFEST = {
             "url_base": "https://persona.metaverse.com",
             "http_method": "GET",
             "error_handler": {
-              "type": "CompositeErrorHandler",
-              "error_handlers": [
-                {
-                  "type": "DefaultErrorHandler",
-                  "backoff_strategies": [
+                "type": "CompositeErrorHandler",
+                "error_handlers": [
                     {
-                      "type": "ConstantBackoffStrategy",
-                      "backoff_time_in_seconds": 60
+                        "type": "DefaultErrorHandler",
+                        "max_retries": 2,
+                        "backoff_strategies": [
+                            {
+                                "type": "ConstantBackoffStrategy",
+                                "backoff_time_in_seconds": 10
+                            }
+                        ],
+                        "response_filters": [
+                            {
+                                "type": "HttpResponseFilter",
+                                "action": "RETRY",
+                                "http_codes": [
+                                    404
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "DefaultErrorHandler",
+                        "response_filters": [
+                            {
+                                "type": "HttpResponseFilter",
+                                "action": "IGNORE",
+                                "http_codes": [
+                                    500
+                                ]
+                            }
+                        ],
+                        "max_retries": 3,
+                        "backoff_strategies": [
+                            {
+                                "type": "ExponentialBackoffStrategy",
+                                "factor": 0.5
+                            }
+                        ]
                     }
-                  ]
-                }
-              ]
-            },
+                ]
+            }
         },
         "retriever": {
             "type": "SimpleRetriever",
@@ -266,7 +295,8 @@ class DeclarativeStreamDecorator(Stream):
         stream_state: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         if isinstance(stream_slice, StreamSlice):
-            slice_key = (stream_slice.get("start_time"), stream_slice.get("end_time"))
+            slice_key = (stream_slice.get("start_time"),
+                         stream_slice.get("end_time"))
 
             # Extra logic to simulate raising an error during certain partitions to validate error handling
             if slice_key == ("2024-08-05", "2024-09-04"):
@@ -338,7 +368,8 @@ def test_group_streams():
     source = ConcurrentDeclarativeSource(
         source_config=_MANIFEST, config=_CONFIG, catalog=catalog, state=state
     )
-    concurrent_streams, synchronous_streams = source._group_streams(config=_CONFIG)
+    concurrent_streams, synchronous_streams = source._group_streams(
+        config=_CONFIG)
 
     # 1 full refresh stream, 2 incremental streams, 1 substream w/o incremental, 1 list based substream w/o incremental
     # 1 async job stream
@@ -388,7 +419,8 @@ def test_create_concurrent_cursor():
         AirbyteStateMessage(
             type=AirbyteStateType.STREAM,
             stream=AirbyteStreamState(
-                stream_descriptor=StreamDescriptor(name="locations", namespace=None),
+                stream_descriptor=StreamDescriptor(
+                    name="locations", namespace=None),
                 stream_state=AirbyteStateBlob(**incoming_locations_state),
             ),
         ),
@@ -397,7 +429,8 @@ def test_create_concurrent_cursor():
     source = ConcurrentDeclarativeSource(
         source_config=_MANIFEST, config=_CONFIG, catalog=_CATALOG, state=state
     )
-    concurrent_streams, synchronous_streams = source._group_streams(config=_CONFIG)
+    concurrent_streams, synchronous_streams = source._group_streams(
+        config=_CONFIG)
 
     party_members_stream = concurrent_streams[0]
     assert isinstance(party_members_stream, DefaultStream)
@@ -406,11 +439,13 @@ def test_create_concurrent_cursor():
     assert isinstance(party_members_cursor, ConcurrentCursor)
     assert party_members_cursor._stream_name == "party_members"
     assert party_members_cursor._cursor_field.cursor_field_key == "updated_at"
-    assert party_members_cursor._start == pendulum.parse(_CONFIG.get("start_date"))
+    assert party_members_cursor._start == pendulum.parse(
+        _CONFIG.get("start_date"))
     assert party_members_cursor._end_provider() == datetime(
         year=2024, month=9, day=1, tzinfo=timezone.utc
     )
-    assert party_members_cursor._slice_boundary_fields == ("start_time", "end_time")
+    assert party_members_cursor._slice_boundary_fields == (
+        "start_time", "end_time")
     assert party_members_cursor._slice_range == timedelta(days=15)
     assert party_members_cursor._lookback_window == timedelta(days=5)
     assert party_members_cursor._cursor_granularity == timedelta(days=1)
@@ -426,7 +461,8 @@ def test_create_concurrent_cursor():
     assert locations_cursor._end_provider() == datetime(
         year=2024, month=9, day=1, tzinfo=timezone.utc
     )
-    assert locations_cursor._slice_boundary_fields == ("start_time", "end_time")
+    assert locations_cursor._slice_boundary_fields == (
+        "start_time", "end_time")
     assert locations_cursor._slice_range == isodate.Duration(months=1)
     assert locations_cursor._lookback_window == timedelta(days=5)
     assert locations_cursor._cursor_granularity == timedelta(days=1)
@@ -500,7 +536,8 @@ def test_discover():
 
     actual_catalog = source.discover(logger=source.logger, config=_CONFIG)
 
-    assert set(map(lambda stream: stream.name, actual_catalog.streams)) == expected_stream_names
+    assert set(map(lambda stream: stream.name, actual_catalog.streams)
+               ) == expected_stream_names
 
 
 def _mock_requests(
@@ -509,17 +546,21 @@ def _mock_requests(
     query_params: List[Dict[str, str]],
     responses: List[HttpResponse],
 ) -> None:
-    assert len(query_params) == len(responses), "Expecting as many slices as response"
+    assert len(query_params) == len(
+        responses), "Expecting as many slices as response"
 
     for i in range(len(query_params)):
-        http_mocker.get(HttpRequest(url, query_params=query_params[i]), responses[i])
+        http_mocker.get(HttpRequest(
+            url, query_params=query_params[i]), responses[i])
 
 
 def _mock_party_members_requests(
     http_mocker: HttpMocker, slices_and_responses: List[Tuple[Dict[str, str], HttpResponse]]
 ) -> None:
-    slices = list(map(lambda slice_and_response: slice_and_response[0], slices_and_responses))
-    responses = list(map(lambda slice_and_response: slice_and_response[1], slices_and_responses))
+    slices = list(
+        map(lambda slice_and_response: slice_and_response[0], slices_and_responses))
+    responses = list(
+        map(lambda slice_and_response: slice_and_response[1], slices_and_responses))
 
     _mock_requests(
         http_mocker,
@@ -531,7 +572,8 @@ def _mock_party_members_requests(
 
 def _mock_locations_requests(http_mocker: HttpMocker, slices: List[Dict[str, str]]) -> None:
     locations_query_params = list(
-        map(lambda _slice: _slice | {"m": "active", "i": "1", "g": "country"}, slices)
+        map(lambda _slice: _slice | {
+            "m": "active", "i": "1", "g": "country"}, slices)
     )
     _mock_requests(
         http_mocker,
@@ -546,15 +588,18 @@ def _mock_party_members_skills_requests(http_mocker: HttpMocker) -> None:
     This method assumes _mock_party_members_requests has been called before else the stream won't work.
     """
     http_mocker.get(
-        HttpRequest("https://persona.metaverse.com/party_members/amamiya/skills"),
+        HttpRequest(
+            "https://persona.metaverse.com/party_members/amamiya/skills"),
         _PARTY_MEMBERS_SKILLS_RESPONSE,
     )
     http_mocker.get(
-        HttpRequest("https://persona.metaverse.com/party_members/nijima/skills"),
+        HttpRequest(
+            "https://persona.metaverse.com/party_members/nijima/skills"),
         _PARTY_MEMBERS_SKILLS_RESPONSE,
     )
     http_mocker.get(
-        HttpRequest("https://persona.metaverse.com/party_members/yoshizawa/skills"),
+        HttpRequest(
+            "https://persona.metaverse.com/party_members/yoshizawa/skills"),
         _PARTY_MEMBERS_SKILLS_RESPONSE,
     )
 
@@ -593,16 +638,19 @@ def test_read_with_concurrent_and_synchronous_streams():
         # http_mocker.get(HttpRequest("https://persona.metaverse.com/palaces"), _PALACES_RESPONSE)
         # _mock_party_members_skills_requests(http_mocker)
 
-        http_mocker.get(HttpRequest("https://persona.metaverse.com/locations"), HttpResponse("", 500))
+        http_mocker.get(HttpRequest(
+            "https://persona.metaverse.com/locations"), HttpResponse("", 500))
         messages = list(
-            source.read(logger=source.logger, config=_CONFIG, catalog=_CATALOG, state=[])
+            source.read(logger=source.logger, config=_CONFIG,
+                        catalog=_CATALOG, state=[])
         )
 
     # See _mock_party_members_requests
     party_members_records = get_records_for_stream("party_members", messages)
     assert len(party_members_records) == 3
 
-    party_members_states = get_states_for_stream(stream_name="party_members", messages=messages)
+    party_members_states = get_states_for_stream(
+        stream_name="party_members", messages=messages)
     assert len(party_members_states) == 6
     assert (
         party_members_states[5].stream.stream_state.__dict__
@@ -619,12 +667,14 @@ def test_read_with_concurrent_and_synchronous_streams():
     )
 
     # Expects 12 records, 3 slices, 4 records each slice
-    locations_records = get_records_for_stream(stream_name="locations", messages=messages)
+    locations_records = get_records_for_stream(
+        stream_name="locations", messages=messages)
     assert len(locations_records) == 12
 
     # 3 partitions == 3 state messages + final state message
     # Because we cannot guarantee the order partitions finish, we only validate that the final state has the latest checkpoint value
-    locations_states = get_states_for_stream(stream_name="locations", messages=messages)
+    locations_states = get_states_for_stream(
+        stream_name="locations", messages=messages)
     assert len(locations_states) == 4
     assert (
         locations_states[3].stream.stream_state.__dict__
@@ -644,7 +694,8 @@ def test_read_with_concurrent_and_synchronous_streams():
     palaces_records = get_records_for_stream("palaces", messages)
     assert len(palaces_records) == 7
 
-    palaces_states = get_states_for_stream(stream_name="palaces", messages=messages)
+    palaces_states = get_states_for_stream(
+        stream_name="palaces", messages=messages)
     assert len(palaces_states) == 1
     assert (
         palaces_states[0].stream.stream_state.__dict__
@@ -652,7 +703,8 @@ def test_read_with_concurrent_and_synchronous_streams():
     )
 
     # Expects 3 records, 3 slices, 3 records in slice
-    party_members_skills_records = get_records_for_stream("party_members_skills", messages)
+    party_members_skills_records = get_records_for_stream(
+        "party_members_skills", messages)
     assert len(party_members_skills_records) == 9
 
     party_members_skills_states = get_states_for_stream(
@@ -679,7 +731,8 @@ def test_read_with_concurrent_and_synchronous_streams_with_concurrent_state():
         AirbyteStateMessage(
             type=AirbyteStateType.STREAM,
             stream=AirbyteStreamState(
-                stream_descriptor=StreamDescriptor(name="locations", namespace=None),
+                stream_descriptor=StreamDescriptor(
+                    name="locations", namespace=None),
                 stream_state=AirbyteStateBlob(
                     state_type="date-range",
                     slices=[{"start": "2024-07-01", "end": "2024-07-31"}],
@@ -689,7 +742,8 @@ def test_read_with_concurrent_and_synchronous_streams_with_concurrent_state():
         AirbyteStateMessage(
             type=AirbyteStateType.STREAM,
             stream=AirbyteStreamState(
-                stream_descriptor=StreamDescriptor(name="party_members", namespace=None),
+                stream_descriptor=StreamDescriptor(
+                    name="party_members", namespace=None),
                 stream_state=AirbyteStateBlob(
                     state_type="date-range",
                     slices=[
@@ -704,7 +758,8 @@ def test_read_with_concurrent_and_synchronous_streams_with_concurrent_state():
 
     party_members_slices_and_responses = _NO_STATE_PARTY_MEMBERS_SLICES_AND_RESPONSES + [
         (
-            {"start": "2024-09-04", "end": "2024-09-10"},  # considering lookback window
+            # considering lookback window
+            {"start": "2024-09-04", "end": "2024-09-10"},
             HttpResponse(
                 json.dumps(
                     [
@@ -729,20 +784,24 @@ def test_read_with_concurrent_and_synchronous_streams_with_concurrent_state():
     )
 
     with HttpMocker() as http_mocker:
-        _mock_party_members_requests(http_mocker, party_members_slices_and_responses)
+        _mock_party_members_requests(
+            http_mocker, party_members_slices_and_responses)
         _mock_locations_requests(http_mocker, location_slices)
-        http_mocker.get(HttpRequest("https://persona.metaverse.com/palaces"), _PALACES_RESPONSE)
+        http_mocker.get(HttpRequest(
+            "https://persona.metaverse.com/palaces"), _PALACES_RESPONSE)
         _mock_party_members_skills_requests(http_mocker)
 
         messages = list(
-            source.read(logger=source.logger, config=_CONFIG, catalog=_CATALOG, state=state)
+            source.read(logger=source.logger, config=_CONFIG,
+                        catalog=_CATALOG, state=state)
         )
 
     # Expects 8 records, skip successful intervals and are left with 2 slices, 4 records each slice
     locations_records = get_records_for_stream("locations", messages)
     assert len(locations_records) == 8
 
-    locations_states = get_states_for_stream(stream_name="locations", messages=messages)
+    locations_states = get_states_for_stream(
+        stream_name="locations", messages=messages)
     assert len(locations_states) == 3
     assert (
         locations_states[2].stream.stream_state.__dict__
@@ -764,7 +823,8 @@ def test_read_with_concurrent_and_synchronous_streams_with_concurrent_state():
     party_members_records = get_records_for_stream("party_members", messages)
     assert len(party_members_records) == 2
 
-    party_members_states = get_states_for_stream(stream_name="party_members", messages=messages)
+    party_members_states = get_states_for_stream(
+        stream_name="party_members", messages=messages)
     assert len(party_members_states) == 4
     assert (
         party_members_states[3].stream.stream_state.__dict__
@@ -785,7 +845,8 @@ def test_read_with_concurrent_and_synchronous_streams_with_concurrent_state():
     assert len(palaces_records) == 7
 
     # Expects 3 records, 3 slices, 3 records in slice
-    party_members_skills_records = get_records_for_stream("party_members_skills", messages)
+    party_members_skills_records = get_records_for_stream(
+        "party_members_skills", messages)
     assert len(party_members_skills_records) == 9
 
 
@@ -803,14 +864,16 @@ def test_read_with_concurrent_and_synchronous_streams_with_sequential_state():
         AirbyteStateMessage(
             type=AirbyteStateType.STREAM,
             stream=AirbyteStreamState(
-                stream_descriptor=StreamDescriptor(name="locations", namespace=None),
+                stream_descriptor=StreamDescriptor(
+                    name="locations", namespace=None),
                 stream_state=AirbyteStateBlob(updated_at="2024-08-06"),
             ),
         ),
         AirbyteStateMessage(
             type=AirbyteStateType.STREAM,
             stream=AirbyteStreamState(
-                stream_descriptor=StreamDescriptor(name="party_members", namespace=None),
+                stream_descriptor=StreamDescriptor(
+                    name="party_members", namespace=None),
                 stream_state=AirbyteStateBlob(updated_at="2024-08-21"),
             ),
         ),
@@ -858,20 +921,24 @@ def test_read_with_concurrent_and_synchronous_streams_with_sequential_state():
     ]
 
     with HttpMocker() as http_mocker:
-        _mock_party_members_requests(http_mocker, party_members_slices_and_responses)
+        _mock_party_members_requests(
+            http_mocker, party_members_slices_and_responses)
         _mock_locations_requests(http_mocker, location_slices)
-        http_mocker.get(HttpRequest("https://persona.metaverse.com/palaces"), _PALACES_RESPONSE)
+        http_mocker.get(HttpRequest(
+            "https://persona.metaverse.com/palaces"), _PALACES_RESPONSE)
         _mock_party_members_skills_requests(http_mocker)
 
         messages = list(
-            source.read(logger=source.logger, config=_CONFIG, catalog=_CATALOG, state=state)
+            source.read(logger=source.logger, config=_CONFIG,
+                        catalog=_CATALOG, state=state)
         )
 
     # Expects 8 records, skip successful intervals and are left with 2 slices, 4 records each slice
     locations_records = get_records_for_stream("locations", messages)
     assert len(locations_records) == 8
 
-    locations_states = get_states_for_stream(stream_name="locations", messages=messages)
+    locations_states = get_states_for_stream(
+        stream_name="locations", messages=messages)
     assert len(locations_states) == 3
     assert (
         locations_states[2].stream.stream_state.__dict__
@@ -891,7 +958,8 @@ def test_read_with_concurrent_and_synchronous_streams_with_sequential_state():
     party_members_records = get_records_for_stream("party_members", messages)
     assert len(party_members_records) == 2
 
-    party_members_states = get_states_for_stream(stream_name="party_members", messages=messages)
+    party_members_states = get_states_for_stream(
+        stream_name="party_members", messages=messages)
     assert len(party_members_states) == 3
     assert (
         party_members_states[2].stream.stream_state.__dict__
@@ -912,7 +980,8 @@ def test_read_with_concurrent_and_synchronous_streams_with_sequential_state():
     assert len(palaces_records) == 7
 
     # Expects 3 records, 3 slices, 3 records in slice
-    party_members_skills_records = get_records_for_stream("party_members_skills", messages)
+    party_members_skills_records = get_records_for_stream(
+        "party_members_skills", messages)
     assert len(party_members_skills_records) == 9
 
 
@@ -1019,7 +1088,8 @@ def test_read_concurrent_skip_streams_not_in_catalog():
             {"start": "2024-09-01", "end": "2024-09-10"},
         ]
         locations_query_params = list(
-            map(lambda _slice: _slice | {"m": "active", "i": "1", "g": "country"}, location_slices)
+            map(lambda _slice: _slice | {
+                "m": "active", "i": "1", "g": "country"}, location_slices)
         )
         _mock_requests(
             http_mocker,
@@ -1029,27 +1099,36 @@ def test_read_concurrent_skip_streams_not_in_catalog():
         )
 
         # palaces requests
-        http_mocker.get(HttpRequest("https://persona.metaverse.com/palaces"), _PALACES_RESPONSE)
+        http_mocker.get(HttpRequest(
+            "https://persona.metaverse.com/palaces"), _PALACES_RESPONSE)
 
         messages = list(
-            source.read(logger=source.logger, config=_CONFIG, catalog=catalog, state=[])
+            source.read(logger=source.logger, config=_CONFIG,
+                        catalog=catalog, state=[])
         )
 
-    locations_records = get_records_for_stream(stream_name="locations", messages=messages)
+    locations_records = get_records_for_stream(
+        stream_name="locations", messages=messages)
     assert len(locations_records) == 12
-    locations_states = get_states_for_stream(stream_name="locations", messages=messages)
+    locations_states = get_states_for_stream(
+        stream_name="locations", messages=messages)
     assert len(locations_states) == 4
 
     palaces_records = get_records_for_stream("palaces", messages)
     assert len(palaces_records) == 7
-    palaces_states = get_states_for_stream(stream_name="palaces", messages=messages)
+    palaces_states = get_states_for_stream(
+        stream_name="palaces", messages=messages)
     assert len(palaces_states) == 1
 
-    assert len(get_records_for_stream(stream_name="party_members", messages=messages)) == 0
-    assert len(get_states_for_stream(stream_name="party_members", messages=messages)) == 0
+    assert len(get_records_for_stream(
+        stream_name="party_members", messages=messages)) == 0
+    assert len(get_states_for_stream(
+        stream_name="party_members", messages=messages)) == 0
 
-    assert len(get_records_for_stream(stream_name="party_members_skills", messages=messages)) == 0
-    assert len(get_states_for_stream(stream_name="party_members_skills", messages=messages)) == 0
+    assert len(get_records_for_stream(
+        stream_name="party_members_skills", messages=messages)) == 0
+    assert len(get_states_for_stream(
+        stream_name="party_members_skills", messages=messages)) == 0
 
 
 def test_default_perform_interpolation_on_concurrency_level():
@@ -1147,7 +1226,8 @@ def test_streams_with_stream_state_interpolation_should_be_synchronous():
         catalog=_CATALOG,
         state=None,
     )
-    concurrent_streams, synchronous_streams = source._group_streams(config=_CONFIG)
+    concurrent_streams, synchronous_streams = source._group_streams(
+        config=_CONFIG)
 
     # 1 full refresh stream, 2 with parent stream without incremental dependency, 1 stream with async retriever
     assert len(concurrent_streams) == 4
@@ -1288,14 +1368,16 @@ def test_given_partition_routing_and_incremental_sync_then_stream_is_not_concurr
     source = ConcurrentDeclarativeSource(
         source_config=manifest, config=_CONFIG, catalog=catalog, state=state
     )
-    concurrent_streams, synchronous_streams = source._group_streams(config=_CONFIG)
+    concurrent_streams, synchronous_streams = source._group_streams(
+        config=_CONFIG)
 
     assert len(concurrent_streams) == 0
     assert len(synchronous_streams) == 1
 
 
 def create_wrapped_stream(stream: DeclarativeStream) -> Stream:
-    slice_to_records_mapping = get_mocked_read_records_output(stream_name=stream.name)
+    slice_to_records_mapping = get_mocked_read_records_output(
+        stream_name=stream.name)
 
     return DeclarativeStreamDecorator(
         declarative_stream=stream, slice_to_records_mapping=slice_to_records_mapping
@@ -1338,7 +1420,8 @@ def get_mocked_read_records_output(stream_name: str) -> Mapping[tuple[str, str],
             records = [
                 {"id": "444", "name": "Yongen-jaya", "updated_at": "2024-08-10"},
                 {"id": "scramble", "name": "Shibuya", "updated_at": "2024-08-10"},
-                {"id": "aoyama", "name": "Aoyama-itchome", "updated_at": "2024-08-10"},
+                {"id": "aoyama", "name": "Aoyama-itchome",
+                    "updated_at": "2024-08-10"},
                 {"id": "shin123", "name": "Shinjuku", "updated_at": "2024-08-10"},
             ]
         case "party_members":
@@ -1417,7 +1500,8 @@ def get_mocked_read_records_output(stream_name: str) -> Mapping[tuple[str, str],
                 {"id": "2", "name": "myriad truths"},
             ]
         case _:
-            raise ValueError(f"Stream '{stream_name}' does not have associated mocked records")
+            raise ValueError(
+                f"Stream '{stream_name}' does not have associated mocked records")
 
     return {
         (_slice.get("start"), _slice.get("end")): [
