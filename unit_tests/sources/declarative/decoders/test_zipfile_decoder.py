@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+# Copyright (c) 2025 Airbyte, Inc., all rights reserved.
 #
 import gzip
 import json
@@ -10,15 +10,13 @@ from typing import Union
 import pytest
 import requests
 
-from airbyte_cdk.sources.declarative.decoders import ZipfileDecoder
-from airbyte_cdk.sources.declarative.decoders.parsers import JsonParser
+from airbyte_cdk.sources.declarative.decoders import GzipParser, JsonParser, ZipfileDecoder
 
 
-def create_zip_from_dict(data: Union[dict, list]):
+def create_zip_from_dict(data: Union[dict, list]) -> bytes:
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, mode="w") as zip_file:
         zip_file.writestr("data.json", data)
-    zip_buffer.seek(0)
     return zip_buffer.getvalue()
 
 
@@ -26,11 +24,13 @@ def create_zip_from_dict(data: Union[dict, list]):
     "json_data",
     [
         {"test": "test"},
+        {"responses": [{"id": 1}, {"id": 2}]},
         [{"id": 1}, {"id": 2}],
+        {},
     ],
 )
 def test_zipfile_decoder_with_valid_response(requests_mock, json_data):
-    zipfile_decoder = ZipfileDecoder(parameters={}, parser=JsonParser)
+    zipfile_decoder = ZipfileDecoder(parser=GzipParser(inner_parser=JsonParser()))
     compressed_data = gzip.compress(json.dumps(json_data).encode())
     zipped_data = create_zip_from_dict(compressed_data)
     requests_mock.register_uri("GET", "https://airbyte.io/", content=zipped_data)

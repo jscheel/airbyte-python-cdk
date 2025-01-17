@@ -4,15 +4,18 @@
 
 import logging
 import zipfile
-from dataclasses import InitVar, dataclass
-from io import BufferedReader, BytesIO
-from typing import Any, Generator, Mapping, MutableMapping, Optional
+from dataclasses import dataclass
+from io import BytesIO
+from typing import Any, Generator, MutableMapping
 
+import orjson
 import requests
 
 from airbyte_cdk.models import FailureType
 from airbyte_cdk.sources.declarative.decoders import Decoder
-from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import Parser
+from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import (
+    Parser,
+)
 from airbyte_cdk.utils import AirbyteTracedException
 
 logger = logging.getLogger("airbyte")
@@ -23,7 +26,7 @@ class ZipfileDecoder(Decoder):
     parser: Parser
 
     def is_stream_response(self) -> bool:
-        return True
+        return False
 
     def decode(
         self, response: requests.Response
@@ -41,7 +44,7 @@ class ZipfileDecoder(Decoder):
                 failure_type=FailureType.system_error,
             ) from e
 
-        for filename in zip_file.namelist():
-            with zip_file.open(filename) as file:
-                yield from self.parser.parse(BytesIO(file.read()))
-                zip_file.close()
+        for file_name in zip_file.namelist():
+            unzipped_content = zip_file.read(file_name)
+            buffered_content = BytesIO(unzipped_content)
+            yield from self.parser.parse(buffered_content)
