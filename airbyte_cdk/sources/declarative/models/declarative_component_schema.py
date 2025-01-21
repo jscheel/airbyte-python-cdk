@@ -719,7 +719,7 @@ class HttpResponseFilter(BaseModel):
 class TypesMap(BaseModel):
     target_type: Union[str, List[str]]
     current_type: Union[str, List[str]]
-    condition: Optional[str]
+    condition: Optional[str] = None
 
 
 class SchemaTypeIdentifier(BaseModel):
@@ -797,14 +797,11 @@ class DpathFlattenFields(BaseModel):
     field_path: List[str] = Field(
         ...,
         description="A path to field that needs to be flattened.",
-        examples=[
-            ["data"],
-            ["data", "*", "field"],
-        ],
+        examples=[["data"], ["data", "*", "field"]],
         title="Field Path",
     )
     delete_origin_value: Optional[bool] = Field(
-        False,
+        None,
         description="Whether to delete the origin value or keep it. Default is False.",
         title="Delete Origin Value",
     )
@@ -1175,7 +1172,7 @@ class RequestOption(BaseModel):
     type: Literal["RequestOption"]
     field_name: Optional[str] = Field(
         None,
-        description="Configures which key should be used in the location that the descriptor is being injected into",
+        description="Configures which key should be used in the location that the descriptor is being injected into. We hope to eventually deprecate this field in favor of `field_path` for all request_options, but must currently maintain it for backwards compatibility in the Builder.",
         examples=["segment_id"],
         title="Field Name",
     )

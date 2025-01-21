@@ -2809,7 +2809,7 @@ definitions:
         enum: [RequestOption]
       field_name:
         title: Field Name
-        description: Configures which key should be used in the location that the descriptor is being injected into
+        description: Configures which key should be used in the location that the descriptor is being injected into. We hope to eventually deprecate this field in favor of `field_path` for all request_options, but must currently maintain it for backwards compatibility in the Builder.
         type: string
         examples:
           - segment_id
