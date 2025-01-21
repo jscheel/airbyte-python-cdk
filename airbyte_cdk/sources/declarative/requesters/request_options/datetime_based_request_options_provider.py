@@ -80,7 +80,7 @@ class DatetimeBasedRequestOptionsProvider(RequestOptionsProvider):
         options: MutableMapping[str, Any] = {}
         if not stream_slice:
             return options
-        
+
         if self.start_time_option and self.start_time_option.inject_into == option_type:
             start_time_value = stream_slice.get(self._partition_field_start.eval(self.config))
             self.start_time_option.inject_into_request(options, start_time_value, self.config)

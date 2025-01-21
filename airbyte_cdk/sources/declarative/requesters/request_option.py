@@ -28,7 +28,7 @@ class RequestOption:
 
     Attributes:
         field_name (str): Describes the name of the parameter to inject. Mutually exclusive with field_path.
-        field_path (list(str)): Describes the path to a nested field as a list of field names. 
+        field_path (list(str)): Describes the path to a nested field as a list of field names.
           Only valid for body_json injection type, and mutually exclusive with field_name.
         inject_into (RequestOptionType): Describes where in the HTTP request to inject the parameter
     """
@@ -39,7 +39,6 @@ class RequestOption:
     field_path: Optional[List[Union[InterpolatedString, str]]] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-
         # Validate inputs. We should expect either field_name or field_path, but not both
         if self.field_name is None and self.field_path is None:
             raise ValueError("RequestOption requires either a field_name or field_path")

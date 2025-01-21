@@ -3,45 +3,41 @@
 #
 
 
+import copy
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 
-def _has_nested_conflict(path1: List[str], value1: Any, path2: List[str], value2: Any) -> bool:
+def _merge_mappings(
+    target: Dict[str, Any],
+    source: Mapping[str, Any],
+    path: Optional[List[str]] = None,
+) -> None:
     """
-    Check if two paths conflict with each other.
-    e.g. ["a", "b"] conflicts with ["a", "b"] if values differ
-    e.g. ["a"] conflicts with ["a", "b"] (can't have both a value and a nested structure)
+    Recursively merge two dictionaries, raising an error if there are any conflicts.
+    A conflict occurs when the same path exists in both dictionaries with different values.
+
+    Args:
+        target: The dictionary to merge into
+        source: The dictionary to merge from
+        path: The current path in the nested structure (for error messages)
     """
-    # If one path is a prefix of the other, they conflict
-    shorter, longer = sorted([path1, path2], key=len)
-    if longer[: len(shorter)] == shorter:
-        return True
+    path = path or []
+    for key, source_value in source.items():
+        current_path = path + [str(key)]
 
-    # If paths are the same but values differ, they conflict
-    if path1 == path2 and value1 != value2:
-        return True
-
-    return False
-
-
-def _flatten_mapping(
-    mapping: Mapping[str, Any], prefix: Optional[List[str]] = None
-) -> List[tuple[List[str], Any]]:
-    """
-    Convert a nested mapping into a list of (path, value) pairs to make conflict detection easier.
-    e.g. {"a": {"b": 1}} -> [(["a", "b"], 1)]
-    """
-    prefix = prefix or []
-    result = []
-
-    for key, value in mapping.items():
-        current_path = prefix + [key]
-        if isinstance(value, Mapping):
-            result.extend(_flatten_mapping(value, current_path))
+        if key in target:
+            target_value = target[key]
+            if isinstance(target_value, dict) and isinstance(source_value, dict):
+                # If both are dictionaries, recursively merge them
+                _merge_mappings(target_value, source_value, current_path)
+            elif target_value != source_value:
+                # If same key has different values, that's a conflict
+                raise ValueError(
+                    f"Duplicate keys or nested path conflict found: {'.'.join(current_path)}"
+                )
         else:
-            result.append((current_path, value))
-
-    return result
+            # No conflict, just copy the value (using deepcopy for nested structures)
+            target[key] = copy.deepcopy(source_value)
 
 
 def combine_mappings(
@@ -49,11 +45,16 @@ def combine_mappings(
 ) -> Union[Mapping[str, Any], str]:
     """
     Combine multiple mappings into a single mapping, supporting nested structures.
-    If any of the mappings are a string, return that string. Raise errors in the following cases:
-    * If there are conflicting paths across mappings (including nested conflicts)
+    Raise errors in the following cases:
     * If there are multiple string mappings
-    * If there are multiple mappings containing keys and one of them is a string
+    * If there is a string mapping AND any non-empty dictionary mappings
+    * If there are conflicting paths across mappings (including nested conflicts)
+
+    If there is exactly one string mapping and no other non-empty mappings, return that string.
+    Otherwise, combine all dictionary mappings into a single mapping.
     """
+    if not mappings:
+        return {}
 
     # Count how many string options we have, ignoring None values
     string_options = sum(isinstance(mapping, str) for mapping in mappings if mapping is not None)
@@ -65,42 +66,16 @@ def combine_mappings(
         m for m in mappings if m is not None and not (isinstance(m, Mapping) and not m)
     ]
 
-    # If there is only one string option, return it
+    # If there is only one string option and no other non-empty mappings, return it
     if string_options == 1:
         if len(non_empty_mappings) > 1:
             raise ValueError("Cannot combine multiple options if one is a string")
         return next(m for m in non_empty_mappings if isinstance(m, str))
 
-    # Convert all mappings to flat (path, value) pairs for conflict detection
-    all_paths: List[List[tuple[List[str], Any]]] = []
-    for mapping in mappings:
-        if mapping is None or not isinstance(mapping, Mapping):
-            continue
-        all_paths.append(_flatten_mapping(mapping))
-
-    # Check each path against all other paths for conflicts
-    # Conflicts occur when the same path has different values or when one path is a prefix of another
-    # e.g. {"a": 1} and {"a": {"b": 2}} conflict because "a" can't be both a value and a nested structure
-    for i, paths1 in enumerate(all_paths):
-        for path1, value1 in paths1:
-            for paths2 in all_paths[i + 1 :]:
-                for path2, value2 in paths2:
-                    if _has_nested_conflict(path1, value1, path2, value2):
-                        raise ValueError(
-                            f"Duplicate keys or nested path conflict found: {'.'.join(path1)} conflicts with {'.'.join(path2)}"
-                        )
-
-    # If no conflicts were found, merge all mappings
+    # Start with an empty result and merge each mapping into it
     result: Dict[str, Any] = {}
-    for mapping in mappings:
-        if mapping is None or not isinstance(mapping, Mapping):
-            continue
-        for path, value in _flatten_mapping(mapping):
-            current = result
-            *prefix, last = path
-            # Create nested dictionaries for each prefix segment
-            for key in prefix:
-                current = current.setdefault(key, {})
-            current[last] = value
+    for mapping in non_empty_mappings:
+        if mapping and isinstance(mapping, Mapping):
+            _merge_mappings(result, mapping)
 
     return result

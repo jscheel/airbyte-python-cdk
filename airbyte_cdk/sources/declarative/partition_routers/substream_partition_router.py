@@ -118,7 +118,7 @@ class SubstreamPartitionRouter(PartitionRouter):
     def _get_request_option(
         self, option_type: RequestOptionType, stream_slice: Optional[StreamSlice]
     ) -> Mapping[str, Any]:
-        params:MutableMapping[str, Any] = {}
+        params: MutableMapping[str, Any] = {}
         if stream_slice:
             for parent_config in self.parent_stream_configs:
                 if (
@@ -128,7 +128,7 @@ class SubstreamPartitionRouter(PartitionRouter):
                     key = parent_config.partition_field.eval(self.config)  # type: ignore # partition_field is always casted to an interpolated string
                     value = stream_slice.get(key)
                     if value:
-                            parent_config.request_option.inject_into_request(params, value, self.config)
+                        parent_config.request_option.inject_into_request(params, value, self.config)
         return params
 
     def stream_slices(self) -> Iterable[StreamSlice]:
