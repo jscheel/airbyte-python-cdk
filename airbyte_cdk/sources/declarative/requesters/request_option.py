@@ -28,7 +28,8 @@ class RequestOption:
 
     Attributes:
         field_name (str): Describes the name of the parameter to inject. Mutually exclusive with field_path.
-        field_path (list(str)): Describes the path to a nested field as a list of field names. Mutually exclusive with field_name.
+        field_path (list(str)): Describes the path to a nested field as a list of field names. 
+          Only valid for body_json injection type, and mutually exclusive with field_name.
         inject_into (RequestOptionType): Describes where in the HTTP request to inject the parameter
     """
 
@@ -38,6 +39,7 @@ class RequestOption:
     field_path: Optional[List[Union[InterpolatedString, str]]] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
+
         # Validate inputs. We should expect either field_name or field_path, but not both
         if self.field_name is None and self.field_path is None:
             raise ValueError("RequestOption requires either a field_name or field_path")
@@ -47,18 +49,7 @@ class RequestOption:
                 "Only one of field_name or field_path can be provided to RequestOption"
             )
 
-        if self.field_name is not None and not isinstance(
-            self.field_name, (str, InterpolatedString)
-        ):
-            raise TypeError(f"field_name expects a string, but got {type(self.field_name)}")
-
-        if self.field_path is not None:
-            if not isinstance(self.field_path, list):
-                raise TypeError(f"field_path expects a list, but got {type(self.field_path)}")
-            for value in self.field_path:
-                if not isinstance(value, (str, InterpolatedString)):
-                    raise TypeError(f"field_path values must be strings, got {type(value)}")
-
+        # Nested field injection is only supported for body JSON injection
         if self.field_path is not None and self.inject_into != RequestOptionType.body_json:
             raise ValueError(
                 "Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types."
@@ -67,7 +58,7 @@ class RequestOption:
         # Convert field_name and field_path into InterpolatedString objects if they are strings
         if self.field_name is not None:
             self.field_name = InterpolatedString.create(self.field_name, parameters=parameters)
-        if self.field_path is not None:
+        elif self.field_path is not None:
             self.field_path = [
                 InterpolatedString.create(segment, parameters=parameters)
                 for segment in self.field_path
