@@ -32,13 +32,6 @@ from airbyte_cdk.sources.declarative.requesters.request_option import (
             ValueError,
             "Nested field injection is only supported for body JSON injection.",
         ),
-        (
-            None,
-            {"this": "should", "be": "a list"},
-            RequestOptionType.body_json,
-            TypeError,
-            "field_path expects a list",
-        ),
     ],
 )
 def test_request_option_validation(

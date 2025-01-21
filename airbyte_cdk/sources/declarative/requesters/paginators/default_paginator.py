@@ -197,7 +197,7 @@ class DefaultPaginator(Paginator):
             and self.page_token_option.inject_into == option_type
         ):
             self.page_token_option.inject_into_request(options, token, self.config)
-            
+
         if (
             self.page_size_option
             and self.pagination_strategy.get_page_size()
