@@ -330,9 +330,13 @@ def _hash_text(input_text: str, hash_type: str = "md5") -> str:
 def custom_code_execution_permitted() -> bool:
     """Return `True` if custom code execution is permitted, otherwise `False`.
 
-    Custom code execution is permitted if the `AIRBYTE_ALLOW_CUSTOM_CODE` environment variable is set to 'true'.
+    Custom code execution is permitted if the `AIRBYTE_ALLOW_CUSTOM_CODE` environment variable is set to 'true'
+    (case-insensitive). Any other value, including '1', 'yes', or empty string, will return False.
     """
-    return os.environ.get(ENV_VAR_ALLOW_CUSTOM_CODE, "").lower() == "true"
+    env_value = os.environ.get(ENV_VAR_ALLOW_CUSTOM_CODE, "")
+    if not env_value:
+        return False
+    return env_value.lower() == "true"
 
 
 def validate_python_code(
