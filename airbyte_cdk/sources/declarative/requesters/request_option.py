@@ -39,29 +39,29 @@ class RequestOption:
     field_path: Optional[List[Union[InterpolatedString, str]]] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
-        # Validate inputs. We should expect either field_name or field_path, but not both
+        # Validate inputs
         if self.field_name is None and self.field_path is None:
             raise ValueError("RequestOption requires either a field_name or field_path")
-
         if self.field_name is not None and self.field_path is not None:
-            raise ValueError(
-                "Only one of field_name or field_path can be provided to RequestOption"
-            )
+            raise ValueError("Only one of field_name or field_path can be provided")
 
-        # Nested field injection is only supported for body JSON injection
-        if self.field_path is not None and self.inject_into != RequestOptionType.body_json:
-            raise ValueError(
-                "Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types."
-            )
-
-        # Convert field_name and field_path into InterpolatedString objects if they are strings
+        # Convert field_name to field_path internally for simplicity. We are keeping the field_name attribute
+        # for backwards compatitibility in the Builder.
         if self.field_name is not None:
-            self.field_name = InterpolatedString.create(self.field_name, parameters=parameters)
-        elif self.field_path is not None:
+            self.field_path = [InterpolatedString.create(self.field_name, parameters=parameters)]
+            self.field_name = None
+        else:
+            assert self.field_path is not None  # for type checker
             self.field_path = [
                 InterpolatedString.create(segment, parameters=parameters)
                 for segment in self.field_path
             ]
+
+        # Validate that non-body-json requests only use single-element paths
+        if len(self.field_path) > 1 and self.inject_into != RequestOptionType.body_json:
+            raise ValueError(
+                "Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types."
+            )
 
     @property
     def _is_field_path(self) -> bool:
@@ -75,7 +75,7 @@ class RequestOption:
         config: Config,
     ) -> None:
         """
-        Inject a request option value into a target request structure using either field_name or field_path.
+        Inject a request option value into a target request structure.
         For non-body-json injection, only top-level field names are supported.
         For body-json injection, both field names and nested field paths are supported.
 
@@ -84,34 +84,21 @@ class RequestOption:
             value: The value to inject
             config: The config object to use for interpolation
         """
-        if self._is_field_path:
-            if self.inject_into != RequestOptionType.body_json:
-                raise ValueError(
-                    "Nested field injection is only supported for body JSON injection. Please use a top-level field_name for other injection types."
-                )
+        assert self.field_path is not None  # for type checker
+        current = target
 
-            assert self.field_path is not None  # for type checker
-            current = target
-            # Convert path segments into strings, evaluating any interpolated segments
-            # Example: ["data", "{{ config[user_type] }}", "id"] -> ["data", "admin", "id"]
-            *path_parts, final_key = [
-                str(
-                    segment.eval(config=config)
-                    if isinstance(segment, InterpolatedString)
-                    else segment
-                )
-                for segment in self.field_path
-            ]
-
-            # Build a nested dictionary structure and set the final value at the deepest level
-            for part in path_parts:
-                current = current.setdefault(part, {})
-            current[final_key] = value
-        else:
-            # For non-nested fields, evaluate the field name if it's an interpolated string
-            key = (
-                self.field_name.eval(config=config)
-                if isinstance(self.field_name, InterpolatedString)
-                else self.field_name
+        # Convert path segments into strings, evaluating any interpolated segments
+        # Example: ["data", "{{ config[user_type] }}", "id"] -> ["data", "admin", "id"]
+        *path_parts, final_key = [
+            str(
+                segment.eval(config=config)
+                if isinstance(segment, InterpolatedString)
+                else segment
             )
-            target[str(key)] = value
+            for segment in self.field_path
+        ]
+
+        # Build nested structure if needed (for body_json) or set directly (for other types)
+        for part in path_parts:
+            current = current.setdefault(part, {})
+        current[final_key] = value
