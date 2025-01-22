@@ -39,7 +39,7 @@ class CursorStopCondition(PaginationStopCondition):
 
 
 class StopConditionPaginationStrategyDecorator(PaginationStrategy):
-    def __init__(self, _delegate: PaginationStrategy, stop_condition: PaginationStopCondition):  # noqa: ANN204, RUF052
+    def __init__(self, _delegate: PaginationStrategy, stop_condition: PaginationStopCondition):  # noqa: ANN204
         self._delegate = _delegate
         self._stop_condition = stop_condition
 

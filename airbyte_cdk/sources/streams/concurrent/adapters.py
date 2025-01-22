@@ -257,7 +257,7 @@ class StreamPartition(Partition):
     def __init__(  # noqa: ANN204
         self,
         stream: Stream,
-        _slice: Mapping[str, Any] | None,  # noqa: RUF052
+        _slice: Mapping[str, Any] | None,
         message_repository: MessageRepository,
         sync_mode: SyncMode,
         cursor_field: list[str] | None,

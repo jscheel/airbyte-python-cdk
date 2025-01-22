@@ -318,7 +318,7 @@ class MessageGrouper:
 
     @staticmethod
     def _is_http_log(message: dict[str, JsonType]) -> bool:
-        return bool(message.get("http", False))
+        return bool(message.get("http"))
 
     @staticmethod
     def _is_auxiliary_http_request(message: dict[str, Any] | None) -> bool:

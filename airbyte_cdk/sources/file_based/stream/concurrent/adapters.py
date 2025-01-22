@@ -226,7 +226,7 @@ class FileBasedStreamPartition(Partition):
     def __init__(  # noqa: ANN204
         self,
         stream: AbstractFileBasedStream,
-        _slice: Mapping[str, Any] | None,  # noqa: RUF052
+        _slice: Mapping[str, Any] | None,
         message_repository: MessageRepository,
         sync_mode: SyncMode,
         cursor_field: list[str] | None,

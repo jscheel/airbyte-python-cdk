@@ -217,7 +217,7 @@ class AsyncJobOrchestrator:
                 "Waiting before creating more jobs as the limit of concurrent jobs has been reached. Will try again later..."
             )
 
-    def _start_job(self, _slice: StreamSlice, previous_job_id: str | None = None) -> AsyncJob:  # noqa: RUF052
+    def _start_job(self, _slice: StreamSlice, previous_job_id: str | None = None) -> AsyncJob:
         if previous_job_id:
             id_to_replace = previous_job_id
             lazy_log(LOGGER, logging.DEBUG, lambda: f"Attempting to replace job {id_to_replace}...")

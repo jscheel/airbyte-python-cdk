@@ -4,7 +4,7 @@
 
 from collections.abc import Mapping
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic.v1 import BaseModel, Field, validator
 
@@ -18,7 +18,7 @@ from airbyte_cdk.sources.file_based.exceptions import ConfigValidationError, Fil
 from airbyte_cdk.sources.file_based.schema_helpers import type_mapping_to_jsonschema
 
 
-PrimaryKeyType = Optional[str | list[str]]  # noqa: UP007
+PrimaryKeyType = str | list[str] | None
 
 
 class ValidationPolicy(Enum):
