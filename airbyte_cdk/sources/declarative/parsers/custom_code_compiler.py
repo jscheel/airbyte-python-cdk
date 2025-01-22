@@ -125,7 +125,7 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
 
         elif isinstance(visited_node.ctx, ast.Del):
             raise SyntaxError("Attribute deletion is not allowed")
-        
+
         if not isinstance(visited_node, ast.AST):
             raise TypeError(f"Expected ast.AST but got {type(visited_node)}")
         return visited_node
@@ -262,7 +262,8 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
                 elif isinstance(n, ast.FunctionDef):
                     # For function definitions, we need to allow attribute access
                     n.body = [
-                        stmt for stmt in (self.visit(body_stmt) for body_stmt in n.body)
+                        stmt
+                        for stmt in (self.visit(body_stmt) for body_stmt in n.body)
                         if isinstance(stmt, ast.stmt)
                     ]
                     allowed_nodes.append(n)
