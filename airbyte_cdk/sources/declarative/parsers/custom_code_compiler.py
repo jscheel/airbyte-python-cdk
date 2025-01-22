@@ -123,7 +123,6 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         self,
         node: ast.AST,
         name: str,
-        allow_magic_methods: bool = True,
         *args: Any,
         **kwargs: Any,
     ) -> ast.AST:
@@ -132,7 +131,6 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         Args:
             node: The AST node being checked
             name: The name being validated
-            allow_magic_methods: Whether to allow magic methods (defaults to True)
             *args: Additional positional arguments
             **kwargs: Additional keyword arguments
         """
@@ -249,7 +247,9 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
                     allowed_nodes.append(self.visit_AnnAssign(n))
                 # Allow function definitions (like __post_init__)
                 elif isinstance(n, ast.FunctionDef):
-                    allowed_nodes.append(self.visit(n))
+                    # For function definitions, we need to allow attribute access
+                    n.body = [self.visit(stmt) for stmt in n.body]
+                    allowed_nodes.append(n)
                 # Allow docstrings
                 elif isinstance(n, ast.Expr) and isinstance(n.value, ast.Str):
                     allowed_nodes.append(n)
@@ -265,7 +265,11 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
                         )
                         allowed_nodes.append(self.visit_AnnAssign(ann_assign))
                     else:
+                        # Allow attribute assignments within dataclasses
                         allowed_nodes.append(self.visit(n))
+                # Allow attribute statements within dataclasses
+                elif isinstance(n, ast.Attribute):
+                    allowed_nodes.append(self.visit_Attribute(n))
                 else:
                     allowed_nodes.append(self.visit(n))
 
