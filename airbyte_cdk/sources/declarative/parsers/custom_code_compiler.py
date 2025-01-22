@@ -44,13 +44,15 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
 
     def visit_Attribute(self, node: ast.Attribute) -> ast.AST:
         """Transform attribute access into _getattr_ or _write_ function calls."""
-        node = self.generic_visit(node)
+        visited_node = self.generic_visit(node)
+        if not isinstance(visited_node, ast.AST):
+            visited_node = node
         
-        if isinstance(node.attr, str):
+        if isinstance(visited_node, ast.Attribute) and isinstance(visited_node.attr, str):
             # Block access to dangerous attributes
             dangerous_attrs = {"__dict__", "__class__", "__bases__", "__subclasses__"}
-            if node.attr in dangerous_attrs:
-                raise NameError(f"name '{node.attr}' is not allowed")
+            if visited_node.attr in dangerous_attrs:
+                raise NameError(f"name '{visited_node.attr}' is not allowed")
             
             # Allow specific private attributes
             allowed_private = {
@@ -59,53 +61,53 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
                 "__mro__", "__subclasshook__", "__new__",
                 "_page_size",
             }
-            if node.attr.startswith('_') and node.attr not in allowed_private:
-                if not node.attr.startswith("__"):  # Allow dunder methods
-                    raise NameError(f"name '{node.attr}' is not allowed")
+            if visited_node.attr.startswith('_') and visited_node.attr not in allowed_private:
+                if not visited_node.attr.startswith("__"):  # Allow dunder methods
+                    raise NameError(f"name '{visited_node.attr}' is not allowed")
         
-        if isinstance(node.ctx, ast.Store):
+        if isinstance(visited_node.ctx, ast.Store):
             # For assignments like "obj.attr = value"
             name_node = ast.Name(id='_write_', ctx=ast.Load())
-            ast.copy_location(name_node, node)
+            ast.copy_location(name_node, visited_node)
             
-            value_node = self.visit(node.value)
-            const_node = ast.Constant(value=node.attr)
+            value_node = self.visit(visited_node.value)
+            const_node = ast.Constant(value=visited_node.attr)
             
             call_node = ast.Call(
                 func=name_node,
                 args=[value_node, const_node],
                 keywords=[],
             )
-            ast.copy_location(call_node, node)
+            ast.copy_location(call_node, visited_node)
             ast.fix_missing_locations(call_node)
             return call_node
             
-        elif isinstance(node.ctx, ast.Load):
+        elif isinstance(visited_node.ctx, ast.Load):
             # For reads like "obj.attr"
             name_node = ast.Name(id='_getattr_', ctx=ast.Load())
-            ast.copy_location(name_node, node)
+            ast.copy_location(name_node, visited_node)
             
-            const_node = ast.Constant(value=node.attr)
-            ast.copy_location(const_node, node)
+            const_node = ast.Constant(value=visited_node.attr)
+            ast.copy_location(const_node, visited_node)
             
-            visited_value = self.visit(node.value)
+            visited_value = self.visit(visited_node.value)
             if hasattr(visited_value, 'lineno'):
-                ast.copy_location(visited_value, node)
+                ast.copy_location(visited_value, visited_node)
             
             call_node = ast.Call(
                 func=name_node,
                 args=[visited_value, const_node],
                 keywords=[],
             )
-            ast.copy_location(call_node, node)
+            ast.copy_location(call_node, visited_node)
             ast.fix_missing_locations(call_node)
             return call_node
             
-        elif isinstance(node.ctx, ast.Del):
+        elif isinstance(visited_node.ctx, ast.Del):
             raise SyntaxError("Attribute deletion is not allowed")
-        return node
+        return visited_node
 
-    def check_name(self, node: ast.AST, name: str, *args, **kwargs) -> ast.AST:
+    def check_name(self, node: ast.AST, name: str, *args: Any, **kwargs: Any) -> ast.AST:
         """Allow specific private names that are required for dataclasses and type hints."""
         if name.startswith('_'):
             # Allow specific private names
@@ -167,7 +169,10 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
             unsafe_functions = {'open', 'eval', 'exec', 'compile', '__import__'}
             if node.func.id in unsafe_functions:
                 raise NameError(f"name '{node.func.id}' is not defined")
-        return super().visit_Call(node)
+        result = super().visit_Call(node)
+        if not isinstance(result, ast.Call):
+            raise TypeError(f"Expected ast.Call but got {type(result)}")
+        return result
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AnnAssign:
         """Allow type annotations in variable assignments."""
