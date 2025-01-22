@@ -201,7 +201,6 @@ __all__ = [
     "ConcurrentSourceAdapter",
     "Cursor",
     "CursorField",
-    "DEFAULT_CONCURRENCY",  # noqa: F822
     "EpochValueConcurrentStreamStateConverter",
     "FinalStateCursor",
     "IsoMillisConcurrentStreamStateConverter",
@@ -259,7 +258,6 @@ __all__ = [
     "RequestOption",
     "RequestOptionType",
     "Requester",
-    "ResponseStatus",  # noqa: F822
     "SimpleRetriever",
     "SinglePartitionRouter",
     "StopConditionPaginationStrategyDecorator",
@@ -277,13 +275,11 @@ __all__ = [
     "DefaultBackoffException",
     "default_backoff_handler",
     "HttpAPIBudget",
-    "HttpAuthenticator",  # noqa: F822
     "HttpRequestMatcher",
     "HttpStream",
     "HttpSubStream",
     "LimiterSession",
     "MovingWindowCallRatePolicy",
-    "MultipleTokenAuthenticator",  # noqa: F822
     "Oauth2Authenticator",
     "Rate",
     "SingleUseRefreshTokenOauth2Authenticator",
@@ -318,7 +314,6 @@ __all__ = [
     # Stream
     "IncrementalMixin",
     "Stream",
-    "StreamData",  # noqa: F822
     "package_name_from_class",
     # Utils
     "AirbyteTracedException",

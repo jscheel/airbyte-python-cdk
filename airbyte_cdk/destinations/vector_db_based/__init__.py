@@ -18,7 +18,6 @@ from .writer import Writer
 
 
 __all__ = [
-    "AzureOpenAIEmbedder",  # noqa: F822
     "AzureOpenAIEmbeddingConfigModel",
     "Chunk",
     "CohereEmbedder",
@@ -27,10 +26,8 @@ __all__ = [
     "Embedder",
     "FakeEmbedder",
     "FakeEmbeddingConfigModel",
-    "FromFieldEmbedder",  # noqa: F822
     "FromFieldEmbeddingConfigModel",
     "Indexer",
-    "OpenAICompatibleEmbedder",  # noqa: F822
     "OpenAICompatibleEmbeddingConfigModel",
     "OpenAIEmbedder",
     "OpenAIEmbeddingConfigModel",
