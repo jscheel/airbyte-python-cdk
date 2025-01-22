@@ -31,6 +31,7 @@ enable = true
 [tool.poetry.dependencies]
 python = "^3.10,<3.13"
 airbyte-protocol-models-dataclasses = "^0.14"
+RestrictedPython = "^6.0.0"
 backoff = "*"
 cachetools = "*"
 dpath = "^2.1.6"
