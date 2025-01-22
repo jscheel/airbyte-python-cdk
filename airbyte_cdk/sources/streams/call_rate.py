@@ -371,9 +371,10 @@ class AbstractAPIBudget(abc.ABC):
     @abc.abstractmethod
     def acquire_call(
         self,
-        request: Any,
+        request: Any,  # noqa: ANN401
+        *,
         block: bool = True,
-        timeout: float | None = None,  # noqa: ANN401, FBT001, FBT002
+        timeout: float | None = None,
     ) -> None:
         """Try to get a call from budget, will block by default
 
@@ -420,9 +421,10 @@ class APIBudget(AbstractAPIBudget):
 
     def acquire_call(
         self,
-        request: Any,
+        request: Any,  # noqa: ANN401
+        *,
         block: bool = True,
-        timeout: float | None = None,  # noqa: ANN401, FBT001, FBT002
+        timeout: float | None = None,
     ) -> None:
         """Try to get a call from budget, will block by default.
         Matchers will be called sequentially in the same order they were added.
@@ -450,10 +452,11 @@ class APIBudget(AbstractAPIBudget):
 
     def _do_acquire(
         self,
-        request: Any,
+        request: Any,  # noqa: ANN401
         policy: AbstractCallRatePolicy,
+        *,
         block: bool,
-        timeout: float | None,  # noqa: ANN401, FBT001
+        timeout: float | None,
     ) -> None:
         """Internal method to try to acquire a call credit
 

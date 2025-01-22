@@ -110,15 +110,15 @@ class SecretString(str):
     @classmethod
     def __get_pydantic_json_schema__(  # Pydantic dunder method  # noqa: PLW3201
         cls,
-        _core_schema: core_schema.CoreSchema,
-        handler: GetJsonSchemaHandler,  # noqa: RUF052
+        core_schema_: core_schema.CoreSchema,
+        handler: GetJsonSchemaHandler,
     ) -> JsonSchemaValue:
         """Return a modified JSON schema for the secret string.
 
         - `writeOnly=True` is the official way to prevent secrets from being exposed inadvertently.
         - `Format=password` is a popular and readable convention to indicate the field is sensitive.
         """
-        _ = _core_schema, handler  # Unused
+        _ = core_schema_, handler  # Unused
         return {
             "type": "string",
             "format": "password",

@@ -3,7 +3,7 @@
 #
 
 
-import requests  # noqa: E303
+import requests
 
 
 class BaseBackoffException(requests.exceptions.HTTPError):

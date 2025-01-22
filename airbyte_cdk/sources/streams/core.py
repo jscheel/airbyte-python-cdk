@@ -439,7 +439,7 @@ class Stream(ABC):  # noqa: PLR0904
     # )
     def get_updated_state(
         self,
-        current_stream_state: MutableMapping[str, Any],
+        current_stream_state: MutableMapping[str, Any],  # noqa: ARG002
         latest_record: Mapping[str, Any],  # noqa: ARG002
     ) -> MutableMapping[str, Any]:
         """DEPRECATED. Please use explicit state property instead, see `IncrementalMixin` docs.

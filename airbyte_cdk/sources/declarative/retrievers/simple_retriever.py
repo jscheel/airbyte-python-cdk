@@ -423,15 +423,15 @@ class SimpleRetriever(Retriever):
         :param stream_slice: The stream slice to read data for
         :return: The records read from the API source
         """
-        _slice = stream_slice or StreamSlice(
+        slice_ = stream_slice or StreamSlice(
             partition={}, cursor_slice={}
-        )  # None-check  # noqa: RUF052
+        )  # None-check
 
         most_recent_record_from_slice = None
         record_generator = partial(
             self._parse_records,
             stream_state=self.state or {},
-            stream_slice=_slice,
+            stream_slice=slice_,
             records_schema=records_schema,
         )
 
@@ -444,23 +444,23 @@ class SimpleRetriever(Retriever):
             if stream_state.get(FULL_REFRESH_SYNC_COMPLETE_KEY):
                 return
 
-            yield from self._read_single_page(record_generator, stream_state, _slice)
+            yield from self._read_single_page(record_generator, stream_state, slice_)
         else:
-            for stream_data in self._read_pages(record_generator, self.state, _slice):
-                current_record = self._extract_record(stream_data, _slice)
+            for stream_data in self._read_pages(record_generator, self.state, slice_):
+                current_record = self._extract_record(stream_data, slice_)
                 if self.cursor and current_record:
-                    self.cursor.observe(_slice, current_record)
+                    self.cursor.observe(slice_, current_record)
 
                 # Latest record read, not necessarily within slice boundaries.
                 # TODO Remove once all custom components implement `observe` method.  # noqa: TD004
                 # https://github.com/airbytehq/airbyte-internal-issues/issues/6955
                 most_recent_record_from_slice = self._get_most_recent_record(
-                    most_recent_record_from_slice, current_record, _slice
+                    most_recent_record_from_slice, current_record, slice_
                 )
                 yield stream_data
 
             if self.cursor:
-                self.cursor.close_slice(_slice, most_recent_record_from_slice)
+                self.cursor.close_slice(slice_, most_recent_record_from_slice)
         return
 
     def _get_most_recent_record(

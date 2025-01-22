@@ -122,8 +122,8 @@ class ConnectorStateManager:
             global_state = cast(AirbyteGlobalState, state[0].global_)  # noqa: TC006
             # global_state has shared_state, also not None:
             shared_state: AirbyteStateBlob = cast(
-                AirbyteStateBlob,
-                copy.deepcopy(global_state.shared_state, {}),  # noqa: TC006
+                "AirbyteStateBlob",
+                copy.deepcopy(global_state.shared_state, {}),
             )
             streams = {
                 HashableStreamDescriptor(

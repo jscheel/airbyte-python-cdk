@@ -1,7 +1,7 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
 
-import requests  # noqa: E303
+import requests
 
 from .backoff_strategy import BackoffStrategy
 

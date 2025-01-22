@@ -630,7 +630,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_added_field_definition(
         model: AddedFieldDefinitionModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> AddedFieldDefinition:
         interpolated_value = InterpolatedString.create(
@@ -658,16 +658,16 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     def create_keys_to_lower_transformation(
         self,
-        model: KeysToLowerModel,
-        config: Config,
+        model: KeysToLowerModel,  # noqa: ARG002
+        config: Config,  # noqa: ARG002
         **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> KeysToLowerTransformation:
         return KeysToLowerTransformation()
 
     def create_keys_to_snake_transformation(
         self,
-        model: KeysToSnakeCaseModel,
-        config: Config,
+        model: KeysToSnakeCaseModel,  # noqa: ARG002
+        config: Config,  # noqa: ARG002
         **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> KeysToSnakeCaseTransformation:
         return KeysToSnakeCaseTransformation()
@@ -675,7 +675,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     def create_keys_replace_transformation(
         self,
         model: KeysReplaceModel,
-        config: Config,
+        config: Config,  # noqa: ARG002
         **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> KeysReplaceTransformation:
         return KeysReplaceTransformation(
@@ -685,7 +685,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     def create_flatten_fields(
         self,
         model: FlattenFieldsModel,
-        config: Config,
+        config: Config,  # noqa: ARG002
         **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> FlattenFields:
         return FlattenFields(
@@ -894,7 +894,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_check_dynamic_stream(
         model: CheckDynamicStreamModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> CheckDynamicStream:
         return CheckDynamicStream(stream_count=model.stream_count, parameters={})
@@ -1249,10 +1249,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     def _create_nested_component(
         self,
-        model: Any,
-        model_field: str,
-        model_value: Any,
-        config: Config,  # noqa: ANN401, ARG002
+        model: Any,  # noqa: ANN401
+        model_field: str,  # noqa: ARG002
+        model_value: Any,  # noqa: ANN401
+        config: Config,
     ) -> Any:  # noqa: ANN401
         type_name = model_value.get("type", None)
         if not type_name:
@@ -1515,7 +1515,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
                     parameters={},
                 )
             return self._create_component_from_model(model=stream_slicer_model, config=config)  # type: ignore[no-any-return]
-            # Will be created PartitionRouter as stream_slicer_model is model.partition_router  # noqa: E116
+            # Will be created PartitionRouter as stream_slicer_model is model.partition_router
         return None
 
     def _build_resumable_cursor_from_paginator(
@@ -1778,7 +1778,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_inline_schema_loader(
         model: InlineSchemaLoaderModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> InlineSchemaLoader:
         return InlineSchemaLoader(schema=model.schema_ or {}, parameters={})
@@ -1867,8 +1867,8 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_jsonl_decoder(
-        model: JsonlDecoderModel,
-        config: Config,
+        model: JsonlDecoderModel,  # noqa: ARG004
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> JsonlDecoder:
         return JsonlDecoder(parameters={})
@@ -1876,15 +1876,15 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_json_line_parser(
         model: JsonLineParserModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> JsonLineParser:
         return JsonLineParser(encoding=model.encoding)
 
     @staticmethod
     def create_iterable_decoder(
-        model: IterableDecoderModel,
-        config: Config,
+        model: IterableDecoderModel,  # noqa: ARG004
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> IterableDecoder:
         return IterableDecoder(parameters={})
@@ -1896,7 +1896,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_gzipjson_decoder(
         model: GzipJsonDecoderModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> GzipJsonDecoder:
         return GzipJsonDecoder(parameters={}, encoding=model.encoding)
@@ -1994,7 +1994,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_min_max_datetime(
         model: MinMaxDatetimeModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> MinMaxDatetime:
         return MinMaxDatetime(
@@ -2011,8 +2011,8 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_no_pagination(
-        model: NoPaginationModel,
-        config: Config,
+        model: NoPaginationModel,  # noqa: ARG004
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> NoPagination:
         return NoPagination(parameters={})
@@ -2179,7 +2179,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_request_option(
         model: RequestOptionModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> RequestOption:
         inject_into = RequestOptionType(model.inject_into.value)
@@ -2232,7 +2232,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_remove_fields(
         model: RemoveFieldsModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> RemoveFields:
         return RemoveFields(
@@ -2379,7 +2379,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     def _create_async_job_status_mapping(
         self,
         model: AsyncJobStatusMapModel,
-        config: Config,
+        config: Config,  # noqa: ARG002
         **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> Mapping[str, AsyncJobStatus]:
         api_status_to_cdk_status = {}
@@ -2415,10 +2415,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
         config: Config,
         *,
         name: str,
-        primary_key: str
+        primary_key: str  # noqa: ARG002
         | list[str]
         | list[list[str]]
-        | None,  # this seems to be needed to match create_simple_retriever  # noqa: ARG002
+        | None,  # this seems to be needed to match create_simple_retriever
         stream_slicer: StreamSlicer | None,
         client_side_incremental_sync: dict[str, Any] | None = None,
         transformations: list[RecordTransformation],
@@ -2656,7 +2656,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_components_mapping_definition(
         model: ComponentMappingDefinitionModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> ComponentMappingDefinition:
         interpolated_value = InterpolatedString.create(
@@ -2711,7 +2711,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
     @staticmethod
     def create_stream_config(
         model: StreamConfigModel,
-        config: Config,
+        config: Config,  # noqa: ARG004
         **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> StreamConfig:
         model_configs_pointer: list[InterpolatedString | str] = (

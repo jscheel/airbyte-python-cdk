@@ -237,9 +237,9 @@ class AsyncJobOrchestrator:
 
     def _keep_api_budget_with_failed_job(
         self,
-        _slice: StreamSlice,
+        slice_: StreamSlice,
         exception: Exception,
-        intent: str,  # noqa: RUF052
+        intent: str,
     ) -> AsyncJob:
         """
         We have a mechanism to retry job. It is used when a job status is FAILED or TIMED_OUT. The easiest way to retry is to have this job
@@ -247,7 +247,7 @@ class AsyncJobOrchestrator:
         retrying jobs that couldn't be started.
         """
         LOGGER.warning(
-            f"Could not start job for slice {_slice}. Job will be flagged as failed and retried if max number of attempts not reached: {exception}"
+            f"Could not start job for slice {slice_}. Job will be flagged as failed and retried if max number of attempts not reached: {exception}"
         )
         traced_exception = (
             exception
@@ -257,7 +257,7 @@ class AsyncJobOrchestrator:
         # Even though we're not sure this will break the stream, we will emit here for simplicity's sake. If we wanted to be more accurate,
         # we would keep the exceptions in-memory until we know that we have reached the max attempt.
         self._message_repository.emit_message(traced_exception.as_airbyte_message())
-        job = self._create_failed_job(_slice)
+        job = self._create_failed_job(slice_)
         self._job_tracker.add_job(intent, job.api_job_id())
         return job
 

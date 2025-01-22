@@ -213,7 +213,7 @@ class StreamFacade(AbstractStreamFacade[DefaultStream], Stream):
 
     def check_availability(
         self,
-        logger: logging.Logger,
+        logger: logging.Logger,  # noqa: ARG002
         source: Optional["Source"] = None,  # noqa: ARG002
     ) -> tuple[bool, str | None]:
         """
@@ -377,7 +377,7 @@ class AvailabilityStrategyFacade(AvailabilityStrategy):
 
     def check_availability(
         self,
-        stream: Stream,
+        stream: Stream,  # noqa: ARG002
         logger: logging.Logger,
         source: Optional["Source"] = None,  # noqa: ARG002
     ) -> tuple[bool, str | None]:

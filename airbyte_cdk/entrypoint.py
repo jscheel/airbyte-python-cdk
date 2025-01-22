@@ -238,8 +238,8 @@ class AirbyteEntrypoint:
         self,
         source_spec: ConnectorSpecification,
         config: TConfig,
-        catalog: Any,
-        state: list[Any],  # noqa: ANN401
+        catalog: Any,  # noqa: ANN401
+        state: list[Any],
     ) -> Iterable[AirbyteMessage]:
         self.set_up_secret_filter(config, source_spec.connectionSpecification)
         if self.source.check_config_against_spec:

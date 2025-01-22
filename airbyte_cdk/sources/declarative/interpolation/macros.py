@@ -140,8 +140,8 @@ def duration(datestring: str) -> datetime.timedelta | isodate.Duration:
 
 def format_datetime(
     dt: str | datetime.datetime,
-    format: str,
-    input_format: str | None = None,  # noqa: A002
+    format: str,  # noqa: A002
+    input_format: str | None = None,
 ) -> str:
     """
     Converts datetime to another format
