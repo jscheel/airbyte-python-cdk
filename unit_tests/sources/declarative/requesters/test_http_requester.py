@@ -243,8 +243,8 @@ def test_basic_send_request():
             None,
             "field=value&field2=value&authfield=val",
         ),
-        ({"field": "value"}, None, {"field": "value"}, None, None, None, None, "field=value"),
-        ({"field": "value"}, None, None, None, {"field": "value"}, None, None, "field=value"),
+        ({"field": "value"}, None, {"field": "value"}, None, None, None, ValueError, None),
+        ({"field": "value"}, None, None, None, {"field": "value"}, None, ValueError, None),
         (
             {"field": "value"},
             None,
@@ -252,8 +252,8 @@ def test_basic_send_request():
             None,
             {"field": "value"},
             None,
+            ValueError,
             None,
-            "field=value&field2=value",
         ),
         # merging json params from the three sources
         (None, {"field": "value"}, None, None, None, None, None, '{"field": "value"}'),
