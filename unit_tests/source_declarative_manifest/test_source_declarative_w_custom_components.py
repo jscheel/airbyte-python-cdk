@@ -188,8 +188,8 @@ def test_invalid_checksum_fails_to_run(
     "env_value, should_raise",
     [
         ("true", False),
-        ("True", False),
-        ("TRUE", False),
+        ("True", False),  # Case-insensitive comparison
+        ("TRUE", False),  # Case-insensitive comparison
         ("1", True),  # Not accepted as truthy as of now
         ("false", True),
         ("False", True),

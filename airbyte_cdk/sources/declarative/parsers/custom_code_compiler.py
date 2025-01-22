@@ -29,6 +29,8 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         "dataclasses",
         "typing",
         "requests",
+        "datetime",
+        "json",
         "airbyte_cdk",
         "airbyte_cdk.sources",
         "airbyte_cdk.sources.declarative",
@@ -42,6 +44,14 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         "PaginationStrategy",
         "Config",
         "Record",
+        "Optional",
+        "Any",
+        "Union",
+        "Mapping",
+        "Dict",
+        "List",
+        "InitVar",
+        "dataclass",
     }
 
     def visit_Attribute(self, node: ast.Attribute) -> ast.AST:
@@ -90,7 +100,7 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
             )
             ast.copy_location(call_node, visited_node)
             ast.fix_missing_locations(call_node)
-            return call_node
+            return cast(ast.AST, call_node)
 
         elif isinstance(visited_node.ctx, ast.Load):
             # For reads like "obj.attr"
@@ -111,10 +121,11 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
             )
             ast.copy_location(call_node, visited_node)
             ast.fix_missing_locations(call_node)
-            return call_node
+            return cast(ast.AST, call_node)
 
         elif isinstance(visited_node.ctx, ast.Del):
             raise SyntaxError("Attribute deletion is not allowed")
+        
         if not isinstance(visited_node, ast.AST):
             raise TypeError(f"Expected ast.AST but got {type(visited_node)}")
         return visited_node
@@ -240,15 +251,20 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
 
         if is_dataclass:
             # For dataclasses, we need to allow attribute statements and annotations
-            allowed_nodes = []
+            allowed_nodes: list[ast.stmt] = []
             for n in node.body:
                 # Allow class variable annotations (typical in dataclasses)
                 if isinstance(n, ast.AnnAssign):
-                    allowed_nodes.append(self.visit_AnnAssign(n))
+                    visited = self.visit_AnnAssign(n)
+                    if isinstance(visited, ast.stmt):
+                        allowed_nodes.append(visited)
                 # Allow function definitions (like __post_init__)
                 elif isinstance(n, ast.FunctionDef):
                     # For function definitions, we need to allow attribute access
-                    n.body = [self.visit(stmt) for stmt in n.body]
+                    n.body = [
+                        stmt for stmt in (self.visit(body_stmt) for body_stmt in n.body)
+                        if isinstance(stmt, ast.stmt)
+                    ]
                     allowed_nodes.append(n)
                 # Allow docstrings
                 elif isinstance(n, ast.Expr) and isinstance(n.value, ast.Str):
@@ -263,15 +279,23 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
                             value=n.value,
                             simple=1,
                         )
-                        allowed_nodes.append(self.visit_AnnAssign(ann_assign))
+                        visited = self.visit_AnnAssign(ann_assign)
+                        if isinstance(visited, ast.stmt):
+                            allowed_nodes.append(visited)
                     else:
                         # Allow attribute assignments within dataclasses
-                        allowed_nodes.append(self.visit(n))
+                        visited = self.visit(n)
+                        if isinstance(visited, ast.stmt):
+                            allowed_nodes.append(visited)
                 # Allow attribute statements within dataclasses
                 elif isinstance(n, ast.Attribute):
-                    allowed_nodes.append(self.visit_Attribute(n))
+                    visited = self.visit_Attribute(n)
+                    if isinstance(visited, ast.stmt):
+                        allowed_nodes.append(visited)
                 else:
-                    allowed_nodes.append(self.visit(n))
+                    visited = self.visit(n)
+                    if isinstance(visited, ast.stmt):
+                        allowed_nodes.append(visited)
 
             node.body = allowed_nodes
             return node
@@ -336,7 +360,7 @@ def custom_code_execution_permitted() -> bool:
     env_value = os.environ.get(ENV_VAR_ALLOW_CUSTOM_CODE, "")
     if not env_value:
         return False
-    return env_value.lower() == "true"
+    return env_value.lower() in {"true"}
 
 
 def validate_python_code(
@@ -440,6 +464,7 @@ def register_components_module_from_string(
     # Create restricted globals with safe builtins
     # Start with RestrictedPython's safe builtins and add type annotation support
     safe_builtins_copy = dict(safe_builtins)
+    safe_builtins_copy.update(utility_builtins)  # Add utility builtins for basic operations
 
     # Remove potentially dangerous builtins
     dangerous_builtins = {
@@ -447,14 +472,9 @@ def register_components_module_from_string(
         "eval",
         "exec",
         "compile",
-        "globals",
-        "locals",
-        "vars",
-        "delattr",
-        "setattr",
         "__import__",
         "reload",
-    }
+    }  # Allow some safe builtins that are needed for type checking and dataclass operations
     for name in dangerous_builtins:
         safe_builtins_copy.pop(name, None)
 
