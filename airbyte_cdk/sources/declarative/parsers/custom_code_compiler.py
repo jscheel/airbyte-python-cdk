@@ -128,7 +128,7 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         **kwargs: Any,
     ) -> ast.AST:
         """Allow specific private names that are required for dataclasses and type hints.
-        
+
         Args:
             node: The AST node being checked
             name: The name being validated
@@ -225,19 +225,53 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         """Allow dataclass definitions with their attributes."""
         # Check if this is a dataclass by looking for the decorator
         is_dataclass = any(
-            isinstance(d, ast.Name) and d.id == "dataclass"
-            or (isinstance(d, ast.Call) and isinstance(d.func, ast.Name) and d.func.id == "dataclass")
+            isinstance(d, ast.Name)
+            and d.id == "dataclass"
+            or (
+                isinstance(d, ast.Call)
+                and isinstance(d.func, ast.Name)
+                and d.func.id == "dataclass"
+            )
             for d in node.decorator_list
         )
 
+        # Visit the decorator list and bases first
+        node.decorator_list = [self.visit(d) for d in node.decorator_list]
+        if node.bases:
+            node.bases = [self.visit(b) for b in node.bases]
+
         if is_dataclass:
-            # For dataclasses, we need to allow attribute statements
-            node.body = [self.visit(n) for n in node.body]
-            node.decorator_list = [self.visit(d) for d in node.decorator_list]
-            if node.bases:
-                node.bases = [self.visit(b) for b in node.bases]
+            # For dataclasses, we need to allow attribute statements and annotations
+            allowed_nodes = []
+            for n in node.body:
+                # Allow class variable annotations (typical in dataclasses)
+                if isinstance(n, ast.AnnAssign):
+                    allowed_nodes.append(self.visit_AnnAssign(n))
+                # Allow function definitions (like __post_init__)
+                elif isinstance(n, ast.FunctionDef):
+                    allowed_nodes.append(self.visit(n))
+                # Allow docstrings
+                elif isinstance(n, ast.Expr) and isinstance(n.value, ast.Str):
+                    allowed_nodes.append(n)
+                # Allow assignments with type annotations
+                elif isinstance(n, ast.Assign):
+                    # Convert simple assignments to annotated assignments if possible
+                    if len(n.targets) == 1 and isinstance(n.targets[0], ast.Name):
+                        ann_assign = ast.AnnAssign(
+                            target=n.targets[0],
+                            annotation=ast.Name(id="Any", ctx=ast.Load()),
+                            value=n.value,
+                            simple=1,
+                        )
+                        allowed_nodes.append(self.visit_AnnAssign(ann_assign))
+                    else:
+                        allowed_nodes.append(self.visit(n))
+                else:
+                    allowed_nodes.append(self.visit(n))
+
+            node.body = allowed_nodes
             return node
-        
+
         result = super().visit_ClassDef(node)
         if not isinstance(result, ast.ClassDef):
             raise TypeError(f"Expected ast.ClassDef but got {type(result)}")
