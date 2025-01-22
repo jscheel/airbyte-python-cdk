@@ -51,6 +51,8 @@ class ConcurrentPerPartitionCursor(Cursor):
 
     - **Global Cursor Fallback**
       New partitions use global state as the initial state to progress the state for deleted or new partitions. The history data added after the initial sync will be missing.
+
+    CurrentPerPartitionCursor expects the state of the ConcurrentCursor to follow the format {cursor_field: cursor_value}.
     """
 
     DEFAULT_MAX_PARTITIONS_NUMBER = 10000

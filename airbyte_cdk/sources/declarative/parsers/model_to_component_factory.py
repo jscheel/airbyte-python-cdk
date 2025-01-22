@@ -937,7 +937,7 @@ class ModelToComponentFactory:
         connector_state_converter = CustomFormatConcurrentStreamStateConverter(
             datetime_format=datetime_format,
             input_datetime_formats=datetime_based_cursor_model.cursor_datetime_formats,
-            is_sequential_state=True,
+            is_sequential_state=True,  # ConcurrentPerPartitionCursor only works with sequential state
             cursor_granularity=cursor_granularity,
         )
 
