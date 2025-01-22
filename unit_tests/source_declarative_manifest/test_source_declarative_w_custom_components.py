@@ -51,7 +51,7 @@ def get_fixture_path(file_name) -> str:
 def test_components_module_from_string(monkeypatch: pytest.MonkeyPatch) -> None:
     # Enable custom code execution for this test
     monkeypatch.setenv(ENV_VAR_ALLOW_CUSTOM_CODE, "true")
-    
+
     # Call the function to get the module
     components_module: types.ModuleType = register_components_module_from_string(
         components_py_text=SAMPLE_COMPONENTS_PY_TEXT,

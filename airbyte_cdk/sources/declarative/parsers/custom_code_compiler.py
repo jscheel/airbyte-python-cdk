@@ -10,6 +10,7 @@ from types import ModuleType
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 from RestrictedPython import compile_restricted, safe_builtins
+from RestrictedPython.compile import RestrictingNodeTransformer
 from RestrictedPython.Guards import (
     full_write_guard,
     guarded_iter_unpack_sequence,
@@ -18,7 +19,6 @@ from RestrictedPython.Guards import (
 from RestrictedPython.Guards import (
     safe_builtins as restricted_builtins,
 )
-from RestrictedPython.compile import RestrictingNodeTransformer
 from RestrictedPython.Utilities import utility_builtins
 
 
@@ -26,20 +26,22 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
     """Custom AST transformer that allows type annotations and specific private attributes while enforcing security."""
 
     ALLOWED_IMPORTS = {
-        'dataclasses', 'typing', 'requests',
-        'airbyte_cdk',
-        'airbyte_cdk.sources',
-        'airbyte_cdk.sources.declarative',
-        'airbyte_cdk.sources.declarative.interpolation',
-        'airbyte_cdk.sources.declarative.requesters',
-        'airbyte_cdk.sources.declarative.requesters.paginators',
-        'airbyte_cdk.sources.declarative.types',
-        'airbyte_cdk.sources.declarative.types.Config',
-        'airbyte_cdk.sources.declarative.types.Record',
-        'InterpolatedString',
-        'PaginationStrategy',
-        'Config',
-        'Record'
+        "dataclasses",
+        "typing",
+        "requests",
+        "airbyte_cdk",
+        "airbyte_cdk.sources",
+        "airbyte_cdk.sources.declarative",
+        "airbyte_cdk.sources.declarative.interpolation",
+        "airbyte_cdk.sources.declarative.requesters",
+        "airbyte_cdk.sources.declarative.requesters.paginators",
+        "airbyte_cdk.sources.declarative.types",
+        "airbyte_cdk.sources.declarative.types.Config",
+        "airbyte_cdk.sources.declarative.types.Record",
+        "InterpolatedString",
+        "PaginationStrategy",
+        "Config",
+        "Record",
     }
 
     def visit_Attribute(self, node: ast.Attribute) -> ast.AST:
@@ -47,32 +49,40 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         visited_node = self.generic_visit(node)
         if not isinstance(visited_node, ast.AST):
             visited_node = node
-        
+
         if isinstance(visited_node, ast.Attribute) and isinstance(visited_node.attr, str):
             # Block access to dangerous attributes
             dangerous_attrs = {"__dict__", "__class__", "__bases__", "__subclasses__"}
             if visited_node.attr in dangerous_attrs:
                 raise NameError(f"name '{visited_node.attr}' is not allowed")
-            
+
             # Allow specific private attributes
             allowed_private = {
-                "__annotations__", "__name__", "__doc__", "__module__", "__qualname__",
-                "__post_init__", "__init__", "__dataclass_fields__",
-                "__mro__", "__subclasshook__", "__new__",
+                "__annotations__",
+                "__name__",
+                "__doc__",
+                "__module__",
+                "__qualname__",
+                "__post_init__",
+                "__init__",
+                "__dataclass_fields__",
+                "__mro__",
+                "__subclasshook__",
+                "__new__",
                 "_page_size",
             }
-            if visited_node.attr.startswith('_') and visited_node.attr not in allowed_private:
+            if visited_node.attr.startswith("_") and visited_node.attr not in allowed_private:
                 if not visited_node.attr.startswith("__"):  # Allow dunder methods
                     raise NameError(f"name '{visited_node.attr}' is not allowed")
-        
+
         if isinstance(visited_node.ctx, ast.Store):
             # For assignments like "obj.attr = value"
-            name_node = ast.Name(id='_write_', ctx=ast.Load())
+            name_node = ast.Name(id="_write_", ctx=ast.Load())
             ast.copy_location(name_node, visited_node)
-            
+
             value_node = self.visit(visited_node.value)
             const_node = ast.Constant(value=visited_node.attr)
-            
+
             call_node = ast.Call(
                 func=name_node,
                 args=[value_node, const_node],
@@ -81,19 +91,19 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
             ast.copy_location(call_node, visited_node)
             ast.fix_missing_locations(call_node)
             return call_node
-            
+
         elif isinstance(visited_node.ctx, ast.Load):
             # For reads like "obj.attr"
-            name_node = ast.Name(id='_getattr_', ctx=ast.Load())
+            name_node = ast.Name(id="_getattr_", ctx=ast.Load())
             ast.copy_location(name_node, visited_node)
-            
+
             const_node = ast.Constant(value=visited_node.attr)
             ast.copy_location(const_node, visited_node)
-            
+
             visited_value = self.visit(visited_node.value)
-            if hasattr(visited_value, 'lineno'):
+            if hasattr(visited_value, "lineno"):
                 ast.copy_location(visited_value, visited_node)
-            
+
             call_node = ast.Call(
                 func=name_node,
                 args=[visited_value, const_node],
@@ -102,21 +112,32 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
             ast.copy_location(call_node, visited_node)
             ast.fix_missing_locations(call_node)
             return call_node
-            
+
         elif isinstance(visited_node.ctx, ast.Del):
             raise SyntaxError("Attribute deletion is not allowed")
         return visited_node
 
     def check_name(self, node: ast.AST, name: str, *args: Any, **kwargs: Any) -> ast.AST:
         """Allow specific private names that are required for dataclasses and type hints."""
-        if name.startswith('_'):
+        if name.startswith("_"):
             # Allow specific private names
             allowed_private = {
                 # Type annotation attributes
-                "__annotations__", "__name__", "__doc__", "__module__", "__qualname__",
+                "__annotations__",
+                "__name__",
+                "__doc__",
+                "__module__",
+                "__qualname__",
                 # Dataclass attributes
-                "__post_init__", "__init__", "__dict__", "__dataclass_fields__",
-                "__class__", "__bases__", "__mro__", "__subclasshook__", "__new__",
+                "__post_init__",
+                "__init__",
+                "__dict__",
+                "__dataclass_fields__",
+                "__class__",
+                "__bases__",
+                "__mro__",
+                "__subclasshook__",
+                "__new__",
                 # Allow specific private attributes used in the codebase
                 "_page_size",
             }
@@ -133,7 +154,7 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
             if not alias.name:
                 raise NameError("__import__ not found")
             if not any(
-                alias.name == allowed or alias.name.startswith(allowed + '.')
+                alias.name == allowed or alias.name.startswith(allowed + ".")
                 for allowed in self.ALLOWED_IMPORTS
             ):
                 raise NameError("__import__ not found")
@@ -142,31 +163,31 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.ImportFrom:
         """Block unsafe imports."""
         module_name = node.module if node.module else ""
-        
+
         # Handle relative imports
         if node.level > 0:
             # We don't support relative imports for security
             raise NameError("__import__ not found")
-            
+
         if not any(
-            module_name == allowed or module_name.startswith(allowed + '.')
+            module_name == allowed or module_name.startswith(allowed + ".")
             for allowed in self.ALLOWED_IMPORTS
         ):
             raise NameError("__import__ not found")
-            
+
         # Also check the imported names
         for alias in node.names:
             if not alias.name:
                 raise NameError("__import__ not found")
             if alias.name == "*":
                 raise NameError("__import__ not found")
-                
+
         return node
 
     def visit_Call(self, node: ast.Call) -> ast.Call:
         """Block unsafe function calls."""
         if isinstance(node.func, ast.Name):
-            unsafe_functions = {'open', 'eval', 'exec', 'compile', '__import__'}
+            unsafe_functions = {"open", "eval", "exec", "compile", "__import__"}
             if node.func.id in unsafe_functions:
                 raise NameError(f"name '{node.func.id}' is not defined")
         result = super().visit_Call(node)
@@ -182,6 +203,8 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         if node.value:
             node.value = self.visit(node.value)
         return node
+
+
 from typing_extensions import Literal
 
 ChecksumType = Literal["md5", "sha256"]
@@ -336,13 +359,20 @@ def register_components_module_from_string(
     # Create restricted globals with safe builtins
     # Start with RestrictedPython's safe builtins and add type annotation support
     safe_builtins_copy = dict(safe_builtins)
-    
+
     # Remove potentially dangerous builtins
     dangerous_builtins = {
-        "open", "eval", "exec", "compile",
-        "globals", "locals", "vars",
-        "delattr", "setattr",
-        "__import__", "reload",
+        "open",
+        "eval",
+        "exec",
+        "compile",
+        "globals",
+        "locals",
+        "vars",
+        "delattr",
+        "setattr",
+        "__import__",
+        "reload",
     }
     for name in dangerous_builtins:
         safe_builtins_copy.pop(name, None)
@@ -392,10 +422,21 @@ def register_components_module_from_string(
         # Allow type annotation and dataclass related attributes
         allowed_private = {
             # Type annotation attributes
-            "__annotations__", "__name__", "__doc__", "__module__", "__qualname__",
+            "__annotations__",
+            "__name__",
+            "__doc__",
+            "__module__",
+            "__qualname__",
             # Dataclass attributes
-            "__post_init__", "__init__", "__dict__", "__dataclass_fields__",
-            "__class__", "__bases__", "__mro__", "__subclasshook__", "__new__",
+            "__post_init__",
+            "__init__",
+            "__dict__",
+            "__dataclass_fields__",
+            "__class__",
+            "__bases__",
+            "__mro__",
+            "__subclasshook__",
+            "__new__",
             # Allow specific private attributes used in the codebase
             "_page_size",
         }
