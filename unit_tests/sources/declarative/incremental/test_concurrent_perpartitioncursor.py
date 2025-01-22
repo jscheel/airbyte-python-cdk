@@ -1,9 +1,9 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
-import copy
 from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, MutableMapping, Optional, Union
+from urllib.parse import unquote
 
 import pytest
 from orjson import orjson
@@ -348,6 +348,15 @@ def run_mocked_test(
         final_state = output.state_messages[-1].state.stream.stream_state
         assert final_state.__dict__ == expected_state
 
+        # Verify that each request was made exactly once
+        for url, _ in mock_requests:
+            request_count = len(
+                [req for req in m.request_history if unquote(req.url) == unquote(url)]
+            )
+            assert (
+                request_count == 1
+            ), f"URL {url} was called {request_count} times, expected exactly once."
+
 
 def _run_read(
     manifest: Mapping[str, Any],
@@ -384,15 +393,15 @@ COMMENT_30_UPDATED_AT = "2024-01-09T00:00:00Z"  # Latest comment in partition 3
 LOOKBACK_WINDOW_DAYS = 1  # Lookback window duration in days
 
 # Votes Date Constants
-VOTE_100_CREATED_AT = "2024-01-15T00:00:00Z"  # Latest vote in partition 1
-VOTE_101_CREATED_AT = "2024-01-14T00:00:00Z"  # Second-latest vote in partition 1
-VOTE_111_CREATED_AT = "2024-01-13T00:00:00Z"  # Latest vote in partition 2
-VOTE_200_CREATED_AT = "2024-01-12T00:00:00Z"  # Latest vote in partition 3
-VOTE_201_CREATED_AT = "2024-01-12T00:00:15Z"  # Second-latest vote in partition 3
-VOTE_300_CREATED_AT = "2024-01-10T00:00:00Z"  # Latest vote in partition 4
+VOTE_100_CREATED_AT = "2024-01-15T00:00:00Z"  # Latest vote in partition 10
+VOTE_101_CREATED_AT = "2024-01-14T00:00:00Z"  # Second-latest vote in partition 10
+VOTE_111_CREATED_AT = "2024-01-13T00:00:00Z"  # Latest vote in partition 11
+VOTE_200_CREATED_AT = "2024-01-12T00:00:00Z"  # Latest vote in partition 20
+VOTE_210_CREATED_AT = "2024-01-12T00:00:15Z"  # Latest vote in partition 21
+VOTE_300_CREATED_AT = "2024-01-10T00:00:00Z"  # Latest vote in partition 30
 
 # Initial State Constants
-PARENT_COMMENT_CURSOR_PARTITION_1 = "2023-01-04T00:00:00Z"  # Parent comment cursor (partition 1)
+PARENT_COMMENT_CURSOR_PARTITION_1 = "2023-01-04T00:00:00Z"  # Parent comment cursor (partition)
 PARENT_POSTS_CURSOR = "2024-01-05T00:00:00Z"  # Parent posts cursor (expected in state)
 
 INITIAL_STATE_PARTITION_10_CURSOR = "2024-01-02T00:00:01Z"
@@ -559,9 +568,9 @@ PARTITION_SYNC_START_TIME = "2024-01-02T00:00:00Z"
                     {
                         "votes": [
                             {
-                                "id": 201,
+                                "id": 210,
                                 "comment_id": 21,
-                                "created_at": VOTE_201_CREATED_AT,
+                                "created_at": VOTE_210_CREATED_AT,
                             }
                         ]
                     },
@@ -581,7 +590,7 @@ PARTITION_SYNC_START_TIME = "2024-01-02T00:00:00Z"
                 ),
                 # Fetch the first page of votes for comment 30 of post 3
                 (
-                    "https://api.example.com/community/posts/3/comments/30/votes?per_page=100",
+                    f"https://api.example.com/community/posts/3/comments/30/votes?per_page=100&start_time={LOOKBACK_DATE}",
                     {
                         "votes": [
                             {
@@ -622,8 +631,8 @@ PARTITION_SYNC_START_TIME = "2024-01-02T00:00:00Z"
                 {
                     "comment_id": 21,
                     "comment_updated_at": COMMENT_21_UPDATED_AT,
-                    "created_at": VOTE_201_CREATED_AT,
-                    "id": 201,
+                    "created_at": VOTE_210_CREATED_AT,
+                    "id": 210,
                 },
                 {
                     "comment_id": 30,
@@ -702,7 +711,7 @@ PARTITION_SYNC_START_TIME = "2024-01-02T00:00:00Z"
                             "id": 21,
                             "parent_slice": {"id": 2, "parent_slice": {}},
                         },
-                        "cursor": {"created_at": VOTE_201_CREATED_AT},
+                        "cursor": {"created_at": VOTE_210_CREATED_AT},
                     },
                     {
                         "partition": {
@@ -727,7 +736,7 @@ def test_incremental_parent_state_no_incremental_dependency(
     - posts: (ids: 1, 2, 3)
     - post comments: (parent post 1 with ids: 9, 10, 11, 12; parent post 2 with ids: 20, 21; parent post 3 with id: 30)
     - post comment votes: (parent comment 10 with ids: 100, 101; parent comment 11 with id: 111;
-      parent comment 20 with id: 200; parent comment 21 with id: 201, parent comment 30 with id: 300)
+      parent comment 20 with id: 200; parent comment 21 with id: 210, parent comment 30 with id: 300)
 
     By setting incremental_dependency to false, parent streams will not use the incoming state and will not update state.
     The post_comment_votes substream is incremental and will emit state messages We verify this by ensuring that mocked
@@ -746,7 +755,12 @@ def test_incremental_parent_state_no_incremental_dependency(
 
 
 def run_incremental_parent_state_test(
-    manifest, mock_requests, expected_records, initial_state, expected_states
+    manifest,
+    mock_requests,
+    expected_records,
+    num_intermediate_states,
+    initial_state,
+    expected_states,
 ):
     """
     Run an incremental parent state test for the specified stream.
@@ -763,11 +777,10 @@ def run_incremental_parent_state_test(
         manifest (dict): The manifest configuration for the stream.
         mock_requests (list): A list of tuples containing URL and response data for mocking API requests.
         expected_records (list): The expected records to compare against the output.
+        num_intermediate_states (int): The number of intermediate states to expect.
         initial_state (list): The initial state to start the read operation.
         expected_states (list): A list of expected final states after the read operation.
     """
-    expected_states = [AirbyteStateBlob(s) for s in expected_states]
-
     initial_state = [
         AirbyteStateMessage(
             type=AirbyteStateType.STREAM,
@@ -796,7 +809,7 @@ def run_incremental_parent_state_test(
         final_states = []  # To store the final state after each read
 
         # Store the final state after the initial read
-        final_states.append(output.state_messages[-1].state.stream.stream_state)
+        final_states.append(output.state_messages[-1].state.stream.stream_state.__dict__)
 
         for message in output.records_and_state_messages:
             if message.type.value == "RECORD":
@@ -807,6 +820,9 @@ def run_incremental_parent_state_test(
                 state = message.state
                 records_before_state = cumulative_records.copy()
                 intermediate_states.append((state, records_before_state))
+
+        # Assert that the number of intermediate states is as expected
+        assert len(intermediate_states) - 1 == num_intermediate_states
 
         # For each intermediate state, perform another read starting from that state
         for state, records_before_state in intermediate_states[:-1]:
@@ -826,13 +842,13 @@ def run_incremental_parent_state_test(
                 {orjson.dumps(record): record for record in expected_records}.values()
             )
             assert (
-                sorted(cumulative_records_state_deduped, key=lambda x: orjson.dumps(x))
-                == sorted(expected_records_set, key=lambda x: orjson.dumps(x))
+                sorted(cumulative_records_state_deduped, key=lambda x: x["id"])
+                == sorted(expected_records_set, key=lambda x: x["id"])
             ), f"Records mismatch with intermediate state {state}. Expected {expected_records}, got {cumulative_records_state_deduped}"
 
             # Store the final state after each intermediate read
             final_state_intermediate = [
-                orjson.loads(orjson.dumps(message.state.stream.stream_state))
+                message.state.stream.stream_state.__dict__
                 for message in output_intermediate.state_messages
             ]
             final_states.append(final_state_intermediate[-1])
@@ -845,7 +861,7 @@ def run_incremental_parent_state_test(
 
 
 @pytest.mark.parametrize(
-    "test_name, manifest, mock_requests, expected_records, initial_state, expected_state",
+    "test_name, manifest, mock_requests, expected_records, num_intermediate_states, initial_state, expected_state",
     [
         (
             "test_incremental_parent_state",
@@ -853,7 +869,7 @@ def run_incremental_parent_state_test(
             [
                 # Fetch the first page of posts
                 (
-                    f"https://api.example.com/community/posts?per_page=100&start_time={PARTITION_SYNC_START_TIME}",
+                    f"https://api.example.com/community/posts?per_page=100&start_time={PARENT_POSTS_CURSOR}",
                     {
                         "posts": [
                             {"id": 1, "updated_at": POST_1_UPDATED_AT},
@@ -861,13 +877,13 @@ def run_incremental_parent_state_test(
                         ],
                         "next_page": (
                             f"https://api.example.com/community/posts"
-                            f"?per_page=100&start_time={PARTITION_SYNC_START_TIME}&page=2"
+                            f"?per_page=100&start_time={PARENT_POSTS_CURSOR}&page=2"
                         ),
                     },
                 ),
                 # Fetch the second page of posts
                 (
-                    f"https://api.example.com/community/posts?per_page=100&start_time={PARTITION_SYNC_START_TIME}&page=2",
+                    f"https://api.example.com/community/posts?per_page=100&start_time={PARENT_POSTS_CURSOR}&page=2",
                     {"posts": [{"id": 3, "updated_at": POST_3_UPDATED_AT}]},
                 ),
                 # Fetch the first page of comments for post 1
@@ -901,7 +917,7 @@ def run_incremental_parent_state_test(
                 ),
                 # Fetch the first page of votes for comment 10 of post 1
                 (
-                    f"https://api.example.com/community/posts/1/comments/10/votes?per_page=100&start_time={PARTITION_SYNC_START_TIME}",
+                    f"https://api.example.com/community/posts/1/comments/10/votes?per_page=100&start_time={INITIAL_STATE_PARTITION_10_CURSOR}",
                     {
                         "votes": [
                             {
@@ -911,23 +927,26 @@ def run_incremental_parent_state_test(
                             }
                         ],
                         "next_page": (
-                            f"https://api.example.com/community/posts/1/comments/10/votes?per_page=100&page=2&start_time={PARTITION_SYNC_START_TIME}"
+                            f"https://api.example.com/community/posts/1/comments/10/votes"
+                            f"?per_page=100&page=2&start_time={INITIAL_STATE_PARTITION_10_CURSOR}"
                         ),
                     },
                 ),
                 # Fetch the second page of votes for comment 10 of post 1
                 (
-                    f"https://api.example.com/community/posts/1/comments/10/votes?per_page=100&page=2&start_time={PARTITION_SYNC_START_TIME}",
+                    f"https://api.example.com/community/posts/1/comments/10/votes"
+                    f"?per_page=100&page=2&start_time={INITIAL_STATE_PARTITION_10_CURSOR}",
                     {"votes": [{"id": 101, "comment_id": 10, "created_at": VOTE_101_CREATED_AT}]},
                 ),
                 # Fetch the first page of votes for comment 11 of post 1
                 (
-                    f"https://api.example.com/community/posts/1/comments/11/votes?per_page=100&start_time={PARTITION_SYNC_START_TIME}",
+                    f"https://api.example.com/community/posts/1/comments/11/votes"
+                    f"?per_page=100&start_time={INITIAL_STATE_PARTITION_11_CURSOR}",
                     {"votes": [{"id": 111, "comment_id": 11, "created_at": VOTE_111_CREATED_AT}]},
                 ),
                 # Fetch the first page of votes for comment 12 of post 1
                 (
-                    f"https://api.example.com/community/posts/1/comments/12/votes?per_page=100&start_time={PARTITION_SYNC_START_TIME}",
+                    f"https://api.example.com/community/posts/1/comments/12/votes?per_page=100&start_time={LOOKBACK_DATE}",
                     {"votes": []},
                 ),
                 # Fetch the first page of comments for post 2
@@ -945,13 +964,13 @@ def run_incremental_parent_state_test(
                 ),
                 # Fetch the first page of votes for comment 20 of post 2
                 (
-                    f"https://api.example.com/community/posts/2/comments/20/votes?per_page=100&start_time={PARTITION_SYNC_START_TIME}",
+                    f"https://api.example.com/community/posts/2/comments/20/votes?per_page=100&start_time={LOOKBACK_DATE}",
                     {"votes": [{"id": 200, "comment_id": 20, "created_at": VOTE_200_CREATED_AT}]},
                 ),
                 # Fetch the first page of votes for comment 21 of post 2
                 (
-                    f"https://api.example.com/community/posts/2/comments/21/votes?per_page=100&start_time={PARTITION_SYNC_START_TIME}",
-                    {"votes": [{"id": 201, "comment_id": 21, "created_at": VOTE_201_CREATED_AT}]},
+                    f"https://api.example.com/community/posts/2/comments/21/votes?per_page=100&start_time={LOOKBACK_DATE}",
+                    {"votes": [{"id": 210, "comment_id": 21, "created_at": VOTE_210_CREATED_AT}]},
                 ),
                 # Fetch the first page of comments for post 3
                 (
@@ -960,7 +979,44 @@ def run_incremental_parent_state_test(
                 ),
                 # Fetch the first page of votes for comment 30 of post 3
                 (
-                    f"https://api.example.com/community/posts/3/comments/30/votes?per_page=100&start_time={PARTITION_SYNC_START_TIME}",
+                    f"https://api.example.com/community/posts/3/comments/30/votes?per_page=100&start_time={LOOKBACK_DATE}",
+                    {"votes": [{"id": 300, "comment_id": 30, "created_at": VOTE_300_CREATED_AT}]},
+                ),
+                # Requests with intermediate states
+                # Fetch votes for comment 10 of post 1
+                (
+                    f"https://api.example.com/community/posts/1/comments/10/votes?per_page=100&start_time={VOTE_100_CREATED_AT}",
+                    {
+                        "votes": [{"id": 100, "comment_id": 10, "created_at": VOTE_100_CREATED_AT}],
+                    },
+                ),
+                # Fetch votes for comment 11 of post 1
+                (
+                    f"https://api.example.com/community/posts/1/comments/11/votes?per_page=100&start_time={VOTE_111_CREATED_AT}",
+                    {
+                        "votes": [{"id": 111, "comment_id": 11, "created_at": VOTE_111_CREATED_AT}],
+                    },
+                ),
+                # Fetch votes for comment 12 of post 1
+                (
+                    f"https://api.example.com/community/posts/1/comments/12/votes?per_page=100&start_time={VOTE_111_CREATED_AT}",
+                    {
+                        "votes": [],
+                    },
+                ),
+                # Fetch votes for comment 20 of post 2
+                (
+                    f"https://api.example.com/community/posts/2/comments/20/votes?per_page=100&start_time={VOTE_200_CREATED_AT}",
+                    {"votes": [{"id": 200, "comment_id": 20, "created_at": VOTE_200_CREATED_AT}]},
+                ),
+                # Fetch votes for comment 21 of post 2
+                (
+                    f"https://api.example.com/community/posts/2/comments/21/votes?per_page=100&start_time={VOTE_210_CREATED_AT}",
+                    {"votes": [{"id": 210, "comment_id": 21, "created_at": VOTE_210_CREATED_AT}]},
+                ),
+                # Fetch votes for comment 30 of post 3
+                (
+                    f"https://api.example.com/community/posts/3/comments/30/votes?per_page=100&start_time={VOTE_300_CREATED_AT}",
                     {"votes": [{"id": 300, "comment_id": 30, "created_at": VOTE_300_CREATED_AT}]},
                 ),
             ],
@@ -993,8 +1049,8 @@ def run_incremental_parent_state_test(
                 {
                     "comment_id": 21,
                     "comment_updated_at": COMMENT_21_UPDATED_AT,
-                    "created_at": VOTE_201_CREATED_AT,
-                    "id": 201,
+                    "created_at": VOTE_210_CREATED_AT,
+                    "id": 210,
                 },
                 {
                     "comment_id": 30,
@@ -1003,8 +1059,40 @@ def run_incremental_parent_state_test(
                     "id": 300,
                 },
             ],
+            # Number of intermediate states - 6 as number of parent partitions
+            6,
             # Initial state
-            {"created_at": PARTITION_SYNC_START_TIME},
+            {
+                "parent_state": {
+                    "post_comments": {
+                        "states": [
+                            {
+                                "partition": {"id": 1, "parent_slice": {}},
+                                "cursor": {"updated_at": PARENT_COMMENT_CURSOR_PARTITION_1},
+                            }
+                        ],
+                        "parent_state": {"posts": {"updated_at": PARENT_POSTS_CURSOR}},
+                    }
+                },
+                "state": {"created_at": INITIAL_GLOBAL_CURSOR},
+                "states": [
+                    {
+                        "partition": {
+                            "id": 10,
+                            "parent_slice": {"id": 1, "parent_slice": {}},
+                        },
+                        "cursor": {"created_at": INITIAL_STATE_PARTITION_10_CURSOR},
+                    },
+                    {
+                        "partition": {
+                            "id": 11,
+                            "parent_slice": {"id": 1, "parent_slice": {}},
+                        },
+                        "cursor": {"created_at": INITIAL_STATE_PARTITION_11_CURSOR},
+                    },
+                ],
+                "lookback_window": 86400,
+            },
             # Expected state
             {
                 "state": {"created_at": VOTE_100_CREATED_AT},
@@ -1044,7 +1132,7 @@ def run_incremental_parent_state_test(
                     },
                     {
                         "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
-                        "cursor": {"created_at": PARTITION_SYNC_START_TIME},
+                        "cursor": {"created_at": LOOKBACK_DATE},
                     },
                     {
                         "partition": {"id": 20, "parent_slice": {"id": 2, "parent_slice": {}}},
@@ -1052,7 +1140,7 @@ def run_incremental_parent_state_test(
                     },
                     {
                         "partition": {"id": 21, "parent_slice": {"id": 2, "parent_slice": {}}},
-                        "cursor": {"created_at": VOTE_201_CREATED_AT},
+                        "cursor": {"created_at": VOTE_210_CREATED_AT},
                     },
                     {
                         "partition": {"id": 30, "parent_slice": {"id": 3, "parent_slice": {}}},
@@ -1064,12 +1152,19 @@ def run_incremental_parent_state_test(
     ],
 )
 def test_incremental_parent_state(
-    test_name, manifest, mock_requests, expected_records, initial_state, expected_state
+    test_name,
+    manifest,
+    mock_requests,
+    expected_records,
+    num_intermediate_states,
+    initial_state,
+    expected_state,
 ):
     run_incremental_parent_state_test(
         manifest,
         mock_requests,
         expected_records,
+        num_intermediate_states,
         initial_state,
         [expected_state],
     )
@@ -1178,7 +1273,7 @@ def test_incremental_parent_state(
                 (
                     f"https://api.example.com/community/posts/2/comments/21/votes"
                     f"?per_page=100&start_time={PARTITION_SYNC_START_TIME}",
-                    {"votes": [{"id": 201, "comment_id": 21, "created_at": VOTE_201_CREATED_AT}]},
+                    {"votes": [{"id": 210, "comment_id": 21, "created_at": VOTE_210_CREATED_AT}]},
                 ),
                 # Fetch the first page of comments for post 3
                 (
@@ -1221,8 +1316,8 @@ def test_incremental_parent_state(
                 {
                     "comment_id": 21,
                     "comment_updated_at": COMMENT_21_UPDATED_AT,
-                    "created_at": VOTE_201_CREATED_AT,
-                    "id": 201,
+                    "created_at": VOTE_210_CREATED_AT,
+                    "id": 210,
                 },
                 {
                     "comment_id": 30,
@@ -1278,7 +1373,7 @@ def test_incremental_parent_state(
                     },
                     {
                         "partition": {"id": 21, "parent_slice": {"id": 2, "parent_slice": {}}},
-                        "cursor": {"created_at": VOTE_201_CREATED_AT},
+                        "cursor": {"created_at": VOTE_210_CREATED_AT},
                     },
                     {
                         "partition": {"id": 30, "parent_slice": {"id": 3, "parent_slice": {}}},
@@ -1329,82 +1424,6 @@ def test_incremental_parent_state_migration(
                     f"https://api.example.com/community/posts?per_page=100"
                     f"&start_time={PARENT_POSTS_CURSOR}&page=2",
                     {"posts": []},
-                ),
-                # Fetch the first page of comments for post 1
-                (
-                    "https://api.example.com/community/posts/1/comments?per_page=100",
-                    {
-                        "comments": [],
-                        "next_page": (
-                            "https://api.example.com/community/posts/1/comments?per_page=100&page=2"
-                        ),
-                    },
-                ),
-                # Fetch the second page of comments for post 1
-                (
-                    "https://api.example.com/community/posts/1/comments?per_page=100&page=2",
-                    {"comments": []},
-                ),
-                # Fetch the first page of votes for comment 10 of post 1
-                (
-                    f"https://api.example.com/community/posts/1/comments/10/votes?per_page=100&start_time={INITIAL_STATE_PARTITION_10_CURSOR}",
-                    {
-                        "votes": [],
-                        "next_page": (
-                            "https://api.example.com/community/posts/1/comments/10/votes"
-                            f"?per_page=100&page=2&start_time={START_DATE}"
-                        ),
-                    },
-                ),
-                # Fetch the second page of votes for comment 10 of post 1
-                (
-                    f"https://api.example.com/community/posts/1/comments/10/votes?per_page=100&page=2&start_time={START_DATE}",
-                    {"votes": []},
-                ),
-                # Fetch the first page of votes for comment 11 of post 1
-                (
-                    f"https://api.example.com/community/posts/1/comments/11/votes?per_page=100&start_time={INITIAL_STATE_PARTITION_11_CURSOR}",
-                    {"votes": []},
-                ),
-                # Fetch the first page of votes for comment 12 of post 1
-                (
-                    f"https://api.example.com/community/posts/1/comments/12/votes?per_page=100&start_time={START_DATE}",
-                    {"votes": []},
-                ),
-                # Fetch the first page of comments for post 2
-                (
-                    "https://api.example.com/community/posts/2/comments?per_page=100",
-                    {
-                        "comments": [],
-                        "next_page": (
-                            "https://api.example.com/community/posts/2/comments?per_page=100&page=2"
-                        ),
-                    },
-                ),
-                # Fetch the second page of comments for post 2
-                (
-                    "https://api.example.com/community/posts/2/comments?per_page=100&page=2",
-                    {"comments": []},
-                ),
-                # Fetch the first page of votes for comment 20 of post 2
-                (
-                    f"https://api.example.com/community/posts/2/comments/20/votes?per_page=100&start_time={START_DATE}",
-                    {"votes": []},
-                ),
-                # Fetch the first page of votes for comment 21 of post 2
-                (
-                    f"https://api.example.com/community/posts/2/comments/21/votes?per_page=100&start_time={START_DATE}",
-                    {"votes": []},
-                ),
-                # Fetch the first page of comments for post 3
-                (
-                    "https://api.example.com/community/posts/3/comments?per_page=100",
-                    {"comments": []},
-                ),
-                # Fetch the first page of votes for comment 30 of post 3
-                (
-                    "https://api.example.com/community/posts/3/comments/30/votes?per_page=100",
-                    {"votes": []},
                 ),
             ],
             # Expected records (empty)
@@ -1605,7 +1624,8 @@ def test_incremental_parent_state_no_slices(
                 ),
                 # Fetch the first page of votes for comment 30 of post 3
                 (
-                    "https://api.example.com/community/posts/3/comments/30/votes?per_page=100",
+                    f"https://api.example.com/community/posts/3/comments/30/votes"
+                    f"?per_page=100&start_time={INITIAL_STATE_PARTITION_11_CURSOR}",
                     {"votes": []},
                 ),
             ],
@@ -1821,7 +1841,7 @@ def test_incremental_parent_state_no_records(
                 (
                     f"https://api.example.com/community/posts/2/comments/21/votes"
                     f"?per_page=100&start_time={LOOKBACK_DATE}",
-                    {"votes": [{"id": 201, "comment_id": 21, "created_at": VOTE_201_CREATED_AT}]},
+                    {"votes": [{"id": 210, "comment_id": 21, "created_at": VOTE_210_CREATED_AT}]},
                 ),
                 # Fetch the first page of comments for post 3
                 (
@@ -1830,7 +1850,8 @@ def test_incremental_parent_state_no_records(
                 ),
                 # Fetch the first page of votes for comment 30 of post 3
                 (
-                    "https://api.example.com/community/posts/3/comments/30/votes?per_page=100",
+                    f"https://api.example.com/community/posts/3/comments/30/votes"
+                    f"?per_page=100&start_time={LOOKBACK_DATE}",
                     {"votes": [{"id": 300, "comment_id": 30, "created_at": VOTE_300_CREATED_AT}]},
                 ),
             ],
@@ -1857,8 +1878,8 @@ def test_incremental_parent_state_no_records(
                 {
                     "comment_id": 21,
                     "comment_updated_at": COMMENT_21_UPDATED_AT,
-                    "created_at": VOTE_201_CREATED_AT,
-                    "id": 201,
+                    "created_at": VOTE_210_CREATED_AT,
+                    "id": 210,
                 },
                 {
                     "comment_id": 30,
@@ -1934,7 +1955,7 @@ def test_incremental_parent_state_no_records(
                     },
                     {
                         "partition": {"id": 21, "parent_slice": {"id": 2, "parent_slice": {}}},
-                        "cursor": {"created_at": VOTE_201_CREATED_AT},
+                        "cursor": {"created_at": VOTE_210_CREATED_AT},
                     },
                     {
                         "partition": {"id": 30, "parent_slice": {"id": 3, "parent_slice": {}}},
@@ -2122,39 +2143,39 @@ LISTPARTITION_MANIFEST: MutableMapping[str, Any] = {
             [
                 # Fetch the first page of comments for post 1
                 (
-                    "https://api.example.com/community/posts/1/comments?per_page=100",
+                    "https://api.example.com/community/posts/1/comments?per_page=100&start_time=2024-01-24T00:00:00Z",
                     {
                         "comments": [
                             {"id": 9, "post_id": 1, "updated_at": "2023-01-01T00:00:00Z"},
                             {"id": 10, "post_id": 1, "updated_at": "2024-01-25T00:00:00Z"},
                             {"id": 11, "post_id": 1, "updated_at": "2024-01-24T00:00:00Z"},
                         ],
-                        "next_page": "https://api.example.com/community/posts/1/comments?per_page=100&page=2",
+                        "next_page": "https://api.example.com/community/posts/1/comments?per_page=100&page=2&start_time=2024-01-24T00:00:00Z",
                     },
                 ),
                 # Fetch the second page of comments for post 1
                 (
-                    "https://api.example.com/community/posts/1/comments?per_page=100&page=2",
+                    "https://api.example.com/community/posts/1/comments?per_page=100&page=2&start_time=2024-01-24T00:00:00Z",
                     {"comments": [{"id": 12, "post_id": 1, "updated_at": "2024-01-23T00:00:00Z"}]},
                 ),
                 # Fetch the first page of comments for post 2
                 (
-                    "https://api.example.com/community/posts/2/comments?per_page=100",
+                    "https://api.example.com/community/posts/2/comments?per_page=100&start_time=2024-01-21T05:00:00Z",
                     {
                         "comments": [
                             {"id": 20, "post_id": 2, "updated_at": "2024-01-22T00:00:00Z"}
                         ],
-                        "next_page": "https://api.example.com/community/posts/2/comments?per_page=100&page=2",
+                        "next_page": "https://api.example.com/community/posts/2/comments?per_page=100&page=2&start_time=2024-01-21T05:00:00Z",
                     },
                 ),
                 # Fetch the second page of comments for post 2
                 (
-                    "https://api.example.com/community/posts/2/comments?per_page=100&page=2",
+                    "https://api.example.com/community/posts/2/comments?per_page=100&page=2&start_time=2024-01-21T05:00:00Z",
                     {"comments": [{"id": 21, "post_id": 2, "updated_at": "2024-01-21T00:00:00Z"}]},
                 ),
                 # Fetch the first page of comments for post 3
                 (
-                    "https://api.example.com/community/posts/3/comments?per_page=100",
+                    "https://api.example.com/community/posts/3/comments?per_page=100&start_time=2024-01-08T00:00:00Z",
                     {"comments": [{"id": 30, "post_id": 3, "updated_at": "2024-01-09T00:00:00Z"}]},
                 ),
             ],
@@ -2219,39 +2240,39 @@ def test_incremental_list_partition_router(
             [
                 # Fetch the first page of comments for post 1
                 (
-                    "https://api.example.com/community/posts/1/comments?per_page=100",
+                    "https://api.example.com/community/posts/1/comments?per_page=100&start_time=2024-01-20T00:00:00Z",
                     {
                         "comments": [
                             {"id": 9, "post_id": 1, "updated_at": "2023-01-01T00:00:00Z"},
                             {"id": 10, "post_id": 1, "updated_at": "2024-01-25T00:00:00Z"},
                             {"id": 11, "post_id": 1, "updated_at": "2024-01-24T00:00:00Z"},
                         ],
-                        "next_page": "https://api.example.com/community/posts/1/comments?per_page=100&page=2",
+                        "next_page": "https://api.example.com/community/posts/1/comments?per_page=100&page=2&start_time=2024-01-20T00:00:00Z",
                     },
                 ),
                 # Error response for the second page of comments for post 1
                 (
-                    "https://api.example.com/community/posts/1/comments?per_page=100&page=2",
+                    "https://api.example.com/community/posts/1/comments?per_page=100&page=2&start_time=2024-01-20T00:00:00Z",
                     None,  # Simulate a network error or an empty response
                 ),
                 # Fetch the first page of comments for post 2
                 (
-                    "https://api.example.com/community/posts/2/comments?per_page=100",
+                    "https://api.example.com/community/posts/2/comments?per_page=100&start_time=2024-01-21T05:00:00Z",
                     {
                         "comments": [
                             {"id": 20, "post_id": 2, "updated_at": "2024-01-22T00:00:00Z"}
                         ],
-                        "next_page": "https://api.example.com/community/posts/2/comments?per_page=100&page=2",
+                        "next_page": "https://api.example.com/community/posts/2/comments?per_page=100&page=2&start_time=2024-01-21T05:00:00Z",
                     },
                 ),
                 # Fetch the second page of comments for post 2
                 (
-                    "https://api.example.com/community/posts/2/comments?per_page=100&page=2",
+                    "https://api.example.com/community/posts/2/comments?per_page=100&page=2&start_time=2024-01-21T05:00:00Z",
                     {"comments": [{"id": 21, "post_id": 2, "updated_at": "2024-01-21T00:00:00Z"}]},
                 ),
                 # Fetch the first page of comments for post 3
                 (
-                    "https://api.example.com/community/posts/3/comments?per_page=100",
+                    "https://api.example.com/community/posts/3/comments?per_page=100&start_time=2024-01-08T00:00:00Z",
                     {"comments": [{"id": 30, "post_id": 3, "updated_at": "2024-01-09T00:00:00Z"}]},
                 ),
             ],
@@ -2271,7 +2292,7 @@ def test_incremental_list_partition_router(
                         "partition": {"id": "1"},
                     },
                     {
-                        "cursor": {"updated_at": "2024-01-22T00:00:00Z"},
+                        "cursor": {"updated_at": "2024-01-21T05:00:00Z"},
                         "partition": {"id": "2"},
                     },
                 ],
