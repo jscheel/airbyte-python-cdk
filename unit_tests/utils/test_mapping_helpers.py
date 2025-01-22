@@ -1,28 +1,19 @@
-#
-# Copyright (c) 2023 Airbyte, Inc., all rights reserved.
-#
-
 import pytest
 
 from airbyte_cdk.utils.mapping_helpers import combine_mappings
 
 
 @pytest.mark.parametrize(
-    "test_name, mappings, expected_result, expected_error",
+    "test_name, mappings, expected_result",
     [
-        ("basic_merge", [{"a": 1}, {"b": 2}, {"c": 3}, {}], {"a": 1, "b": 2, "c": 3}, None),
-        ("handle_none_values", [{"a": 1}, None, {"b": 2}], {"a": 1, "b": 2}, None),
-        ("empty_mappings", [], {}, None),
-        ("single_mapping", [{"a": 1}], {"a": 1}, None),
-        ("overlapping_keys", [{"a": 1, "b": 2}, {"b": 3}], None, "Duplicate keys"),
+        ("empty_mappings", [], {}),
+        ("single_mapping", [{"a": 1}], {"a": 1}),
+        ("handle_none_values", [{"a": 1}, None, {"b": 2}], {"a": 1, "b": 2}),
     ],
 )
-def test_basic_mapping_operations(test_name, mappings, expected_result, expected_error):
-    if expected_error:
-        with pytest.raises(ValueError, match=expected_error):
-            combine_mappings(mappings)
-    else:
-        assert combine_mappings(mappings) == expected_result
+def test_basic_functionality(test_name, mappings, expected_result):
+    """Test basic mapping operations that work the same regardless of request type"""
+    assert combine_mappings(mappings) == expected_result
 
 
 @pytest.mark.parametrize(
@@ -44,11 +35,31 @@ def test_basic_mapping_operations(test_name, mappings, expected_result, expected
     ],
 )
 def test_string_handling(test_name, mappings, expected_result, expected_error):
+    """Test string handling behavior which is independent of request type"""
     if expected_error:
         with pytest.raises(ValueError, match=expected_error):
             combine_mappings(mappings)
     else:
         assert combine_mappings(mappings) == expected_result
+
+
+@pytest.mark.parametrize(
+    "test_name, mappings, expected_error",
+    [
+        ("duplicate_keys_same_value", [{"a": 1}, {"a": 1}], "Duplicate keys found"),
+        ("duplicate_keys_different_value", [{"a": 1}, {"a": 2}], "Duplicate keys found"),
+        (
+            "nested_structure_not_allowed",
+            [{"a": {"b": 1}}, {"a": {"c": 2}}],
+            "Duplicate keys found",
+        ),
+        ("any_nesting_not_allowed", [{"a": {"b": 1}}, {"a": {"d": 2}}], "Duplicate keys found"),
+    ],
+)
+def test_non_body_json_requests(test_name, mappings, expected_error):
+    """Test strict validation for non-body-json requests (headers, params, body_data)"""
+    with pytest.raises(ValueError, match=expected_error):
+        combine_mappings(mappings, allow_same_value_merge=False)
 
 
 @pytest.mark.parametrize(
@@ -72,28 +83,33 @@ def test_string_handling(test_name, mappings, expected_result, expected_error):
                 {"data": {"user": {"id": 1}, "status": "active"}},
                 {"data": {"user": {"name": "test"}, "type": "admin"}},
             ],
-            {"data": {"user": {"id": 1, "name": "test"}, "status": "active", "type": "admin"}},
-            None,
-        ),
-        ("nested_conflict", [{"a": {"b": 1}}, {"a": {"b": 2}}], None, "nested path conflict"),
-        ("type_conflict", [{"a": 1}, {"a": {"b": 2}}], None, "nested path conflict"),
-        (
-            "merge_empty_nested",
-            [{"a": {"b": {}}}, {"a": {"b": {"c": 1}}}],
-            {"a": {"b": {"c": 1}}},
+            {
+                "data": {
+                    "user": {"id": 1, "name": "test"},
+                    "status": "active",
+                    "type": "admin",
+                },
+            },
             None,
         ),
         (
-            "different_value_types",
-            [{"data": {"field": "string"}}, {"data": {"field": {"nested": "value"}}}],
+            "nested_conflict",
+            [{"a": {"b": 1}}, {"a": {"b": 2}}],
             None,
-            "nested path conflict",
+            "Duplicate keys found",
+        ),
+        (
+            "type_conflict",
+            [{"a": 1}, {"a": {"b": 2}}],
+            None,
+            "Duplicate keys found",
         ),
     ],
 )
-def test_nested_structures(test_name, mappings, expected_result, expected_error):
+def test_body_json_requests(test_name, mappings, expected_result, expected_error):
+    """Test nested structure support for body_json requests"""
     if expected_error:
         with pytest.raises(ValueError, match=expected_error):
-            combine_mappings(mappings)
+            combine_mappings(mappings, allow_same_value_merge=True)
     else:
-        assert combine_mappings(mappings) == expected_result
+        assert combine_mappings(mappings, allow_same_value_merge=True) == expected_result
