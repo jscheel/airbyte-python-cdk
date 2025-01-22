@@ -424,8 +424,9 @@ class SimpleRetriever(Retriever):
         :return: The records read from the API source
         """
         slice_ = stream_slice or StreamSlice(
-            partition={}, cursor_slice={}
-        )  # None-check
+            partition={},
+            cursor_slice={},
+        )
 
         most_recent_record_from_slice = None
         record_generator = partial(
