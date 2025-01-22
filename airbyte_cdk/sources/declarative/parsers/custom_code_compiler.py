@@ -1,12 +1,14 @@
-"""Contains functions to compile custom code from text."""
+"""Contains functions to compile custom code from text using RestrictedPython for secure execution."""
 
 import hashlib
 import os
 import sys
 from collections.abc import Mapping
 from types import ModuleType
-from typing import Any, cast
+from typing import Any, cast, Dict
 
+from RestrictedPython import compile_restricted, safe_builtins
+from RestrictedPython.Guards import guarded_getattr, guarded_setattr, guarded_iter_unpack, guarded_unpack_sequence
 from typing_extensions import Literal
 
 ChecksumType = Literal["md5", "sha256"]
@@ -121,7 +123,30 @@ def register_components_module_from_string(
     components_py_text: str,
     checksums: dict[str, Any] | None,
 ) -> ModuleType:
-    """Load and return the components module from a provided string containing the python code."""
+    """Load and return the components module from a provided string containing the python code.
+
+    This function uses RestrictedPython to execute the code in a secure sandbox environment.
+    The execution is restricted to prevent access to dangerous builtins and operations.
+    
+    Security measures:
+    1. Code is validated against checksums before execution
+    2. Code is compiled using RestrictedPython's compile_restricted
+    3. Execution uses safe_builtins to prevent access to dangerous operations
+    4. Attribute access is guarded using RestrictedPython's Guards
+    5. Code runs in an isolated namespace with restricted globals
+
+    Args:
+        components_py_text: The Python code to execute as a string.
+        checksums: Dictionary of checksum types to their expected values.
+            Must contain at least one of 'md5' or 'sha256'.
+
+    Returns:
+        ModuleType: A module object containing the executed code's namespace.
+
+    Raises:
+        AirbyteCodeTamperedError: If the provided code fails checksum validation.
+        ValueError: If no checksums are provided for validation.
+    """
     # First validate the code
     validate_python_code(
         code_text=components_py_text,
@@ -131,10 +156,30 @@ def register_components_module_from_string(
     # Create a new module object
     components_module = ModuleType(name=COMPONENTS_MODULE_NAME)
 
-    # Execute the module text in the module's namespace
-    exec(components_py_text, components_module.__dict__)
+    # Create restricted globals with safe builtins and guards
+    restricted_globals: Dict[str, Any] = {
+        "__builtins__": safe_builtins,
+        "_getattr_": guarded_getattr,
+        "_setattr_": guarded_setattr,
+        "_iter_unpack_sequence_": guarded_iter_unpack,
+        "_unpack_sequence_": guarded_unpack_sequence,
+        "__name__": components_module.__name__,
+    }
 
-    # Register the module in `sys.modules`` so it can be imported as
+    # Compile the code using RestrictedPython
+    byte_code = compile_restricted(
+        components_py_text,
+        filename="<string>",
+        mode="exec",
+    )
+
+    # Execute the compiled code in the restricted environment
+    exec(byte_code, restricted_globals)
+    
+    # Update the module's dictionary with the restricted execution results
+    components_module.__dict__.update(restricted_globals)
+
+    # Register the module in `sys.modules` so it can be imported as
     # `source_declarative_manifest.components` and/or `components`.
     sys.modules[SDM_COMPONENTS_MODULE_NAME] = components_module
     sys.modules[COMPONENTS_MODULE_NAME] = components_module
