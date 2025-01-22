@@ -117,7 +117,13 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
             raise SyntaxError("Attribute deletion is not allowed")
         return visited_node
 
-    def check_name(self, node: ast.AST, name: str, *args: Any, **kwargs: Any) -> ast.AST:
+    def check_name(
+        self,
+        node: ast.AST,
+        name: str,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> ast.AST:
         """Allow specific private names that are required for dataclasses and type hints."""
         if name.startswith("_"):
             # Allow specific private names
@@ -190,7 +196,7 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
             unsafe_functions = {"open", "eval", "exec", "compile", "__import__"}
             if node.func.id in unsafe_functions:
                 raise NameError(f"name '{node.func.id}' is not defined")
-        result = super().visit_Call(node)
+        result: ast.AST = super().visit_Call(node)
         if not isinstance(result, ast.Call):
             raise TypeError(f"Expected ast.Call but got {type(result)}")
         return result
