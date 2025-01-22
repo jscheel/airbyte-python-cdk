@@ -8,6 +8,7 @@ import datetime
 import importlib
 import inspect
 import re
+import sys
 from functools import partial
 from typing import (
     Any,
@@ -54,7 +55,7 @@ from airbyte_cdk.sources.declarative.auth.token_provider import (
     SessionTokenProvider,
     TokenProvider,
 )
-from airbyte_cdk.sources.declarative.checks import CheckStream
+from airbyte_cdk.sources.declarative.checks import CheckDynamicStream, CheckStream
 from airbyte_cdk.sources.declarative.concurrency_level import ConcurrencyLevel
 from airbyte_cdk.sources.declarative.datetime import MinMaxDatetime
 from airbyte_cdk.sources.declarative.declarative_stream import DeclarativeStream
@@ -66,12 +67,15 @@ from airbyte_cdk.sources.declarative.decoders import (
     JsonlDecoder,
     PaginationDecoderDecorator,
     XmlDecoder,
+    ZipfileDecoder,
 )
 from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import (
     CompositeRawDecoder,
     CsvParser,
     GzipParser,
     JsonLineParser,
+    JsonParser,
+    Parser,
 )
 from airbyte_cdk.sources.declarative.extractors import (
     DpathExtractor,
@@ -122,6 +126,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     BearerAuthenticator as BearerAuthenticatorModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CheckDynamicStream as CheckDynamicStreamModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     CheckStream as CheckStreamModel,
@@ -208,6 +215,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     DpathExtractor as DpathExtractorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    DpathFlattenFields as DpathFlattenFieldsModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     DynamicSchemaLoader as DynamicSchemaLoaderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -248,6 +258,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     JsonLineParser as JsonLineParserModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    JsonParser as JsonParserModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     JwtAuthenticator as JwtAuthenticatorModel,
@@ -350,6 +363,13 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     XmlDecoder as XmlDecoderModel,
 )
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    ZipfileDecoder as ZipfileDecoderModel,
+)
+from airbyte_cdk.sources.declarative.parsers.custom_code_compiler import (
+    COMPONENTS_MODULE_NAME,
+    SDM_COMPONENTS_MODULE_NAME,
+)
 from airbyte_cdk.sources.declarative.partition_routers import (
     CartesianProductStreamSlicer,
     ListPartitionRouter,
@@ -424,6 +444,9 @@ from airbyte_cdk.sources.declarative.transformations import (
     RemoveFields,
 )
 from airbyte_cdk.sources.declarative.transformations.add_fields import AddedFieldDefinition
+from airbyte_cdk.sources.declarative.transformations.dpath_flatten_fields import (
+    DpathFlattenFields,
+)
 from airbyte_cdk.sources.declarative.transformations.flatten_fields import (
     FlattenFields,
 )
@@ -491,6 +514,7 @@ class ModelToComponentFactory:
             BasicHttpAuthenticatorModel: self.create_basic_http_authenticator,
             BearerAuthenticatorModel: self.create_bearer_authenticator,
             CheckStreamModel: self.create_check_stream,
+            CheckDynamicStreamModel: self.create_check_dynamic_stream,
             CompositeErrorHandlerModel: self.create_composite_error_handler,
             CompositeRawDecoderModel: self.create_composite_raw_decoder,
             ConcurrencyLevelModel: self.create_concurrency_level,
@@ -525,12 +549,14 @@ class ModelToComponentFactory:
             JsonDecoderModel: self.create_json_decoder,
             JsonlDecoderModel: self.create_jsonl_decoder,
             JsonLineParserModel: self.create_json_line_parser,
+            JsonParserModel: self.create_json_parser,
             GzipJsonDecoderModel: self.create_gzipjson_decoder,
             GzipParserModel: self.create_gzip_parser,
             KeysToLowerModel: self.create_keys_to_lower_transformation,
             KeysToSnakeCaseModel: self.create_keys_to_snake_transformation,
             KeysReplaceModel: self.create_keys_replace_transformation,
             FlattenFieldsModel: self.create_flatten_fields,
+            DpathFlattenFieldsModel: self.create_dpath_flatten_fields,
             IterableDecoderModel: self.create_iterable_decoder,
             XmlDecoderModel: self.create_xml_decoder,
             JsonFileSchemaLoaderModel: self.create_json_file_schema_loader,
@@ -564,6 +590,7 @@ class ModelToComponentFactory:
             ConfigComponentsResolverModel: self.create_config_components_resolver,
             StreamConfigModel: self.create_stream_config,
             ComponentMappingDefinitionModel: self.create_components_mapping_definition,
+            ZipfileDecoderModel: self.create_zipfile_decoder,
         }
 
         # Needed for the case where we need to perform a second parse on the fields of a custom component
@@ -663,6 +690,19 @@ class ModelToComponentFactory:
     ) -> FlattenFields:
         return FlattenFields(
             flatten_lists=model.flatten_lists if model.flatten_lists is not None else True
+        )
+
+    def create_dpath_flatten_fields(
+        self, model: DpathFlattenFieldsModel, config: Config, **kwargs: Any
+    ) -> DpathFlattenFields:
+        model_field_path: List[Union[InterpolatedString, str]] = [x for x in model.field_path]
+        return DpathFlattenFields(
+            config=config,
+            field_path=model_field_path,
+            delete_origin_value=model.delete_origin_value
+            if model.delete_origin_value is not None
+            else False,
+            parameters=model.parameters or {},
         )
 
     @staticmethod
@@ -842,6 +882,12 @@ class ModelToComponentFactory:
     @staticmethod
     def create_check_stream(model: CheckStreamModel, config: Config, **kwargs: Any) -> CheckStream:
         return CheckStream(stream_names=model.stream_names, parameters={})
+
+    @staticmethod
+    def create_check_dynamic_stream(
+        model: CheckDynamicStreamModel, config: Config, **kwargs: Any
+    ) -> CheckDynamicStream:
+        return CheckDynamicStream(stream_count=model.stream_count, parameters={})
 
     def create_composite_error_handler(
         self, model: CompositeErrorHandlerModel, config: Config, **kwargs: Any
@@ -1106,17 +1152,17 @@ class ModelToComponentFactory:
         self, model: CursorPaginationModel, config: Config, decoder: Decoder, **kwargs: Any
     ) -> CursorPaginationStrategy:
         if isinstance(decoder, PaginationDecoderDecorator):
-            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)):
-                raise ValueError(
-                    f"Provided decoder of {type(decoder.decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
-                )
+            inner_decoder = decoder.decoder
+        else:
+            inner_decoder = decoder
+            decoder = PaginationDecoderDecorator(decoder=decoder)
+
+        if self._is_supported_decoder_for_pagination(inner_decoder):
             decoder_to_use = decoder
         else:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
-                raise ValueError(
-                    f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
-                )
-            decoder_to_use = PaginationDecoderDecorator(decoder=decoder)
+            raise ValueError(
+                self._UNSUPPORTED_DECODER_ERROR.format(decoder_type=type(inner_decoder))
+            )
 
         return CursorPaginationStrategy(
             cursor_value=model.cursor_value,
@@ -1135,7 +1181,6 @@ class ModelToComponentFactory:
         :param config: The custom defined connector config
         :return: The declarative component built from the Pydantic model to be used at runtime
         """
-
         custom_component_class = self._get_class_from_fully_qualified_class_name(model.class_name)
         component_fields = get_type_hints(custom_component_class)
         model_args = model.dict()
@@ -1189,14 +1234,38 @@ class ModelToComponentFactory:
         return custom_component_class(**kwargs)
 
     @staticmethod
-    def _get_class_from_fully_qualified_class_name(full_qualified_class_name: str) -> Any:
+    def _get_class_from_fully_qualified_class_name(
+        full_qualified_class_name: str,
+    ) -> Any:
+        """Get a class from its fully qualified name.
+
+        If a custom components module is needed, we assume it is already registered - probably
+        as `source_declarative_manifest.components` or `components`.
+
+        Args:
+            full_qualified_class_name (str): The fully qualified name of the class (e.g., "module.ClassName").
+
+        Returns:
+            Any: The class object.
+
+        Raises:
+            ValueError: If the class cannot be loaded.
+        """
         split = full_qualified_class_name.split(".")
-        module = ".".join(split[:-1])
+        module_name_full = ".".join(split[:-1])
         class_name = split[-1]
+
         try:
-            return getattr(importlib.import_module(module), class_name)
-        except AttributeError:
-            raise ValueError(f"Could not load class {full_qualified_class_name}.")
+            module_ref = importlib.import_module(module_name_full)
+        except ModuleNotFoundError as e:
+            raise ValueError(f"Could not load module `{module_name_full}`.") from e
+
+        try:
+            return getattr(module_ref, class_name)
+        except AttributeError as e:
+            raise ValueError(
+                f"Could not load class `{class_name}` from module `{module_name_full}`.",
+            ) from e
 
     @staticmethod
     def _derive_component_type_from_type_hints(field_type: Any) -> Optional[str]:
@@ -1586,11 +1655,10 @@ class ModelToComponentFactory:
         cursor_used_for_stop_condition: Optional[DeclarativeCursor] = None,
     ) -> Union[DefaultPaginator, PaginatorTestReadDecorator]:
         if decoder:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
-                raise ValueError(
-                    f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
-                )
-            decoder_to_use = PaginationDecoderDecorator(decoder=decoder)
+            if self._is_supported_decoder_for_pagination(decoder):
+                decoder_to_use = PaginationDecoderDecorator(decoder=decoder)
+            else:
+                raise ValueError(self._UNSUPPORTED_DECODER_ERROR.format(decoder_type=type(decoder)))
         else:
             decoder_to_use = PaginationDecoderDecorator(decoder=JsonDecoder(parameters={}))
         page_size_option = (
@@ -1752,7 +1820,11 @@ class ModelToComponentFactory:
 
     @staticmethod
     def create_types_map(model: TypesMapModel, **kwargs: Any) -> TypesMap:
-        return TypesMap(target_type=model.target_type, current_type=model.current_type)
+        return TypesMap(
+            target_type=model.target_type,
+            current_type=model.current_type,
+            condition=model.condition if model.condition is not None else "True",
+        )
 
     def create_schema_type_identifier(
         self, model: SchemaTypeIdentifierModel, config: Config, **kwargs: Any
@@ -1820,6 +1892,11 @@ class ModelToComponentFactory:
         return JsonDecoder(parameters={})
 
     @staticmethod
+    def create_json_parser(model: JsonParserModel, config: Config, **kwargs: Any) -> JsonParser:
+        encoding = model.encoding if model.encoding else "utf-8"
+        return JsonParser(encoding=encoding)
+
+    @staticmethod
     def create_jsonl_decoder(
         model: JsonlDecoderModel, config: Config, **kwargs: Any
     ) -> JsonlDecoder:
@@ -1846,6 +1923,12 @@ class ModelToComponentFactory:
         model: GzipJsonDecoderModel, config: Config, **kwargs: Any
     ) -> GzipJsonDecoder:
         return GzipJsonDecoder(parameters={}, encoding=model.encoding)
+
+    def create_zipfile_decoder(
+        self, model: ZipfileDecoderModel, config: Config, **kwargs: Any
+    ) -> ZipfileDecoder:
+        parser = self._create_component_from_model(model=model.parser, config=config)
+        return ZipfileDecoder(parser=parser)
 
     def create_gzip_parser(
         self, model: GzipParserModel, config: Config, **kwargs: Any
@@ -1956,8 +2039,14 @@ class ModelToComponentFactory:
                 expires_in_name=InterpolatedString.create(
                     model.expires_in_name or "expires_in", parameters=model.parameters or {}
                 ).eval(config),
+                client_id_name=InterpolatedString.create(
+                    model.client_id_name or "client_id", parameters=model.parameters or {}
+                ).eval(config),
                 client_id=InterpolatedString.create(
                     model.client_id, parameters=model.parameters or {}
+                ).eval(config),
+                client_secret_name=InterpolatedString.create(
+                    model.client_secret_name or "client_secret", parameters=model.parameters or {}
                 ).eval(config),
                 client_secret=InterpolatedString.create(
                     model.client_secret, parameters=model.parameters or {}
@@ -1965,11 +2054,17 @@ class ModelToComponentFactory:
                 access_token_config_path=model.refresh_token_updater.access_token_config_path,
                 refresh_token_config_path=model.refresh_token_updater.refresh_token_config_path,
                 token_expiry_date_config_path=model.refresh_token_updater.token_expiry_date_config_path,
+                grant_type_name=InterpolatedString.create(
+                    model.grant_type_name or "grant_type", parameters=model.parameters or {}
+                ).eval(config),
                 grant_type=InterpolatedString.create(
                     model.grant_type or "refresh_token", parameters=model.parameters or {}
                 ).eval(config),
                 refresh_request_body=InterpolatedMapping(
                     model.refresh_request_body or {}, parameters=model.parameters or {}
+                ).eval(config),
+                refresh_request_headers=InterpolatedMapping(
+                    model.refresh_request_headers or {}, parameters=model.parameters or {}
                 ).eval(config),
                 scopes=model.scopes,
                 token_expiry_date_format=model.token_expiry_date_format,
@@ -1982,11 +2077,16 @@ class ModelToComponentFactory:
         return DeclarativeOauth2Authenticator(  # type: ignore
             access_token_name=model.access_token_name or "access_token",
             access_token_value=model.access_token_value,
+            client_id_name=model.client_id_name or "client_id",
             client_id=model.client_id,
+            client_secret_name=model.client_secret_name or "client_secret",
             client_secret=model.client_secret,
             expires_in_name=model.expires_in_name or "expires_in",
+            grant_type_name=model.grant_type_name or "grant_type",
             grant_type=model.grant_type or "refresh_token",
             refresh_request_body=model.refresh_request_body,
+            refresh_request_headers=model.refresh_request_headers,
+            refresh_token_name=model.refresh_token_name or "refresh_token",
             refresh_token=model.refresh_token,
             scopes=model.scopes,
             token_expiry_date=model.token_expiry_date,
@@ -1998,22 +2098,22 @@ class ModelToComponentFactory:
             message_repository=self._message_repository,
         )
 
-    @staticmethod
     def create_offset_increment(
-        model: OffsetIncrementModel, config: Config, decoder: Decoder, **kwargs: Any
+        self, model: OffsetIncrementModel, config: Config, decoder: Decoder, **kwargs: Any
     ) -> OffsetIncrement:
         if isinstance(decoder, PaginationDecoderDecorator):
-            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)):
-                raise ValueError(
-                    f"Provided decoder of {type(decoder.decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
-                )
+            inner_decoder = decoder.decoder
+        else:
+            inner_decoder = decoder
+            decoder = PaginationDecoderDecorator(decoder=decoder)
+
+        if self._is_supported_decoder_for_pagination(inner_decoder):
             decoder_to_use = decoder
         else:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
-                raise ValueError(
-                    f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
-                )
-            decoder_to_use = PaginationDecoderDecorator(decoder=decoder)
+            raise ValueError(
+                self._UNSUPPORTED_DECODER_ERROR.format(decoder_type=type(inner_decoder))
+            )
+
         return OffsetIncrement(
             page_size=model.page_size,
             config=config,
@@ -2358,7 +2458,7 @@ class ModelToComponentFactory:
                 extractor=download_extractor,
                 name=name,
                 record_filter=None,
-                transformations=[],
+                transformations=transformations,
                 schema_normalization=TypeTransformer(TransformConfig.NoTransform),
                 config=config,
                 parameters={},
@@ -2395,6 +2495,16 @@ class ModelToComponentFactory:
             if model.delete_requester
             else None
         )
+        url_requester = (
+            self._create_component_from_model(
+                model=model.url_requester,
+                decoder=decoder,
+                config=config,
+                name=f"job extract_url - {name}",
+            )
+            if model.url_requester
+            else None
+        )
         status_extractor = self._create_component_from_model(
             model=model.status_extractor, decoder=decoder, config=config, name=name
         )
@@ -2405,6 +2515,7 @@ class ModelToComponentFactory:
             creation_requester=creation_requester,
             polling_requester=polling_requester,
             download_retriever=download_retriever,
+            url_requester=url_requester,
             abort_requester=abort_requester,
             delete_requester=delete_requester,
             status_extractor=status_extractor,
@@ -2602,3 +2713,25 @@ class ModelToComponentFactory:
             components_mapping=components_mapping,
             parameters=model.parameters or {},
         )
+
+    _UNSUPPORTED_DECODER_ERROR = (
+        "Specified decoder of {decoder_type} is not supported for pagination."
+        "Please set as `JsonDecoder`, `XmlDecoder`, or a `CompositeRawDecoder` with an inner_parser of `JsonParser` or `GzipParser` instead."
+        "If using `GzipParser`, please ensure that the lowest level inner_parser is a `JsonParser`."
+    )
+
+    def _is_supported_decoder_for_pagination(self, decoder: Decoder) -> bool:
+        if isinstance(decoder, (JsonDecoder, XmlDecoder)):
+            return True
+        elif isinstance(decoder, CompositeRawDecoder):
+            return self._is_supported_parser_for_pagination(decoder.parser)
+        else:
+            return False
+
+    def _is_supported_parser_for_pagination(self, parser: Parser) -> bool:
+        if isinstance(parser, JsonParser):
+            return True
+        elif isinstance(parser, GzipParser):
+            return isinstance(parser.inner_parser, JsonParser)
+        else:
+            return False
