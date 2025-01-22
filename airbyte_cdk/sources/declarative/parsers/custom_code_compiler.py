@@ -115,16 +115,27 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
 
         elif isinstance(visited_node.ctx, ast.Del):
             raise SyntaxError("Attribute deletion is not allowed")
+        if not isinstance(visited_node, ast.AST):
+            raise TypeError(f"Expected ast.AST but got {type(visited_node)}")
         return visited_node
 
     def check_name(
         self,
         node: ast.AST,
         name: str,
-        args: tuple[Any, ...],
-        kwargs: dict[str, Any],
+        allow_magic_methods: bool = True,
+        *args: Any,
+        **kwargs: Any,
     ) -> ast.AST:
-        """Allow specific private names that are required for dataclasses and type hints."""
+        """Allow specific private names that are required for dataclasses and type hints.
+        
+        Args:
+            node: The AST node being checked
+            name: The name being validated
+            allow_magic_methods: Whether to allow magic methods (defaults to True)
+            *args: Additional positional arguments
+            **kwargs: Additional keyword arguments
+        """
         if name.startswith("_"):
             # Allow specific private names
             allowed_private = {
@@ -202,13 +213,35 @@ class AirbyteRestrictingNodeTransformer(RestrictingNodeTransformer):
         return result
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AnnAssign:
-        """Allow type annotations in variable assignments."""
+        """Allow type annotations in variable assignments and dataclass field definitions."""
         # Visit the target and annotation nodes
         node.target = self.visit(node.target)
         node.annotation = self.visit(node.annotation)
         if node.value:
             node.value = self.visit(node.value)
         return node
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
+        """Allow dataclass definitions with their attributes."""
+        # Check if this is a dataclass by looking for the decorator
+        is_dataclass = any(
+            isinstance(d, ast.Name) and d.id == "dataclass"
+            or (isinstance(d, ast.Call) and isinstance(d.func, ast.Name) and d.func.id == "dataclass")
+            for d in node.decorator_list
+        )
+
+        if is_dataclass:
+            # For dataclasses, we need to allow attribute statements
+            node.body = [self.visit(n) for n in node.body]
+            node.decorator_list = [self.visit(d) for d in node.decorator_list]
+            if node.bases:
+                node.bases = [self.visit(b) for b in node.bases]
+            return node
+        
+        result = super().visit_ClassDef(node)
+        if not isinstance(result, ast.ClassDef):
+            raise TypeError(f"Expected ast.ClassDef but got {type(result)}")
+        return result
 
 
 from typing_extensions import Literal
