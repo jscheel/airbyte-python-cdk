@@ -156,7 +156,7 @@ class AvroParser(FileTypeParser):
                 # For example: ^-?\d{1,5}(?:\.\d{1,3})?$ would accept 12345.123 and 123456.12345 would  be rejected
                 return {
                     "type": "string",
-                    "pattern": f"^-?\\d{{{1,max_whole_number_range}}}(?:\\.\\d{1,decimal_range})?$",  # noqa: E231
+                    "pattern": f"^-?\\d{{{1, max_whole_number_range}}}(?:\\.\\d{1, decimal_range})?$",  # noqa: E231
                 }
             if "logicalType" in avro_field:
                 if avro_field["logicalType"] not in AVRO_LOGICAL_TYPE_TO_JSON:
@@ -209,7 +209,9 @@ class AvroParser(FileTypeParser):
 
     @staticmethod
     def _to_output_value(  # noqa: PLR0911
-        avro_format: AvroFormat, record_type: Mapping[str, Any], record_value: Any  # noqa: ANN401
+        avro_format: AvroFormat,
+        record_type: Mapping[str, Any],
+        record_value: Any,  # noqa: ANN401
     ) -> Any:  # noqa: ANN401
         if isinstance(record_value, bytes):
             return record_value.decode()

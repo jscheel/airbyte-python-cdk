@@ -23,9 +23,7 @@ class InterpolatedRequestInputProvider:
     _interpolator: InterpolatedString | InterpolatedMapping | None = field(
         init=False, repr=False, default=None
     )
-    _request_inputs: str | Mapping[str, str] | None = field(
-        init=False, repr=False, default=None
-    )
+    _request_inputs: str | Mapping[str, str] | None = field(init=False, repr=False, default=None)
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
         self._request_inputs = self.request_inputs or {}

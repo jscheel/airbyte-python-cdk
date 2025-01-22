@@ -114,15 +114,16 @@ class MessageGrouper:
         ):
             if isinstance(message_group, AirbyteLogMessage):
                 log_messages.append(
-                    LogMessage(
-                        message=message_group.message, level=message_group.level.value
-                    )
+                    LogMessage(message=message_group.message, level=message_group.level.value)
                 )
             elif isinstance(message_group, AirbyteTraceMessage):
                 if message_group.type == TraceType.ERROR:
                     log_messages.append(
                         LogMessage(
-                            message=message_group.error.message, level="ERROR", internal_message=message_group.error.internal_message, stacktrace=message_group.error.stack_trace
+                            message=message_group.error.message,
+                            level="ERROR",
+                            internal_message=message_group.error.internal_message,
+                            stacktrace=message_group.error.stack_trace,
                         )
                     )
             elif isinstance(message_group, AirbyteControlMessage):
@@ -166,7 +167,11 @@ class MessageGrouper:
         datetime_format_inferrer: DatetimeFormatInferrer,
         limit: int,
     ) -> Iterable[
-        StreamReadPages | AirbyteControlMessage | AirbyteLogMessage | AirbyteTraceMessage | AuxiliaryRequest
+        StreamReadPages
+        | AirbyteControlMessage
+        | AirbyteLogMessage
+        | AirbyteTraceMessage
+        | AuxiliaryRequest
     ]:
         """
         Message groups are partitioned according to when request log messages are received. Subsequent response log messages

@@ -110,7 +110,9 @@ class DeclarativeStream(Stream):
         self.retriever.state = state
 
     def get_updated_state(
-        self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]  # noqa: ARG002
+        self,
+        current_stream_state: MutableMapping[str, Any],
+        latest_record: Mapping[str, Any],  # noqa: ARG002
     ) -> MutableMapping[str, Any]:
         return self.state
 

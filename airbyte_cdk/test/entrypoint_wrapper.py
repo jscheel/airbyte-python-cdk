@@ -150,7 +150,9 @@ class EntrypointOutput:
 
 
 def _run_command(
-    source: Source, args: list[str], expecting_exception: bool = False  # noqa: FBT001, FBT002
+    source: Source,
+    args: list[str],
+    expecting_exception: bool = False,  # noqa: FBT001, FBT002
 ) -> EntrypointOutput:
     log_capture_buffer = StringIO()
     stream_handler = logging.StreamHandler(log_capture_buffer)
@@ -228,15 +230,13 @@ def read(
             catalog_file,
         ]
         if state is not None:
-            args.extend(
-                [
-                    "--state",
-                    make_file(
-                        tmp_directory_path / "state.json",
-                        f"[{','.join([orjson.dumps(AirbyteStateMessageSerializer.dump(stream_state)).decode() for stream_state in state])}]",
-                    ),
-                ]
-            )
+            args.extend([
+                "--state",
+                make_file(
+                    tmp_directory_path / "state.json",
+                    f"[{','.join([orjson.dumps(AirbyteStateMessageSerializer.dump(stream_state)).decode() for stream_state in state])}]",
+                ),
+            ])
 
         return _run_command(source, args, expecting_exception)
 

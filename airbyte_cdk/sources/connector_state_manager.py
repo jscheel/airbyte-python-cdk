@@ -51,9 +51,7 @@ class ConnectorStateManager:
             )
         self.per_stream_states = per_stream_states
 
-    def get_stream_state(
-        self, stream_name: str, namespace: str | None
-    ) -> MutableMapping[str, Any]:
+    def get_stream_state(self, stream_name: str, namespace: str | None) -> MutableMapping[str, Any]:
         """
         Retrieves the state of a given stream based on its descriptor (name + namespace).
         :param stream_name: Name of the stream being fetched
@@ -124,7 +122,8 @@ class ConnectorStateManager:
             global_state = cast(AirbyteGlobalState, state[0].global_)  # noqa: TC006
             # global_state has shared_state, also not None:
             shared_state: AirbyteStateBlob = cast(
-                AirbyteStateBlob, copy.deepcopy(global_state.shared_state, {})  # noqa: TC006
+                AirbyteStateBlob,
+                copy.deepcopy(global_state.shared_state, {}),  # noqa: TC006
             )
             streams = {
                 HashableStreamDescriptor(

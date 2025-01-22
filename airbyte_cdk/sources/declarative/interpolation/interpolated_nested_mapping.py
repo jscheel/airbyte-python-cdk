@@ -37,7 +37,10 @@ class InterpolatedNestedMapping:
         return self._eval(self.mapping, config, **additional_parameters)
 
     def _eval(
-        self, value: NestedMapping | NestedMappingEntry, config: Config, **kwargs: Any  # noqa: ANN401
+        self,
+        value: NestedMapping | NestedMappingEntry,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401
     ) -> Any:  # noqa: ANN401
         # Recursively interpolate dictionaries and lists
         if isinstance(value, str):

@@ -59,9 +59,9 @@ class Writer:
             self.indexer.delete(ids, namespace, stream)
 
         for (namespace, stream), chunks in self.chunks.items():
-            embeddings = self.embedder.embed_documents(
-                [self._convert_to_document(chunk) for chunk in chunks]
-            )
+            embeddings = self.embedder.embed_documents([
+                self._convert_to_document(chunk) for chunk in chunks
+            ])
             for i, document in enumerate(chunks):
                 document.embedding = embeddings[i]
                 if self.omit_raw_text:

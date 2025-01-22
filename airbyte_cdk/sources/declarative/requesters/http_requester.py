@@ -200,17 +200,15 @@ class HttpRequester(Requester):
         Raise a ValueError if there's a key collision
         Returned merged mapping otherwise
         """
-        return combine_mappings(
-            [
-                requester_method(
-                    stream_state=stream_state,
-                    stream_slice=stream_slice,
-                    next_page_token=next_page_token,
-                ),
-                auth_options_method(),
-                extra_options,
-            ]
-        )
+        return combine_mappings([
+            requester_method(
+                stream_state=stream_state,
+                stream_slice=stream_slice,
+                next_page_token=next_page_token,
+            ),
+            auth_options_method(),
+            extra_options,
+        ])
 
     def _request_headers(
         self,

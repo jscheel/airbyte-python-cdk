@@ -78,9 +78,9 @@ def handle_connector_builder_request(
     if command == "resolve_manifest":
         return resolve_manifest(source)
     if command == "test_read":
-        assert (
-            catalog is not None
-        ), "`test_read` requires a valid `ConfiguredAirbyteCatalog`, got None."
+        assert catalog is not None, (
+            "`test_read` requires a valid `ConfiguredAirbyteCatalog`, got None."
+        )
         return read_stream(source, config, catalog, state, limits)
     raise ValueError(f"Unrecognized command {command}.")
 

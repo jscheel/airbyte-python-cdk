@@ -88,19 +88,13 @@ class HttpMocker(contextlib.ContextDecorator):
     def get(self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]) -> None:
         self._mock_request_method(SupportedHttpMethods.GET, request, responses)
 
-    def patch(
-        self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]
-    ) -> None:
+    def patch(self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]) -> None:
         self._mock_request_method(SupportedHttpMethods.PATCH, request, responses)
 
-    def post(
-        self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]
-    ) -> None:
+    def post(self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]) -> None:
         self._mock_request_method(SupportedHttpMethods.POST, request, responses)
 
-    def delete(
-        self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]
-    ) -> None:
+    def delete(self, request: HttpRequest, responses: HttpResponse | list[HttpResponse]) -> None:
         self._mock_request_method(SupportedHttpMethods.DELETE, request, responses)
 
     @staticmethod

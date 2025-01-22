@@ -30,6 +30,4 @@ def create_chunks(iterable: Iterable[Any], batch_size: int) -> Iterator[tuple[An
 def create_stream_identifier(stream: AirbyteStream | AirbyteRecordMessage) -> str:
     if isinstance(stream, AirbyteStream):
         return str(stream.name if stream.namespace is None else f"{stream.namespace}_{stream.name}")
-    return str(
-        stream.stream if stream.namespace is None else f"{stream.namespace}_{stream.stream}"
-    )
+    return str(stream.stream if stream.namespace is None else f"{stream.namespace}_{stream.stream}")

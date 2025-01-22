@@ -254,17 +254,15 @@ class ConcurrentCursor(Cursor):
                 raise RuntimeError(
                     f"The state for stream {self._stream_name} should have at least one slice to delineate the sync start time, but no slices are present. This is unexpected. Please contact Support."
                 )
-            self.state["slices"].append(
-                {
-                    self._connector_state_converter.START_KEY: self._extract_from_slice(
-                        partition, self._slice_boundary_fields[self._START_BOUNDARY]
-                    ),
-                    self._connector_state_converter.END_KEY: self._extract_from_slice(
-                        partition, self._slice_boundary_fields[self._END_BOUNDARY]
-                    ),
-                    self._connector_state_converter.MOST_RECENT_RECORD_KEY: most_recent_cursor_value,
-                }
-            )
+            self.state["slices"].append({
+                self._connector_state_converter.START_KEY: self._extract_from_slice(
+                    partition, self._slice_boundary_fields[self._START_BOUNDARY]
+                ),
+                self._connector_state_converter.END_KEY: self._extract_from_slice(
+                    partition, self._slice_boundary_fields[self._END_BOUNDARY]
+                ),
+                self._connector_state_converter.MOST_RECENT_RECORD_KEY: most_recent_cursor_value,
+            })
         elif most_recent_cursor_value:
             if self._has_closed_at_least_one_slice:
                 # If we track state value using records cursor field, we can only do that if there is one partition. This is because we save
@@ -282,13 +280,11 @@ class ConcurrentCursor(Cursor):
                     "expected. Please contact the Airbyte team."
                 )
 
-            self.state["slices"].append(
-                {
-                    self._connector_state_converter.START_KEY: self.start,
-                    self._connector_state_converter.END_KEY: most_recent_cursor_value,
-                    self._connector_state_converter.MOST_RECENT_RECORD_KEY: most_recent_cursor_value,
-                }
-            )
+            self.state["slices"].append({
+                self._connector_state_converter.START_KEY: self.start,
+                self._connector_state_converter.END_KEY: most_recent_cursor_value,
+                self._connector_state_converter.MOST_RECENT_RECORD_KEY: most_recent_cursor_value,
+            })
 
     def _emit_state_message(self) -> None:
         self._connector_state_manager.update_state_for_stream(
@@ -392,7 +388,10 @@ class ConcurrentCursor(Cursor):
         return lower_boundary
 
     def _split_per_slice_range(
-        self, lower: CursorValueType, upper: CursorValueType, upper_is_end: bool  # noqa: FBT001
+        self,
+        lower: CursorValueType,
+        upper: CursorValueType,
+        upper_is_end: bool,  # noqa: FBT001
     ) -> Iterable[StreamSlice]:
         if lower >= upper:
             return

@@ -62,9 +62,7 @@ class HttpStatusErrorHandler(ErrorHandler):
 
             if mapped_error is not None:
                 return mapped_error
-            self._logger.error(
-                f"Unexpected exception in error handler: {response_or_exception}"
-            )
+            self._logger.error(f"Unexpected exception in error handler: {response_or_exception}")
             return ErrorResolution(
                 response_action=ResponseAction.RETRY,
                 failure_type=FailureType.system_error,

@@ -109,7 +109,9 @@ class SecretString(str):
 
     @classmethod
     def __get_pydantic_json_schema__(  # Pydantic dunder method  # noqa: PLW3201
-        cls, _core_schema: core_schema.CoreSchema, handler: GetJsonSchemaHandler  # noqa: RUF052
+        cls,
+        _core_schema: core_schema.CoreSchema,
+        handler: GetJsonSchemaHandler,  # noqa: RUF052
     ) -> JsonSchemaValue:
         """Return a modified JSON schema for the secret string.
 

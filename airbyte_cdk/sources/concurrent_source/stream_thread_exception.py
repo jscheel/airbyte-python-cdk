@@ -1,7 +1,6 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
 
-
 class StreamThreadException(Exception):  # noqa: E303, PLW1641
     def __init__(self, exception: Exception, stream_name: str):  # noqa: ANN204
         self._exception = exception

@@ -161,7 +161,9 @@ class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
     _zero_value = "0001-01-01T00:00:00.000Z"
 
     def __init__(  # noqa: ANN204
-        self, is_sequential_state: bool = True, cursor_granularity: timedelta | None = None  # noqa: FBT001, FBT002
+        self,
+        is_sequential_state: bool = True,
+        cursor_granularity: timedelta | None = None,  # noqa: FBT001, FBT002
     ):
         super().__init__(is_sequential_state=is_sequential_state)
         self._cursor_granularity = cursor_granularity or timedelta(milliseconds=1)

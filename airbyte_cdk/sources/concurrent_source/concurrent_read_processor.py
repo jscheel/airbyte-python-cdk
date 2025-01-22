@@ -214,12 +214,10 @@ class ConcurrentReadProcessor:
         2. There are no more streams to read from
         3. All partitions for all streams are closed
         """
-        is_done = all(
-            [  # noqa: C419
-                self._is_stream_done(stream_name)
-                for stream_name in self._stream_name_to_instance.keys()  # noqa: SIM118
-            ]
-        )
+        is_done = all([  # noqa: C419
+            self._is_stream_done(stream_name)
+            for stream_name in self._stream_name_to_instance.keys()  # noqa: SIM118
+        ])
         if is_done and self._exceptions_per_stream_name:
             error_message = generate_failed_streams_error_message(self._exceptions_per_stream_name)
             self._logger.info(error_message)

@@ -17,7 +17,10 @@ if typing.TYPE_CHECKING:
 
 class HttpAvailabilityStrategy(AvailabilityStrategy):
     def check_availability(
-        self, stream: Stream, logger: logging.Logger, source: Optional["Source"] = None  # noqa: ARG002
+        self,
+        stream: Stream,
+        logger: logging.Logger,
+        source: Optional["Source"] = None,  # noqa: ARG002
     ) -> tuple[bool, str | None]:
         """
         Check stream availability by attempting to read the first record of the

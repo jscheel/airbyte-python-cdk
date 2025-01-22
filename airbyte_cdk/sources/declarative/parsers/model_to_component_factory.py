@@ -629,7 +629,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_added_field_definition(
-        model: AddedFieldDefinitionModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: AddedFieldDefinitionModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> AddedFieldDefinition:
         interpolated_value = InterpolatedString.create(
             model.value, parameters=model.parameters or {}
@@ -655,31 +657,46 @@ class ModelToComponentFactory:  # noqa: PLR0904
         return AddFields(fields=added_field_definitions, parameters=model.parameters or {})
 
     def create_keys_to_lower_transformation(
-        self, model: KeysToLowerModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: KeysToLowerModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> KeysToLowerTransformation:
         return KeysToLowerTransformation()
 
     def create_keys_to_snake_transformation(
-        self, model: KeysToSnakeCaseModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: KeysToSnakeCaseModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> KeysToSnakeCaseTransformation:
         return KeysToSnakeCaseTransformation()
 
     def create_keys_replace_transformation(
-        self, model: KeysReplaceModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: KeysReplaceModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> KeysReplaceTransformation:
         return KeysReplaceTransformation(
             old=model.old, new=model.new, parameters=model.parameters or {}
         )
 
     def create_flatten_fields(
-        self, model: FlattenFieldsModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: FlattenFieldsModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> FlattenFields:
         return FlattenFields(
             flatten_lists=model.flatten_lists if model.flatten_lists is not None else True
         )
 
     def create_dpath_flatten_fields(
-        self, model: DpathFlattenFieldsModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: DpathFlattenFieldsModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> DpathFlattenFields:
         model_field_path: list[InterpolatedString | str] = [x for x in model.field_path]
         return DpathFlattenFields(
@@ -789,7 +806,11 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def create_session_token_authenticator(
-        self, model: SessionTokenAuthenticatorModel, config: Config, name: str, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: SessionTokenAuthenticatorModel,
+        config: Config,
+        name: str,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> ApiKeyAuthenticator | BearerAuthenticator:
         decoder = (
             self._create_component_from_model(model=model.decoder, config=config)
@@ -830,7 +851,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_basic_http_authenticator(
-        model: BasicHttpAuthenticatorModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: BasicHttpAuthenticatorModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> BasicHttpAuthenticator:
         return BasicHttpAuthenticator(
             password=model.password or "",
@@ -870,12 +893,17 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_check_dynamic_stream(
-        model: CheckDynamicStreamModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: CheckDynamicStreamModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> CheckDynamicStream:
         return CheckDynamicStream(stream_count=model.stream_count, parameters={})
 
     def create_composite_error_handler(
-        self, model: CompositeErrorHandlerModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: CompositeErrorHandlerModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> CompositeErrorHandler:
         error_handlers = [
             self._create_component_from_model(model=error_handler_model, config=config)
@@ -887,7 +915,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_concurrency_level(
-        model: ConcurrencyLevelModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: ConcurrencyLevelModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> ConcurrencyLevel:
         return ConcurrencyLevel(
             default_concurrency=model.default_concurrency,
@@ -1054,7 +1084,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_constant_backoff_strategy(
-        model: ConstantBackoffStrategyModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: ConstantBackoffStrategyModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> ConstantBackoffStrategy:
         return ConstantBackoffStrategy(
             backoff_time_in_seconds=model.backoff_time_in_seconds,
@@ -1063,7 +1095,11 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def create_cursor_pagination(
-        self, model: CursorPaginationModel, config: Config, decoder: Decoder, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: CursorPaginationModel,
+        config: Config,
+        decoder: Decoder,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> CursorPaginationStrategy:
         if isinstance(decoder, PaginationDecoderDecorator):
             inner_decoder = decoder.decoder
@@ -1212,7 +1248,11 @@ class ModelToComponentFactory:  # noqa: PLR0904
         return []
 
     def _create_nested_component(
-        self, model: Any, model_field: str, model_value: Any, config: Config  # noqa: ANN401, ARG002
+        self,
+        model: Any,
+        model_field: str,
+        model_value: Any,
+        config: Config,  # noqa: ANN401, ARG002
     ) -> Any:  # noqa: ANN401
         type_name = model_value.get("type", None)
         if not type_name:
@@ -1246,10 +1286,8 @@ class ModelToComponentFactory:  # noqa: PLR0904
                     raise ValueError(  # noqa: B904
                         f"Error creating component '{type_name}' with parent custom component {model.class_name}: Please provide "
                         + ", ".join(
-
-                                f"{type_name}.$parameters.{parameter}"
-                                for parameter in missing_parameters
-
+                            f"{type_name}.$parameters.{parameter}"
+                            for parameter in missing_parameters
                         )
                     )
                 raise TypeError(  # noqa: B904
@@ -1265,7 +1303,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
         return isinstance(model_value, dict) and model_value.get("type") is not None
 
     def create_datetime_based_cursor(
-        self, model: DatetimeBasedCursorModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: DatetimeBasedCursorModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> DatetimeBasedCursor:
         start_datetime: str | MinMaxDatetime = (
             model.start_datetime
@@ -1327,7 +1368,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def create_declarative_stream(
-        self, model: DeclarativeStreamModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: DeclarativeStreamModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> DeclarativeStream:
         # When constructing a declarative stream, we assemble the incremental_sync component and retriever's partition_router field
         # components if they exist into a single CartesianProductStreamSlicer. This is then passed back as an argument when constructing the
@@ -1471,7 +1515,7 @@ class ModelToComponentFactory:  # noqa: PLR0904
                     parameters={},
                 )
             return self._create_component_from_model(model=stream_slicer_model, config=config)  # type: ignore[no-any-return]
-                # Will be created PartitionRouter as stream_slicer_model is model.partition_router  # noqa: E116
+            # Will be created PartitionRouter as stream_slicer_model is model.partition_router  # noqa: E116
         return None
 
     def _build_resumable_cursor_from_paginator(
@@ -1532,7 +1576,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
         return self._build_resumable_cursor_from_paginator(model.retriever, stream_slicer)
 
     def create_default_error_handler(
-        self, model: DefaultErrorHandlerModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: DefaultErrorHandlerModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> DefaultErrorHandler:
         backoff_strategies = []
         if model.backoff_strategies:
@@ -1702,7 +1749,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_http_response_filter(
-        model: HttpResponseFilterModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: HttpResponseFilterModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> HttpResponseFilter:
         if model.action:  # noqa: SIM108
             action = ResponseAction(model.action.value)
@@ -1728,7 +1777,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_inline_schema_loader(
-        model: InlineSchemaLoaderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: InlineSchemaLoaderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> InlineSchemaLoader:
         return InlineSchemaLoader(schema=model.schema_ or {}, parameters={})
 
@@ -1741,16 +1792,17 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def create_schema_type_identifier(
-        self, model: SchemaTypeIdentifierModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: SchemaTypeIdentifierModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> SchemaTypeIdentifier:
         types_mapping = []
         if model.types_mapping:
-            types_mapping.extend(
-                [
-                    self._create_component_from_model(types_map, config=config)
-                    for types_map in model.types_mapping
-                ]
-            )
+            types_mapping.extend([
+                self._create_component_from_model(types_map, config=config)
+                for types_map in model.types_mapping
+            ])
         model_schema_pointer: list[InterpolatedString | str] = (
             [x for x in model.schema_pointer] if model.schema_pointer else []
         )
@@ -1768,7 +1820,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def create_dynamic_schema_loader(
-        self, model: DynamicSchemaLoaderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: DynamicSchemaLoaderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> DynamicSchemaLoader:
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
         combined_slicers = self._build_resumable_cursor_from_paginator(
@@ -1812,19 +1867,25 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_jsonl_decoder(
-        model: JsonlDecoderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: JsonlDecoderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> JsonlDecoder:
         return JsonlDecoder(parameters={})
 
     @staticmethod
     def create_json_line_parser(
-        model: JsonLineParserModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: JsonLineParserModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> JsonLineParser:
         return JsonLineParser(encoding=model.encoding)
 
     @staticmethod
     def create_iterable_decoder(
-        model: IterableDecoderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: IterableDecoderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> IterableDecoder:
         return IterableDecoder(parameters={})
 
@@ -1834,18 +1895,26 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_gzipjson_decoder(
-        model: GzipJsonDecoderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: GzipJsonDecoderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> GzipJsonDecoder:
         return GzipJsonDecoder(parameters={}, encoding=model.encoding)
 
     def create_zipfile_decoder(
-        self, model: ZipfileDecoderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: ZipfileDecoderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> ZipfileDecoder:
         parser = self._create_component_from_model(model=model.parser, config=config)
         return ZipfileDecoder(parser=parser)
 
     def create_gzip_parser(
-        self, model: GzipParserModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: GzipParserModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> GzipParser:
         inner_parser = self._create_component_from_model(model=model.inner_parser, config=config)
         return GzipParser(inner_parser=inner_parser)
@@ -1855,14 +1924,19 @@ class ModelToComponentFactory:  # noqa: PLR0904
         return CsvParser(encoding=model.encoding, delimiter=model.delimiter)
 
     def create_composite_raw_decoder(
-        self, model: CompositeRawDecoderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: CompositeRawDecoderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> CompositeRawDecoder:
         parser = self._create_component_from_model(model=model.parser, config=config)
         return CompositeRawDecoder(parser=parser)
 
     @staticmethod
     def create_json_file_schema_loader(
-        model: JsonFileSchemaLoaderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: JsonFileSchemaLoaderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> JsonFileSchemaLoader:
         return JsonFileSchemaLoader(
             file_path=model.file_path or "", config=config, parameters=model.parameters or {}
@@ -1870,7 +1944,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_jwt_authenticator(
-        model: JwtAuthenticatorModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: JwtAuthenticatorModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> JwtAuthenticator:
         jwt_headers = model.jwt_headers or JwtHeadersModel(kid=None, typ="JWT", cty=None)
         jwt_payload = model.jwt_payload or JwtPayloadModel(iss=None, sub=None, aud=None)
@@ -1894,7 +1970,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_list_partition_router(
-        model: ListPartitionRouterModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: ListPartitionRouterModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> ListPartitionRouter:
         request_option = (
             RequestOption(
@@ -1915,7 +1993,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_min_max_datetime(
-        model: MinMaxDatetimeModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: MinMaxDatetimeModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> MinMaxDatetime:
         return MinMaxDatetime(
             datetime=model.datetime,
@@ -1931,12 +2011,17 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_no_pagination(
-        model: NoPaginationModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: NoPaginationModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> NoPagination:
         return NoPagination(parameters={})
 
     def create_oauth_authenticator(
-        self, model: OAuthAuthenticatorModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: OAuthAuthenticatorModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> DeclarativeOauth2Authenticator:
         if model.refresh_token_updater:
             # ignore type error because fixing it would have a lot of dependencies, revisit later
@@ -2013,7 +2098,11 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def create_offset_increment(
-        self, model: OffsetIncrementModel, config: Config, decoder: Decoder, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: OffsetIncrementModel,
+        config: Config,
+        decoder: Decoder,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> OffsetIncrement:
         if isinstance(decoder, PaginationDecoderDecorator):
             inner_decoder = decoder.decoder
@@ -2038,7 +2127,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_page_increment(
-        model: PageIncrementModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: PageIncrementModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> PageIncrement:
         return PageIncrement(
             page_size=model.page_size,
@@ -2049,7 +2140,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def create_parent_stream_config(
-        self, model: ParentStreamConfigModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: ParentStreamConfigModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> ParentStreamConfig:
         declarative_stream = self._create_component_from_model(model.stream, config=config)
         request_option = (
@@ -2070,7 +2164,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_record_filter(
-        model: RecordFilterModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: RecordFilterModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> RecordFilter:
         return RecordFilter(
             condition=model.condition or "", config=config, parameters=model.parameters or {}
@@ -2082,7 +2178,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_request_option(
-        model: RequestOptionModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: RequestOptionModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> RequestOption:
         inject_into = RequestOptionType(model.inject_into.value)
         return RequestOption(field_name=model.field_name, inject_into=inject_into, parameters={})
@@ -2133,14 +2231,19 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_remove_fields(
-        model: RemoveFieldsModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: RemoveFieldsModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> RemoveFields:
         return RemoveFields(
             field_pointers=model.field_pointers, condition=model.condition or "", parameters={}
         )
 
     def create_selective_authenticator(
-        self, model: SelectiveAuthenticatorModel, config: Config, **kwargs: Any  # noqa: ANN401
+        self,
+        model: SelectiveAuthenticatorModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401
     ) -> DeclarativeAuthenticator:
         authenticators = {
             name: self._create_component_from_model(model=auth, config=config)
@@ -2156,7 +2259,11 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_legacy_session_token_authenticator(
-        model: LegacySessionTokenAuthenticatorModel, config: Config, *, url_base: str, **kwargs: Any  # noqa: ANN401, ARG004
+        model: LegacySessionTokenAuthenticatorModel,
+        config: Config,
+        *,
+        url_base: str,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> LegacySessionTokenAuthenticator:
         return LegacySessionTokenAuthenticator(
             api_url=url_base,
@@ -2270,7 +2377,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def _create_async_job_status_mapping(
-        self, model: AsyncJobStatusMapModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: AsyncJobStatusMapModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> Mapping[str, AsyncJobStatus]:
         api_status_to_cdk_status = {}
         for cdk_status, api_statuses in model.dict().items():
@@ -2305,7 +2415,10 @@ class ModelToComponentFactory:  # noqa: PLR0904
         config: Config,
         *,
         name: str,
-        primary_key: str | list[str] | list[list[str]] | None,  # this seems to be needed to match create_simple_retriever  # noqa: ARG002
+        primary_key: str
+        | list[str]
+        | list[list[str]]
+        | None,  # this seems to be needed to match create_simple_retriever  # noqa: ARG002
         stream_slicer: StreamSlicer | None,
         client_side_incremental_sync: dict[str, Any] | None = None,
         transformations: list[RecordTransformation],
@@ -2467,18 +2580,19 @@ class ModelToComponentFactory:  # noqa: PLR0904
         )
 
     def create_substream_partition_router(
-        self, model: SubstreamPartitionRouterModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG002
+        self,
+        model: SubstreamPartitionRouterModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG002
     ) -> SubstreamPartitionRouter:
         parent_stream_configs = []
         if model.parent_stream_configs:
-            parent_stream_configs.extend(
-                [
-                    self._create_message_repository_substream_wrapper(
-                        model=parent_stream_config, config=config
-                    )
-                    for parent_stream_config in model.parent_stream_configs
-                ]
-            )
+            parent_stream_configs.extend([
+                self._create_message_repository_substream_wrapper(
+                    model=parent_stream_config, config=config
+                )
+                for parent_stream_config in model.parent_stream_configs
+            ])
 
         return SubstreamPartitionRouter(
             parent_stream_configs=parent_stream_configs,
@@ -2505,7 +2619,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_wait_time_from_header(
-        model: WaitTimeFromHeaderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: WaitTimeFromHeaderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> WaitTimeFromHeaderBackoffStrategy:
         return WaitTimeFromHeaderBackoffStrategy(
             header=model.header,
@@ -2519,7 +2635,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_wait_until_time_from_header(
-        model: WaitUntilTimeFromHeaderModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: WaitUntilTimeFromHeaderModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> WaitUntilTimeFromHeaderBackoffStrategy:
         return WaitUntilTimeFromHeaderBackoffStrategy(
             header=model.header,
@@ -2537,7 +2655,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_components_mapping_definition(
-        model: ComponentMappingDefinitionModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: ComponentMappingDefinitionModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> ComponentMappingDefinition:
         interpolated_value = InterpolatedString.create(
             model.value, parameters=model.parameters or {}
@@ -2590,7 +2710,9 @@ class ModelToComponentFactory:  # noqa: PLR0904
 
     @staticmethod
     def create_stream_config(
-        model: StreamConfigModel, config: Config, **kwargs: Any  # noqa: ANN401, ARG004
+        model: StreamConfigModel,
+        config: Config,
+        **kwargs: Any,  # noqa: ANN401, ARG004
     ) -> StreamConfig:
         model_configs_pointer: list[InterpolatedString | str] = (
             [x for x in model.configs_pointer] if model.configs_pointer else []

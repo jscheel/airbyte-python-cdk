@@ -26,9 +26,7 @@ class InterpolatedNestedRequestInputProvider:
     _interpolator: InterpolatedString | InterpolatedNestedMapping | None = field(
         init=False, repr=False, default=None
     )
-    _request_inputs: str | NestedMapping | None = field(
-        init=False, repr=False, default=None
-    )
+    _request_inputs: str | NestedMapping | None = field(init=False, repr=False, default=None)
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
         self._request_inputs = self.request_inputs or {}

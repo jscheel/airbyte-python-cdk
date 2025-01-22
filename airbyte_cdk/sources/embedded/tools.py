@@ -11,7 +11,8 @@ from airbyte_cdk.models import AirbyteStream
 
 
 def get_first(
-    iterable: Iterable[Any], predicate: Callable[[Any], bool] = lambda m: True  # noqa: ARG005
+    iterable: Iterable[Any],
+    predicate: Callable[[Any], bool] = lambda m: True,  # noqa: ARG005
 ) -> Any | None:  # noqa: ANN401
     return next(filter(predicate, iterable), None)
 

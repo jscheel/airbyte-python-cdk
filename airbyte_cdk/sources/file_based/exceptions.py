@@ -112,9 +112,7 @@ class ErrorListingFiles(BaseFileBasedSourceError):
 
 
 class DuplicatedFilesError(BaseFileBasedSourceError):
-    def __init__(
-        self, duplicated_files_names: list[dict[str, list[str]]], **kwargs
-    ) -> None:
+    def __init__(self, duplicated_files_names: list[dict[str, list[str]]], **kwargs) -> None:
         self._duplicated_files_names = duplicated_files_names
         self._stream_name: str = kwargs["stream"]
         super().__init__(self._format_duplicate_files_error_message(), **kwargs)

@@ -69,7 +69,8 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
         """
         if self._file_to_datetime_history.items():
             filename, timestamp = max(
-                self._file_to_datetime_history.items(), key=lambda x: (x[1], x[0])  # noqa: FURB118
+                self._file_to_datetime_history.items(),
+                key=lambda x: (x[1], x[0]),  # noqa: FURB118
             )
             return f"{timestamp}_{filename}"
         return None
@@ -128,7 +129,8 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
     def _compute_earliest_file_in_history(self) -> RemoteFile | None:
         if self._file_to_datetime_history:
             filename, last_modified = min(
-                self._file_to_datetime_history.items(), key=lambda f: (f[1], f[0])  # noqa: FURB118
+                self._file_to_datetime_history.items(),
+                key=lambda f: (f[1], f[0]),  # noqa: FURB118
             )
             return RemoteFile(
                 uri=filename, last_modified=datetime.strptime(last_modified, self.DATE_TIME_FORMAT)

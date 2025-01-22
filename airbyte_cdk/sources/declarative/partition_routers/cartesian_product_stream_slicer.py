@@ -71,16 +71,14 @@ class CartesianProductStreamSlicer(PartitionRouter):
         next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         return dict(
-            ChainMap(
-                *[  # type: ignore # ChainMap expects a MutableMapping[Never, Never] for reasons
-                    s.get_request_params(
-                        stream_state=stream_state,
-                        stream_slice=stream_slice,
-                        next_page_token=next_page_token,
-                    )
-                    for s in self.stream_slicers
-                ]
-            )
+            ChainMap(*[  # type: ignore # ChainMap expects a MutableMapping[Never, Never] for reasons
+                s.get_request_params(
+                    stream_state=stream_state,
+                    stream_slice=stream_slice,
+                    next_page_token=next_page_token,
+                )
+                for s in self.stream_slicers
+            ])
         )
 
     def get_request_headers(
@@ -91,16 +89,14 @@ class CartesianProductStreamSlicer(PartitionRouter):
         next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         return dict(
-            ChainMap(
-                *[  # type: ignore # ChainMap expects a MutableMapping[Never, Never] for reasons
-                    s.get_request_headers(
-                        stream_state=stream_state,
-                        stream_slice=stream_slice,
-                        next_page_token=next_page_token,
-                    )
-                    for s in self.stream_slicers
-                ]
-            )
+            ChainMap(*[  # type: ignore # ChainMap expects a MutableMapping[Never, Never] for reasons
+                s.get_request_headers(
+                    stream_state=stream_state,
+                    stream_slice=stream_slice,
+                    next_page_token=next_page_token,
+                )
+                for s in self.stream_slicers
+            ])
         )
 
     def get_request_body_data(
@@ -111,16 +107,14 @@ class CartesianProductStreamSlicer(PartitionRouter):
         next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         return dict(
-            ChainMap(
-                *[  # type: ignore # ChainMap expects a MutableMapping[Never, Never] for reasons
-                    s.get_request_body_data(
-                        stream_state=stream_state,
-                        stream_slice=stream_slice,
-                        next_page_token=next_page_token,
-                    )
-                    for s in self.stream_slicers
-                ]
-            )
+            ChainMap(*[  # type: ignore # ChainMap expects a MutableMapping[Never, Never] for reasons
+                s.get_request_body_data(
+                    stream_state=stream_state,
+                    stream_slice=stream_slice,
+                    next_page_token=next_page_token,
+                )
+                for s in self.stream_slicers
+            ])
         )
 
     def get_request_body_json(
@@ -131,16 +125,14 @@ class CartesianProductStreamSlicer(PartitionRouter):
         next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         return dict(
-            ChainMap(
-                *[  # type: ignore # ChainMap expects a MutableMapping[Never, Never] for reasons
-                    s.get_request_body_json(
-                        stream_state=stream_state,
-                        stream_slice=stream_slice,
-                        next_page_token=next_page_token,
-                    )
-                    for s in self.stream_slicers
-                ]
-            )
+            ChainMap(*[  # type: ignore # ChainMap expects a MutableMapping[Never, Never] for reasons
+                s.get_request_body_json(
+                    stream_state=stream_state,
+                    stream_slice=stream_slice,
+                    next_page_token=next_page_token,
+                )
+                for s in self.stream_slicers
+            ])
         )
 
     def stream_slices(self) -> Iterable[StreamSlice]:

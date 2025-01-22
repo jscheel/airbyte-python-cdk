@@ -236,7 +236,10 @@ class AsyncJobOrchestrator:
             return self._keep_api_budget_with_failed_job(_slice, exception, id_to_replace)
 
     def _keep_api_budget_with_failed_job(
-        self, _slice: StreamSlice, exception: Exception, intent: str  # noqa: RUF052
+        self,
+        _slice: StreamSlice,
+        exception: Exception,
+        intent: str,  # noqa: RUF052
     ) -> AsyncJob:
         """
         We have a mechanism to retry job. It is used when a job status is FAILED or TIMED_OUT. The easiest way to retry is to have this job
@@ -446,12 +449,10 @@ class AsyncJobOrchestrator:
             # call of `create_and_get_completed_partitions` knows that there was an issue with some partitions and the sync is incomplete.
             raise AirbyteTracedException(
                 message="",
-                internal_message="\n".join(
-                    [
-                        filter_secrets(exception.__repr__())  # noqa: PLC2801
-                        for exception in self._non_breaking_exceptions
-                    ]
-                ),
+                internal_message="\n".join([
+                    filter_secrets(exception.__repr__())  # noqa: PLC2801
+                    for exception in self._non_breaking_exceptions
+                ]),
                 failure_type=FailureType.config_error,
             )
 

@@ -45,9 +45,9 @@ class AbstractStreamStateConverter(ABC):
             legacy_state = stream_state.get("legacy", {})
             latest_complete_time = self._get_latest_complete_time(stream_state.get("slices", []))
             if latest_complete_time is not None:
-                legacy_state.update(
-                    {cursor_field.cursor_field_key: self._to_state_message(latest_complete_time)}
-                )
+                legacy_state.update({
+                    cursor_field.cursor_field_key: self._to_state_message(latest_complete_time)
+                })
             return legacy_state or {}
         return self.serialize(stream_state, ConcurrencyCompatibleStateType.date_range)
 
@@ -145,7 +145,8 @@ class AbstractStreamStateConverter(ABC):
             return []
 
         sorted_intervals = sorted(
-            intervals, key=lambda interval: (interval[self.START_KEY], interval[self.END_KEY])  # noqa: FURB118
+            intervals,
+            key=lambda interval: (interval[self.START_KEY], interval[self.END_KEY]),  # noqa: FURB118
         )
         merged_intervals = [sorted_intervals[0]]
 

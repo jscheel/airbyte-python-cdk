@@ -662,9 +662,7 @@ class HttpStreamAdapterHttpStatusErrorHandler(HttpStatusErrorHandler):
                 failure_type=FailureType.transient_error,
                 error_message=f"Response status code: {response_or_exception.status_code}. Ignoring...",
             )
-        self._logger.error(
-            f"Received unexpected response type: {type(response_or_exception)}"
-        )
+        self._logger.error(f"Received unexpected response type: {type(response_or_exception)}")
         return ErrorResolution(
             response_action=ResponseAction.FAIL,
             failure_type=FailureType.system_error,

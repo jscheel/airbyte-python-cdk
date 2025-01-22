@@ -59,7 +59,9 @@ class FileBasedFinalStateCursor(AbstractConcurrentFileBasedCursor):
         pass
 
     def get_files_to_sync(
-        self, all_files: Iterable[RemoteFile], logger: logging.Logger  # noqa: ARG002
+        self,
+        all_files: Iterable[RemoteFile],
+        logger: logging.Logger,  # noqa: ARG002
     ) -> Iterable[RemoteFile]:
         return all_files
 

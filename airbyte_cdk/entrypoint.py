@@ -235,7 +235,11 @@ class AirbyteEntrypoint:
         yield AirbyteMessage(type=Type.CATALOG, catalog=catalog)
 
     def read(
-        self, source_spec: ConnectorSpecification, config: TConfig, catalog: Any, state: list[Any]  # noqa: ANN401
+        self,
+        source_spec: ConnectorSpecification,
+        config: TConfig,
+        catalog: Any,
+        state: list[Any],  # noqa: ANN401
     ) -> Iterable[AirbyteMessage]:
         self.set_up_secret_filter(config, source_spec.connectionSpecification)
         if self.source.check_config_against_spec:

@@ -172,12 +172,10 @@ class PerPartitionCursor(DeclarativeCursor):
         for partition_tuple, cursor in self._cursor_per_partition.items():
             cursor_state = cursor.get_stream_state()
             if cursor_state:
-                states.append(
-                    {
-                        "partition": self._to_dict(partition_tuple),
-                        "cursor": cursor_state,
-                    }
-                )
+                states.append({
+                    "partition": self._to_dict(partition_tuple),
+                    "cursor": cursor_state,
+                })
         state: dict[str, Any] = {"states": states}
 
         parent_state = self._partition_router.get_stream_state()

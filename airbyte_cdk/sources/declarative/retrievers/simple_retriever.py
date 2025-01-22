@@ -105,7 +105,9 @@ class SimpleRetriever(Retriever):
             self._name = value
 
     def _get_mapping(
-        self, method: Callable[..., Mapping[str, Any] | str | None], **kwargs: Any  # noqa: ANN401
+        self,
+        method: Callable[..., Mapping[str, Any] | str | None],
+        **kwargs: Any,  # noqa: ANN401
     ) -> tuple[Mapping[str, Any] | str, set[str]]:
         """
         Get mapping from the provided method, and get the keys of the mapping.
@@ -421,7 +423,9 @@ class SimpleRetriever(Retriever):
         :param stream_slice: The stream slice to read data for
         :return: The records read from the API source
         """
-        _slice = stream_slice or StreamSlice(partition={}, cursor_slice={})  # None-check  # noqa: RUF052
+        _slice = stream_slice or StreamSlice(
+            partition={}, cursor_slice={}
+        )  # None-check  # noqa: RUF052
 
         most_recent_record_from_slice = None
         record_generator = partial(
@@ -475,9 +479,7 @@ class SimpleRetriever(Retriever):
             )
         return None
 
-    def _extract_record(
-        self, stream_data: StreamData, stream_slice: StreamSlice
-    ) -> Record | None:
+    def _extract_record(self, stream_data: StreamData, stream_slice: StreamSlice) -> Record | None:
         """
         As we allow the output of _read_pages to be StreamData, it can be multiple things. Therefore, we need to filter out and normalize
         to data to streamline the rest of the process.
