@@ -147,6 +147,7 @@ class ConcurrentPerPartitionCursor(Cursor):
                     < cursor.state[self.cursor_field.cursor_field_key]
                 ):
                     self._new_global_cursor = copy.deepcopy(cursor.state)
+        self._emit_state_message()
 
     def ensure_at_least_one_state_emitted(self) -> None:
         """
