@@ -32,7 +32,7 @@ class ConcurrentCursorFactory:
         self._create_function = create_function
 
     def create(
-        self, stream_state: Mapping[str, Any], runtime_lookback_window: Any
+        self, stream_state: Mapping[str, Any], runtime_lookback_window: Optional[timedelta]
     ) -> ConcurrentCursor:
         return self._create_function(
             stream_state=stream_state, runtime_lookback_window=runtime_lookback_window
@@ -187,7 +187,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         if not cursor:
             cursor = self._create_cursor(
                 self._global_cursor,
-                self._lookback_window if self._global_cursor else self._NO_CURSOR_STATE,
+                self._lookback_window if self._global_cursor else 0,
             )
             self._cursor_per_partition[self._to_partition_key(partition.partition)] = cursor
             self._semaphore_per_partition[self._to_partition_key(partition.partition)] = (
@@ -217,9 +217,6 @@ class ConcurrentPerPartitionCursor(Cursor):
             logger.warning(
                 f"The maximum number of partitions has been reached. Dropping the oldest partition: {oldest_partition}. Over limit: {self._over_limit}."
             )
-
-    def limit_reached(self) -> bool:
-        return self._over_limit > self.DEFAULT_MAX_PARTITIONS_NUMBER
 
     def _set_initial_state(self, stream_state: StreamState) -> None:
         """
@@ -286,6 +283,10 @@ class ConcurrentPerPartitionCursor(Cursor):
                 self._global_cursor = deepcopy(stream_state[self._GLOBAL_STATE_KEY])
                 self._new_global_cursor = deepcopy(stream_state[self._GLOBAL_STATE_KEY])
 
+        # Set initial parent state
+        if stream_state.get("parent_state"):
+            self._parent_state = stream_state["parent_state"]
+
         # Set parent state for partition routers based on parent streams
         self._partition_router.set_initial_state(stream_state)
 
@@ -305,12 +306,11 @@ class ConcurrentPerPartitionCursor(Cursor):
         return self._partition_serializer.to_partition(partition_key)
 
     def _create_cursor(
-        self, cursor_state: Any, runtime_lookback_window: Any = None
+        self, cursor_state: Any, runtime_lookback_window: int = 0
     ) -> ConcurrentCursor:
-        if runtime_lookback_window:
-            runtime_lookback_window = timedelta(seconds=runtime_lookback_window)
         cursor = self._cursor_factory.create(
-            stream_state=deepcopy(cursor_state), runtime_lookback_window=runtime_lookback_window
+            stream_state=deepcopy(cursor_state),
+            runtime_lookback_window=timedelta(seconds=runtime_lookback_window),
         )
         return cursor
 

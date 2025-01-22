@@ -875,7 +875,7 @@ class ModelToComponentFactory:
         config: Config,
         stream_state: MutableMapping[str, Any],
         message_repository: Optional[MessageRepository] = None,
-        runtime_lookback_window: Optional[int] = None,
+        runtime_lookback_window: Optional[datetime.timedelta] = None,
         **kwargs: Any,
     ) -> ConcurrentCursor:
         component_type = component_definition.get("type")
@@ -933,11 +933,6 @@ class ModelToComponentFactory:
             if evaluated_lookback_window:
                 lookback_window = parse_duration(evaluated_lookback_window)
 
-        if runtime_lookback_window and lookback_window:
-            lookback_window = max(lookback_window, runtime_lookback_window)
-        elif runtime_lookback_window:
-            lookback_window = runtime_lookback_window
-
         connector_state_converter: DateTimeStreamStateConverter
         connector_state_converter = CustomFormatConcurrentStreamStateConverter(
             datetime_format=datetime_format,
@@ -945,6 +940,18 @@ class ModelToComponentFactory:
             is_sequential_state=True,
             cursor_granularity=cursor_granularity,
         )
+
+        # Adjusts the stream state by applying the runtime lookback window.
+        # This is used to ensure correct state handling in case of failed partitions.
+        stream_state_value = stream_state.get(cursor_field.cursor_field_key)
+        if runtime_lookback_window and stream_state_value:
+            new_stream_state = (
+                connector_state_converter.parse_timestamp(stream_state_value)
+                - runtime_lookback_window
+            )
+            stream_state[cursor_field.cursor_field_key] = connector_state_converter.output_format(
+                new_stream_state
+            )
 
         start_date_runtime_value: Union[InterpolatedString, str, MinMaxDatetime]
         if isinstance(datetime_based_cursor_model.start_datetime, MinMaxDatetimeModel):
