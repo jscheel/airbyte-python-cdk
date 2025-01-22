@@ -4,4 +4,4 @@
 
 # Initialize Utils Package
 
-__all__ = ["record_helper"]
+__all__ = ["record_helper"]  # noqa: F822

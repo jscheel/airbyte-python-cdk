@@ -2,8 +2,9 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from collections.abc import Mapping
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Mapping, Optional, Union
+from typing import Any
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_nested_mapping import (
     InterpolatedNestedMapping,
@@ -20,12 +21,12 @@ class InterpolatedNestedRequestInputProvider:
     """
 
     parameters: InitVar[Mapping[str, Any]]
-    request_inputs: Optional[Union[str, NestedMapping]] = field(default=None)
+    request_inputs: str | NestedMapping | None = field(default=None)
     config: Config = field(default_factory=dict)
-    _interpolator: Optional[Union[InterpolatedString, InterpolatedNestedMapping]] = field(
+    _interpolator: InterpolatedString | InterpolatedNestedMapping | None = field(
         init=False, repr=False, default=None
     )
-    _request_inputs: Optional[Union[str, NestedMapping]] = field(
+    _request_inputs: str | NestedMapping | None = field(
         init=False, repr=False, default=None
     )
 
@@ -42,9 +43,9 @@ class InterpolatedNestedRequestInputProvider:
 
     def eval_request_inputs(
         self,
-        stream_state: Optional[StreamState] = None,
-        stream_slice: Optional[StreamSlice] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_state: StreamState | None = None,
+        stream_slice: StreamSlice | None = None,
+        next_page_token: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         """
         Returns the request inputs to set on an outgoing HTTP request

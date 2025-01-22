@@ -13,11 +13,12 @@ from typing import TYPE_CHECKING, Any, final
 import pandas as pd
 import sqlalchemy
 import ulid
-from airbyte_protocol_dataclasses.models import AirbyteStateMessage
 from pandas import Index
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Table, and_, create_engine, insert, null, select, text, update
 from sqlalchemy.exc import ProgrammingError, SQLAlchemyError
+
+from airbyte_protocol_dataclasses.models import AirbyteStateMessage  # noqa: TC001
 
 from airbyte_cdk.sql import exceptions as exc
 from airbyte_cdk.sql._util.hashing import one_way_hash
@@ -30,6 +31,7 @@ from airbyte_cdk.sql.constants import (
 )
 from airbyte_cdk.sql.secrets import SecretString
 from airbyte_cdk.sql.types import SQLTypeConverter
+
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -112,7 +114,7 @@ class SqlConfig(BaseModel, abc.ABC):
         )
 
 
-class SqlProcessorBase(abc.ABC):
+class SqlProcessorBase(abc.ABC):  # noqa: B024
     """A base class to be used for SQL Caches."""
 
     type_converter_class: type[SQLTypeConverter] = SQLTypeConverter
