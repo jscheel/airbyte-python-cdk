@@ -96,6 +96,7 @@ jobs:
     name: "Check: '${{matrix.connector}}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
     permissions:
       checks: write
+      contents: read
     steps:
       - name: Abort if extra not changed (${{matrix.cdk_extra}})
         id: no_changes
