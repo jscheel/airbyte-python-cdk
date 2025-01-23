@@ -191,7 +191,11 @@ jobs:
         run: |
           # save job output json file as ci step output
           mkdir -p airbyte/airbyte-ci/connectors/pipelines/pipeline_reports
+          echo "Debug: Searching for output.json in pipeline reports directory"
+          find airbyte/airbyte-ci/connectors/pipelines/pipeline_reports -type f -ls
+          
           json_output_file=$(find airbyte/airbyte-ci/connectors/pipelines/pipeline_reports -name 'output.json' -print -quit || true)
+          echo "Debug: Found output.json at: ${json_output_file}"
 
           if [ -z "$json_output_file" ] || [ ! -f "$json_output_file" ]; then
             echo "No output.json found - test may have failed to generate report"
@@ -201,11 +205,20 @@ jobs:
             exit 1
           fi
 
+          echo "Debug: Contents of output.json:"
+          cat ${json_output_file}
+          
           job_output=$(cat ${json_output_file})
           success=$(echo ${job_output} | jq -r '.success')
           failed_step=$(echo ${job_output} | jq -r '.failed_steps | select(length > 0) | .[0] // "None"')
           run_duration=$(echo ${job_output} | jq -r '.run_duration')
           html_report_url=$(echo ${job_output} | jq -r '.html_report_url')
+          
+          echo "Debug: Extracted values from output.json:"
+          echo "- Success: ${success}"
+          echo "- Failed Step: ${failed_step}"
+          echo "- Run Duration: ${run_duration}"
+          echo "- HTML Report URL: ${html_report_url}"
 
           echo "## Job Output for ${{matrix.connector}}" >> $GITHUB_STEP_SUMMARY
           echo "- [HTML Report](${html_report_url})" >> $GITHUB_STEP_SUMMARY
@@ -220,8 +233,13 @@ jobs:
             exit 1
           fi
           echo "See the execution report for details: ${html_report_url}"
+          
+          echo "Debug: Setting outputs for other steps"
           echo "success=${success}" >> $GITHUB_OUTPUT
           echo "html_report_url=${html_report_url}" >> $GITHUB_OUTPUT
+          
+          echo "Debug: Current GITHUB_OUTPUT contents:"
+          cat $GITHUB_OUTPUT
 
       # Update the check run with the HTML report URL if available
       - name: Update Check Run details URL
@@ -229,17 +247,40 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -x  # Enable debug mode to see exact commands being executed
+          
+          echo "Debug: Checking inputs for GitHub API call"
+          echo "- Check Run ID: ${{ steps.obtain_check_run_id.outputs.check_run_id }}"
+          echo "- HTML Report URL: ${{ steps.evaluate_output.outputs.html_report_url }}"
+          echo "- Success: ${{ steps.evaluate_output.outputs.success }}"
+          
           if [ -z "${{ steps.evaluate_output.outputs.html_report_url }}" ] || [ "${{ steps.evaluate_output.outputs.html_report_url }}" = "null" ]; then
             echo "HTML report URL missing; skipping details_url update."
             exit 0
           fi
-          # Update the check run details URL using the GitHub API
-          gh api \
+          
+          echo "Debug: Making GitHub API call to update check run"
+          # Ensure URL is properly encoded
+          safe_url=$(printf %s "${{ steps.evaluate_output.outputs.html_report_url }}" | jq -sRr @uri)
+          echo "Debug: Encoded URL: $safe_url"
+          
+          response=$(gh api \
             -X PATCH \
             repos/${{ github.repository }}/check-runs/${{ steps.obtain_check_run_id.outputs.check_run_id }} \
-            -f details_url="${{ steps.evaluate_output.outputs.html_report_url }}" \
+            -f details_url="$safe_url" \
             -f status="completed" \
-            -f conclusion="${{ steps.evaluate_output.outputs.success == 'true' && 'success' || 'failure' }}"
+            -f conclusion="${{ steps.evaluate_output.outputs.success == 'true' && 'success' || 'failure' }}" \
+            || echo "API call failed with error code: $?")
+            
+          echo "Debug: GitHub API Response:"
+          echo "$response" | jq '.' || echo "Failed to parse response as JSON: $response"
+          
+          # Verify the update was successful
+          if echo "$response" | jq -e '.details_url' > /dev/null; then
+            echo "Debug: Successfully updated check run details_url to: $(echo "$response" | jq -r '.details_url')"
+          else
+            echo "Warning: Failed to verify details_url in API response"
+          fi
 
       # Upload the job output to the artifacts
       - name: Upload Job Output
