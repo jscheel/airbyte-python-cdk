@@ -93,7 +93,7 @@ jobs:
           - connector: source-pokeapi
             cdk_extra: n/a
 
-    name: "Check: '${{matrix.connector}}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
+    name: "${{matrix.connector}} Connector Check (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
     permissions:
       checks: write
       contents: read
@@ -148,9 +148,22 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs)
+          
+          # Create a new check run for test results
+          if [ -f "airbyte/airbyte-ci/connectors/pipelines/pipeline_reports/output.json" ]; then
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              repos/${{ github.repository }}/check-runs \
+              -f name="${{ matrix.connector }} Test Report" \
+              -f head_sha="$HEAD_SHA" \
+              -f status="in_progress" \
+              -f started_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          fi
 
           # Get current job name
-          JOB_NAME="Check: '${{ matrix.connector }}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
+          JOB_NAME="${{ matrix.connector }} Connector Check (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
           echo "Looking for check run with name: $JOB_NAME"
 
           # Extract check run ID
@@ -259,9 +272,9 @@ jobs:
           fi
           
           echo "Debug: Making GitHub API call to update check run"
-          # Ensure URL is properly encoded
-          safe_url=$(printf %s "${{ steps.evaluate_output.outputs.html_report_url }}" | jq -sRr @uri)
-          echo "Debug: Encoded URL: $safe_url"
+          # Use raw URL - GitHub API handles URL encoding internally
+          details_url="${{ steps.evaluate_output.outputs.html_report_url }}"
+          echo "Debug: Using URL: $details_url"
           
           # First verify we have a valid check run ID
           if [ -z "${{ steps.obtain_check_run_id.outputs.check_run_id }}" ]; then
@@ -269,15 +282,30 @@ jobs:
             exit 1
           fi
 
-          # Make the API call with verbose output
-          response=$(gh api \
+          # Update the test report check run with results
+          if [ -f "airbyte/airbyte-ci/connectors/pipelines/pipeline_reports/output.json" ]; then
+            # Create new check run for test report
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              repos/${{ github.repository }}/check-runs \
+              -f name="${{ matrix.connector }} Test Report" \
+              -f head_sha="$HEAD_SHA" \
+              -f status="completed" \
+              -f conclusion="${{ steps.evaluate_output.outputs.success == 'true' && 'success' || 'failure' }}" \
+              -f details_url="$details_url" \
+              -f output="{\"title\":\"Test Results\",\"summary\":\"Click 'Details' to view the full test report.\"}" \
+              2>&1 || echo "API call failed with error code: $?"
+          fi
+          
+          # Update the main connector check run with completion status
+          gh api \
             -X PATCH \
-            --verbose \
             repos/${{ github.repository }}/check-runs/${{ steps.obtain_check_run_id.outputs.check_run_id }} \
-            -f details_url="$safe_url" \
             -f status="completed" \
             -f conclusion="${{ steps.evaluate_output.outputs.success == 'true' && 'success' || 'failure' }}" \
-            2>&1 || echo "API call failed with error code: $?")
+            2>&1 || echo "API call failed with error code: $?"
             
           echo "Debug: GitHub API Response:"
           echo "$response" | jq '.' || echo "Failed to parse response as JSON: $response"
