@@ -81,3 +81,4 @@ jobs:
           level: error
           execute_command: 'poetry run mypy'
           fail_on_error: true
+          target: airbyte_cdk
