@@ -18,6 +18,7 @@ from airbyte_cdk.models import (
 )
 from airbyte_cdk.utils.airbyte_secrets_utils import filter_secrets
 
+
 LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
