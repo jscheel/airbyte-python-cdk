@@ -271,9 +271,9 @@ class DynamicSchemaLoader(SchemaLoader):
 
         if field_type == "array" and additional_types:
             if (
-                    isinstance(additional_types[0], list)
-                    and len(additional_types[0]) == 2
-                    and all(isinstance(item, str) for item in additional_types[0])
+                isinstance(additional_types[0], list)
+                and len(additional_types[0]) == 2
+                and all(isinstance(item, str) for item in additional_types[0])
             ):
                 first_type = self._get_airbyte_type(additional_types[0][0])
                 second_type = self._get_airbyte_type(additional_types[0][1])
