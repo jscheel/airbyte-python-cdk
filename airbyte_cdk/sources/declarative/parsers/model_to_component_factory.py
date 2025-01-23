@@ -134,6 +134,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     CheckStream as CheckStreamModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    ComplexFieldType as ComplexFieldTypeModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ComponentMappingDefinition as ComponentMappingDefinitionModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -243,9 +246,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     InlineSchemaLoader as InlineSchemaLoaderModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    ComplexFieldType as ComplexFieldTypeModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     IterableDecoder as IterableDecoderModel,
@@ -432,10 +432,10 @@ from airbyte_cdk.sources.declarative.retrievers import (
     SimpleRetrieverTestReadDecorator,
 )
 from airbyte_cdk.sources.declarative.schema import (
+    ComplexFieldType,
     DefaultSchemaLoader,
     DynamicSchemaLoader,
     InlineSchemaLoader,
-    ComplexFieldType,
     JsonFileSchemaLoader,
     SchemaTypeIdentifier,
     TypesMap,

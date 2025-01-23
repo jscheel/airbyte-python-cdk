@@ -85,15 +85,9 @@ _MANIFEST = {
                     "key_pointer": ["name"],
                     "type_pointer": ["type"],
                     "types_mapping": [
+                        {"target_type": "string", "current_type": "singleLineText"},
                         {
-                            "target_type": "string",
-                            "current_type": "singleLineText"
-                        },
-                        {
-                            "target_type": {
-                                "field_type": "array",
-                                "items": "integer"
-                            },
+                            "target_type": {"field_type": "array", "items": "integer"},
                             "current_type": "formula",
                             "condition": "{{ raw_schema['result']['type'] == 'customInteger' }}",
                         },
