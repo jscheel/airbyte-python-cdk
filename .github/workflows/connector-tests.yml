@@ -165,7 +165,6 @@ jobs:
 
           echo "Found check run ID: $check_run_id"
           echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
-          echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
       - name: Test Connector
         if: steps.no_changes.outputs.status != 'cancelled'
         timeout-minutes: 90
@@ -264,13 +263,21 @@ jobs:
           safe_url=$(printf %s "${{ steps.evaluate_output.outputs.html_report_url }}" | jq -sRr @uri)
           echo "Debug: Encoded URL: $safe_url"
           
+          # First verify we have a valid check run ID
+          if [ -z "${{ steps.obtain_check_run_id.outputs.check_run_id }}" ]; then
+            echo "Error: Check run ID is missing"
+            exit 1
+          fi
+
+          # Make the API call with verbose output
           response=$(gh api \
             -X PATCH \
+            --verbose \
             repos/${{ github.repository }}/check-runs/${{ steps.obtain_check_run_id.outputs.check_run_id }} \
             -f details_url="$safe_url" \
             -f status="completed" \
             -f conclusion="${{ steps.evaluate_output.outputs.success == 'true' && 'success' || 'failure' }}" \
-            || echo "API call failed with error code: $?")
+            2>&1 || echo "API call failed with error code: $?")
             
           echo "Debug: GitHub API Response:"
           echo "$response" | jq '.' || echo "Failed to parse response as JSON: $response"
