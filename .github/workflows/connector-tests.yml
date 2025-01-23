@@ -130,24 +130,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - name: Obtain Check Run ID
-        id: obtain_check_run_id
+      - name: Create Test Report Check Run
+        id: create_test_report
         if: steps.no_changes.outputs.status != 'cancelled'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Get check run ID using GitHub API and current job name
+          # Get current commit SHA
           HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
-          echo "Getting check run ID for commit: $HEAD_SHA"
-
-          # Wait for check run to be created
-          sleep 30
-
-          # Use GitHub API to get check runs and filter by current job name
-          check_runs=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs)
+          echo "Creating test report check run for commit: $HEAD_SHA"
           
           # Create a new check run for test results
           if [ -f "airbyte/airbyte-ci/connectors/pipelines/pipeline_reports/output.json" ]; then
@@ -161,23 +152,6 @@ jobs:
               -f status="in_progress" \
               -f started_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           fi
-
-          # Get current job name
-          JOB_NAME="${{ matrix.connector }} Connector Check (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
-          echo "Looking for check run with name: $JOB_NAME"
-
-          # Extract check run ID
-          check_run_id=$(echo "$check_runs" | jq -r --arg name "$JOB_NAME" '.check_runs[] | select(.name == $name) | .id')
-
-          if [ -z "$check_run_id" ]; then
-            echo "Available check runs:"
-            echo "$check_runs" | jq -r '.check_runs[].name'
-            echo "No matching check run found"
-            exit 3
-          fi
-
-          echo "Found check run ID: $check_run_id"
-          echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
       - name: Test Connector
         if: steps.no_changes.outputs.status != 'cancelled'
         timeout-minutes: 90
@@ -253,38 +227,21 @@ jobs:
           echo "Debug: Current GITHUB_OUTPUT contents:"
           cat $GITHUB_OUTPUT
 
-      # Update the check run with the HTML report URL if available
-      - name: Update Check Run details URL
+      # Update the test report check run with results
+      - name: Update Test Report Check Run
         if: always() && steps.no_changes.outputs.status != 'cancelled'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -x  # Enable debug mode to see exact commands being executed
-          
-          echo "Debug: Checking inputs for GitHub API call"
-          echo "- Check Run ID: ${{ steps.obtain_check_run_id.outputs.check_run_id }}"
-          echo "- HTML Report URL: ${{ steps.evaluate_output.outputs.html_report_url }}"
-          echo "- Success: ${{ steps.evaluate_output.outputs.success }}"
-          
-          if [ -z "${{ steps.evaluate_output.outputs.html_report_url }}" ] || [ "${{ steps.evaluate_output.outputs.html_report_url }}" = "null" ]; then
-            echo "HTML report URL missing; skipping details_url update."
-            exit 0
-          fi
-          
-          echo "Debug: Making GitHub API call to update check run"
-          # Use raw URL - GitHub API handles URL encoding internally
-          details_url="${{ steps.evaluate_output.outputs.html_report_url }}"
-          echo "Debug: Using URL: $details_url"
-          
-          # First verify we have a valid check run ID
-          if [ -z "${{ steps.obtain_check_run_id.outputs.check_run_id }}" ]; then
-            echo "Error: Check run ID is missing"
-            exit 1
-          fi
-
-          # Update the test report check run with results
+          # Only proceed if we have a report
           if [ -f "airbyte/airbyte-ci/connectors/pipelines/pipeline_reports/output.json" ]; then
-            # Create new check run for test report
+            HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+            
+            # Get report details
+            html_report_url="${{ steps.evaluate_output.outputs.html_report_url }}"
+            success="${{ steps.evaluate_output.outputs.success }}"
+            
+            # Update the test report check run
             gh api \
               --method POST \
               -H "Accept: application/vnd.github+json" \
@@ -294,27 +251,8 @@ jobs:
               -f head_sha="$HEAD_SHA" \
               -f status="completed" \
               -f conclusion="${{ steps.evaluate_output.outputs.success == 'true' && 'success' || 'failure' }}" \
-              -f details_url="$details_url" \
-              -f output="{\"title\":\"Test Results\",\"summary\":\"Click 'Details' to view the full test report.\"}" \
-              2>&1 || echo "API call failed with error code: $?"
-          fi
-          
-          # Update the main connector check run with completion status
-          gh api \
-            -X PATCH \
-            repos/${{ github.repository }}/check-runs/${{ steps.obtain_check_run_id.outputs.check_run_id }} \
-            -f status="completed" \
-            -f conclusion="${{ steps.evaluate_output.outputs.success == 'true' && 'success' || 'failure' }}" \
-            2>&1 || echo "API call failed with error code: $?"
-            
-          echo "Debug: GitHub API Response:"
-          echo "$response" | jq '.' || echo "Failed to parse response as JSON: $response"
-          
-          # Verify the update was successful
-          if echo "$response" | jq -e '.details_url' > /dev/null; then
-            echo "Debug: Successfully updated check run details_url to: $(echo "$response" | jq -r '.details_url')"
-          else
-            echo "Warning: Failed to verify details_url in API response"
+              -f details_url="$html_report_url" \
+              -f output="{\"title\":\"Test Results\",\"summary\":\"Click 'Details' to view the full test report.\"}"
           fi
 
       # Upload the job output to the artifacts
