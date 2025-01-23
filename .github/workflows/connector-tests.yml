@@ -134,22 +134,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Add longer delay to allow check run to be created
-          sleep 45
-          HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
-          RUN_NAME="Check: '${{ matrix.connector }}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
-          echo "Looking for check run with name: $RUN_NAME"
-          check_runs_json=$(gh api repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs --jq '.check_runs')
-          echo "Available check runs:"
-          echo "$check_runs_json" | jq -r '.[].name'
-          check_run_id=$(echo "$check_runs_json" | jq -r --arg name "$RUN_NAME" '.[] | select(.name == $name) | .id')
+          # Use GitHub Actions context to get the current check run ID
+          check_run_id="${{ github.run_id }}_${{ github.job }}"
+          echo "Using check run ID from GitHub Actions context: $check_run_id"
+          
+          # Validate the check run ID
           if [ -z "$check_run_id" ]; then
-            echo "No check run ID found after delay, this might indicate a deeper issue"
-            echo "Full check runs response:"
-            echo "$check_runs_json" | jq '.'
+            echo "No check run ID available from GitHub Actions context"
             exit 3
           fi
-          echo "Found check run ID: $check_run_id"
+          
+          # Store for later use
+          echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
           echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
       - name: Test Connector
         if: steps.no_changes.outputs.status != 'cancelled'
@@ -216,10 +212,13 @@ jobs:
             echo "HTML report URL missing; skipping details_url update."
             exit 0
           fi
+          # Update the check run details URL using the GitHub API
           gh api \
             -X PATCH \
             repos/${{ github.repository }}/check-runs/${{ steps.obtain_check_run_id.outputs.check_run_id }} \
-            -f details_url="${{ steps.evaluate_output.outputs.html_report_url }}"
+            -f details_url="${{ steps.evaluate_output.outputs.html_report_url }}" \
+            -f status="completed" \
+            -f conclusion="${{ steps.evaluate_output.outputs.success == 'true' && 'success' || 'failure' }}"
 
       # Upload the job output to the artifacts
       - name: Upload Job Output
