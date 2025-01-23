@@ -68,7 +68,7 @@ class TypesMap:
     condition: Optional[str]
     items_type: Optional[ItemsTypeMap] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """
         Enforces that `items_type` is only used when `target_type` is a array
         """
@@ -222,7 +222,7 @@ class DynamicSchemaLoader(SchemaLoader):
         self,
         field_type: Union[List[str], str],
         raw_schema: MutableMapping[str, Any],
-    ) -> Tuple[Union[List[str], str], List]:
+    ) -> Tuple[Union[List[str], str], List[str]]:
         """
         Replaces a field type if it matches a type mapping in `types_map`.
         """
@@ -257,7 +257,7 @@ class DynamicSchemaLoader(SchemaLoader):
 
     @staticmethod
     def _get_airbyte_type(
-        field_type: str, additional_types: Optional[List] = None
+        field_type: str, additional_types: Optional[List[str]] = None
     ) -> Mapping[str, Any]:
         """
         Maps a field type to its corresponding Airbyte type definition.
