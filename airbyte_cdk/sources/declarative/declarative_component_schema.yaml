@@ -1800,24 +1800,30 @@ definitions:
       $parameters:
         type: object
         additionalProperties: true
+  SchemaFieldType:
+    title: Schema Field Type
+    description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type for property.
+    type: object
+    required:
+      - field_type
+    properties:
+      field_type:
+        type: string
+      items:
+        "$ref": "#/definitions/SchemaFieldType"
   ItemsTypeMap:
     title: Types Map
     description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type for property.
     type: object
     required:
-      - items_type_pointer
-      - type_mapping
+      - target_type
     properties:
-      property_name:
+      condition:
         type: string
-      items_type_pointer:
-        title: Items Type Path
-        description: List of potentially nested fields describing the full path of the items type to extract.
-        type: array
-        items:
-          - type: string
-      type_mapping:
-        "$ref": "#/definitions/TypesMap"
+        interpolation_context:
+          - raw_schema
+      target_type:
+          "$ref": "#/definitions/SchemaFieldType"
   TypesMap:
     title: Types Map
     description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type.

@@ -5,7 +5,7 @@
 
 from copy import deepcopy
 from dataclasses import InitVar, dataclass, field
-from typing import Any, List, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import Any, List, Mapping, MutableMapping, Optional, Union
 
 import dpath
 from typing_extensions import deprecated
@@ -18,7 +18,7 @@ from airbyte_cdk.sources.declarative.transformations import RecordTransformation
 from airbyte_cdk.sources.source import ExperimentalClassWarning
 from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 
-AIRBYTE_DATA_TYPES: Mapping[str, MutableMapping[str, Any]] = {
+AIRBYTE_DATA_TYPES: Mapping[str, Mapping[str, Any]] = {
     "string": {"type": ["null", "string"]},
     "boolean": {"type": ["null", "boolean"]},
     "date": {"type": ["null", "string"], "format": "date"},
@@ -47,17 +47,6 @@ AIRBYTE_DATA_TYPES: Mapping[str, MutableMapping[str, Any]] = {
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
 @dataclass(frozen=True)
-class ItemsTypeMap:
-    """
-    Represents a mapping between a current type and its corresponding target type for item.
-    """
-
-    items_type_pointer: List[Union[InterpolatedString, str]]
-    type_mapping: "TypesMap"
-
-
-@deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
-@dataclass(frozen=True)
 class TypesMap:
     """
     Represents a mapping between a current type and its corresponding target type.
@@ -66,15 +55,6 @@ class TypesMap:
     target_type: Union[List[str], str]
     current_type: Union[List[str], str]
     condition: Optional[str]
-    items_type: Optional[ItemsTypeMap] = None
-
-    def __post_init__(self) -> None:
-        """
-        Enforces that `items_type` is only used when `target_type` is a array
-        """
-        # `items_type` is valid only for array target types
-        if self.items_type and self.target_type != "array":
-            raise ValueError("'items_type' can only be used when 'target_type' is an array.")
 
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
@@ -199,10 +179,7 @@ class DynamicSchemaLoader(SchemaLoader):
             if field_type_path
             else "string"
         )
-        mapped_field_type, mapped_additional_types = self._replace_type_if_not_valid(
-            raw_field_type, raw_schema
-        )
-
+        mapped_field_type = self._replace_type_if_not_valid(raw_field_type, raw_schema)
         if (
             isinstance(mapped_field_type, list)
             and len(mapped_field_type) == 2
@@ -212,7 +189,7 @@ class DynamicSchemaLoader(SchemaLoader):
             second_type = self._get_airbyte_type(mapped_field_type[1])
             return {"oneOf": [first_type, second_type]}
         elif isinstance(mapped_field_type, str):
-            return self._get_airbyte_type(mapped_field_type, mapped_additional_types)
+            return self._get_airbyte_type(mapped_field_type)
         else:
             raise ValueError(
                 f"Invalid data type. Available string or two items list of string. Got {mapped_field_type}."
@@ -222,11 +199,10 @@ class DynamicSchemaLoader(SchemaLoader):
         self,
         field_type: Union[List[str], str],
         raw_schema: MutableMapping[str, Any],
-    ) -> Tuple[Union[List[str], str], List[Union[List[str], str]]]:
+    ) -> Union[List[str], str]:
         """
         Replaces a field type if it matches a type mapping in `types_map`.
         """
-        additional_types: List[Union[List[str], str]] = []
         if self.schema_type_identifier.types_mapping:
             for types_map in self.schema_type_identifier.types_mapping:
                 # conditional is optional param, setting to true if not provided
@@ -236,57 +212,18 @@ class DynamicSchemaLoader(SchemaLoader):
                 ).eval(config=self.config, raw_schema=raw_schema)
 
                 if field_type == types_map.current_type and condition:
-                    if types_map.items_type:
-                        items_type = self._extract_data(
-                            raw_schema, types_map.items_type.items_type_pointer
-                        )
-                        items_type_condition = InterpolatedBoolean(
-                            condition=types_map.items_type.type_mapping.condition
-                            if types_map.items_type.type_mapping.condition is not None
-                            else "True",
-                            parameters={},
-                        ).eval(config=self.config, raw_schema=raw_schema)
+                    return types_map.target_type
+        return field_type
 
-                        if (
-                            items_type == types_map.items_type.type_mapping.current_type
-                            and items_type_condition
-                        ):
-                            additional_types = [types_map.items_type.type_mapping.target_type]
-                    return types_map.target_type, additional_types
-        return field_type, additional_types
-
-    def _get_airbyte_type(
-        self, field_type: str, additional_types: Optional[List[Union[List[str], str]]] = None
-    ) -> Mapping[str, Any]:
+    @staticmethod
+    def _get_airbyte_type(field_type: str) -> Mapping[str, Any]:
         """
         Maps a field type to its corresponding Airbyte type definition.
         """
-        if additional_types is None:
-            additional_types = []
-
         if field_type not in AIRBYTE_DATA_TYPES:
             raise ValueError(f"Invalid Airbyte data type: {field_type}")
 
-        airbyte_type = deepcopy(AIRBYTE_DATA_TYPES[field_type])
-
-        if field_type == "array" and additional_types:
-            if (
-                    isinstance(additional_types[0], list)
-                    and len(additional_types[0]) == 2
-                    and all(isinstance(item, str) for item in additional_types[0])
-            ):
-                first_type = self._get_airbyte_type(additional_types[0][0])
-                second_type = self._get_airbyte_type(additional_types[0][1])
-                items_type = {"oneOf": [first_type, second_type]}
-            elif isinstance(additional_types[0], str):
-                items_type = deepcopy(AIRBYTE_DATA_TYPES[additional_types[0]])  # type: ignore[arg-type]
-            else:
-                raise ValueError(
-                    f"Invalid data type. Available string or two items list of string. Got {additional_types[0]}."
-                )
-
-            airbyte_type["items"] = items_type
-        return airbyte_type
+        return deepcopy(AIRBYTE_DATA_TYPES[field_type])
 
     def _extract_data(
         self,

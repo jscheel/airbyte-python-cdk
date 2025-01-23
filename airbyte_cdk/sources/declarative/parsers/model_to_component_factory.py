@@ -1911,8 +1911,8 @@ class ModelToComponentFactory:
     def create_types_map(self, model: TypesMapModel, config: Config, **kwargs: Any) -> TypesMap:
         items_type = (
             self._create_component_from_model(model=model.items_type, config=config)
-            if model.items_type
-            else None
+            if isinstance(model.items_type, ItemsTypeMapModel)
+            else model.items_type
         )
 
         return TypesMap(
