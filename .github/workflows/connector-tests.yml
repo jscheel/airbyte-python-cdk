@@ -127,6 +127,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+      - name: Obtain Check Run ID
+        id: obtain_check_run_id
+        if: steps.no_changes.outputs.status != 'cancelled'
+        run: |
+          HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          RUN_NAME="Check: '${{ matrix.connector }}'"
+          check_runs_json=$(gh api repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs --jq '.check_runs')
+          check_run_id=$(echo "$check_runs_json" | jq -r '.[] | select(.name == "'$RUN_NAME'") | .id')
+          echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
       - name: Test Connector
         if: steps.no_changes.outputs.status != 'cancelled'
         timeout-minutes: 90
@@ -172,6 +181,19 @@ jobs:
           echo "See the execution report for details: ${html_report_url}"
           echo "success=${success}" >> $GITHUB_OUTPUT
           echo "html_report_url=${html_report_url}" >> $GITHUB_OUTPUT
+
+      # Update the check run with the HTML report URL if available
+      - name: Update Check Run details URL
+        if: always() && steps.no_changes.outputs.status != 'cancelled'
+        run: |
+          if [ -z "${{ steps.evaluate_output.outputs.html_report_url }}" ] || [ "${{ steps.evaluate_output.outputs.html_report_url }}" = "null" ]; then
+            echo "HTML report URL missing; skipping details_url update."
+            exit 0
+          fi
+          gh api \
+            -X PATCH \
+            repos/${{ github.repository }}/check-runs/${{ steps.obtain_check_run_id.outputs.check_run_id }} \
+            -f details_url="${{ steps.evaluate_output.outputs.html_report_url }}"
 
       # Upload the job output to the artifacts
       - name: Upload Job Output
