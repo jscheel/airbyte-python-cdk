@@ -97,6 +97,7 @@ jobs:
     permissions:
       checks: write
       contents: read
+      pull-requests: read
     steps:
       - name: Abort if extra not changed (${{matrix.cdk_extra}})
         id: no_changes
