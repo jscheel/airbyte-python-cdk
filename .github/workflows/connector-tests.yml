@@ -134,10 +134,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Add delay to allow check run to be created
-          sleep 30
+          # Add longer delay to allow check run to be created
+          sleep 45
           HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
-          RUN_NAME="Check: '${{ matrix.connector }}'"
+          RUN_NAME="Check: '${{ matrix.connector }}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
           check_runs_json=$(gh api repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs --jq '.check_runs')
           check_run_id=$(echo "$check_runs_json" | jq -r '.[] | select(.name == "'$RUN_NAME'") | .id')
           if [ -z "$check_run_id" ]; then
