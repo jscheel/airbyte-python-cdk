@@ -5,7 +5,7 @@
 
 from copy import deepcopy
 from dataclasses import InitVar, dataclass, field
-from typing import Any, List, Mapping, MutableMapping, Optional, Union, Tuple
+from typing import Any, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import dpath
 from typing_extensions import deprecated
@@ -89,7 +89,9 @@ class TypesMap:
         """
         # Ensure only one of `items_type` or `properties_types` is set
         if self.items_type and self.properties_types:
-            raise ValueError("Cannot specify both 'items_type' and 'properties_types' at the same time.")
+            raise ValueError(
+                "Cannot specify both 'items_type' and 'properties_types' at the same time."
+            )
 
         # `items_type` is valid only for array target types
         if self.items_type and self.target_type != "array":
@@ -222,7 +224,9 @@ class DynamicSchemaLoader(SchemaLoader):
             if field_type_path
             else "string"
         )
-        mapped_field_type, mapped_additional_types = self._replace_type_if_not_valid(raw_field_type, raw_schema)
+        mapped_field_type, mapped_additional_types = self._replace_type_if_not_valid(
+            raw_field_type, raw_schema
+        )
 
         if (
             isinstance(mapped_field_type, list)
@@ -258,20 +262,29 @@ class DynamicSchemaLoader(SchemaLoader):
 
                 if field_type == types_map.current_type and condition:
                     if types_map.items_type:
-                        items_type = self._extract_data(raw_schema, types_map.items_type.items_type_pointer)
+                        items_type = self._extract_data(
+                            raw_schema, types_map.items_type.items_type_pointer
+                        )
                         items_type_condition = InterpolatedBoolean(
-                            condition=types_map.items_type.type_mapping.condition if types_map.items_type.type_mapping.condition is not None else "True",
+                            condition=types_map.items_type.type_mapping.condition
+                            if types_map.items_type.type_mapping.condition is not None
+                            else "True",
                             parameters={},
                         ).eval(config=self.config, raw_schema=raw_schema)
 
-                        if items_type == types_map.items_type.type_mapping.current_type and items_type_condition:
+                        if (
+                            items_type == types_map.items_type.type_mapping.current_type
+                            and items_type_condition
+                        ):
                             additional_types = [types_map.items_type.type_mapping.target_type]
 
                     return types_map.target_type, additional_types
         return field_type, additional_types
 
     @staticmethod
-    def _get_airbyte_type(field_type: str, additional_types: Optional[List] = None) -> Mapping[str, Any]:
+    def _get_airbyte_type(
+        field_type: str, additional_types: Optional[List] = None
+    ) -> Mapping[str, Any]:
         """
         Maps a field type to its corresponding Airbyte type definition.
         """

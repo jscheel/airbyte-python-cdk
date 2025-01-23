@@ -245,6 +245,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     InlineSchemaLoader as InlineSchemaLoaderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    ItemsTypeMap as ItemsTypeMapModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     IterableDecoder as IterableDecoderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -311,6 +314,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     ParentStreamConfig as ParentStreamConfigModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    PropertyTypesMap as PropertyTypesMapModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     RecordFilter as RecordFilterModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -352,12 +358,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     TypesMap as TypesMapModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    PropertyTypesMap as PropertyTypesMapModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    ItemsTypeMap as ItemsTypeMapModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import ValueType
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -438,11 +438,11 @@ from airbyte_cdk.sources.declarative.schema import (
     DefaultSchemaLoader,
     DynamicSchemaLoader,
     InlineSchemaLoader,
+    ItemsTypeMap,
     JsonFileSchemaLoader,
+    PropertyTypesMap,
     SchemaTypeIdentifier,
     TypesMap,
-    PropertyTypesMap,
-    ItemsTypeMap,
 )
 from airbyte_cdk.sources.declarative.spec import Spec
 from airbyte_cdk.sources.declarative.stream_slicers import StreamSlicer
@@ -1904,7 +1904,9 @@ class ModelToComponentFactory:
     ) -> InlineSchemaLoader:
         return InlineSchemaLoader(schema=model.schema_ or {}, parameters={})
 
-    def create_property_types_map(self, model: PropertyTypesMapModel, config: Config, **kwargs: Any) -> PropertyTypesMap:
+    def create_property_types_map(
+        self, model: PropertyTypesMapModel, config: Config, **kwargs: Any
+    ) -> PropertyTypesMap:
         type_mapping = self._create_component_from_model(model=model.type_mapping, config=config)
         model_property_type_pointer: List[Union[InterpolatedString, str]] = (
             [x for x in model.property_type_pointer] if model.property_type_pointer else []
@@ -1912,21 +1914,24 @@ class ModelToComponentFactory:
         return PropertyTypesMap(
             property_name=model.property_name,
             property_type_pointer=model_property_type_pointer,
-            type_mapping=type_mapping
+            type_mapping=type_mapping,
         )
 
-    def create_items_type_map(self, model: ItemsTypeMapModel, config: Config, **kwargs: Any) -> ItemsTypeMap:
+    def create_items_type_map(
+        self, model: ItemsTypeMapModel, config: Config, **kwargs: Any
+    ) -> ItemsTypeMap:
         type_mapping = self._create_component_from_model(model=model.type_mapping, config=config)
         model_items_type_pointer: List[Union[InterpolatedString, str]] = (
             [x for x in model.items_type_pointer] if model.items_type_pointer else []
         )
-        return ItemsTypeMap(
-            items_type_pointer=model_items_type_pointer,
-            type_mapping=type_mapping
-        )
+        return ItemsTypeMap(items_type_pointer=model_items_type_pointer, type_mapping=type_mapping)
 
     def create_types_map(self, model: TypesMapModel, config: Config, **kwargs: Any) -> TypesMap:
-        items_type = self._create_component_from_model(model=model.items_type, config=config) if model.items_type else model.items_type
+        items_type = (
+            self._create_component_from_model(model=model.items_type, config=config)
+            if model.items_type
+            else model.items_type
+        )
 
         properties_types = []
         if model.properties_types:

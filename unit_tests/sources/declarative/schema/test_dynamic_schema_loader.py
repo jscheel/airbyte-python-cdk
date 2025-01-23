@@ -85,18 +85,17 @@ _MANIFEST = {
                     "key_pointer": ["name"],
                     "type_pointer": ["type"],
                     "types_mapping": [
-                        {
-                            "target_type": "string",
-                            "current_type": "singleLineText"
-                        },
+                        {"target_type": "string", "current_type": "singleLineText"},
                         {
                             "target_type": "array",
                             "current_type": "formula",
-                            "items_type":
-                                {
-                                    "items_type_pointer": ["result", "type"],
-                                    "type_mapping": {"target_type": "integer", "current_type": "customInteger"}
+                            "items_type": {
+                                "items_type_pointer": ["result", "type"],
+                                "type_mapping": {
+                                    "target_type": "integer",
+                                    "current_type": "customInteger",
                                 },
+                            },
                             "condition": "{{ raw_schema['result']['type'] == 'customInteger' }}",
                         },
                         {
@@ -105,15 +104,20 @@ _MANIFEST = {
                             "properties_types": [
                                 {
                                     "property_name": "property_1",
-                                    "type_mapping": {"target_type": "string", "current_type": "singleLineText"}
+                                    "type_mapping": {
+                                        "target_type": "string",
+                                        "current_type": "singleLineText",
+                                    },
                                 },
                                 {
                                     "property_name": "property_2",
-                                    "type_mapping": {"target_type": "integer", "current_type": "customInteger"}
+                                    "type_mapping": {
+                                        "target_type": "integer",
+                                        "current_type": "customInteger",
+                                    },
                                 },
-                            ]
+                            ],
                         },
-
                     ],
                 },
             },
@@ -354,7 +358,7 @@ def test_dynamic_schema_loader_with_type_conditions():
             "currency": {"type": ["null", "number"]},
             "salary": {"type": ["null", "number"]},
             "working_days": {"type": ["null", "array"]},
-            "avg_salary": {"type": ["null", "array"], "items": {"type": ["null", "integer"]}}
+            "avg_salary": {"type": ["null", "array"], "items": {"type": ["null", "integer"]}},
         },
     }
     source = ConcurrentDeclarativeSource(
@@ -396,7 +400,11 @@ def test_dynamic_schema_loader_with_type_conditions():
                             {"name": "FirstName", "type": "string"},
                             {"name": "Description", "type": "singleLineText"},
                             {"name": "Salary", "type": "formula", "result": {"type": "number"}},
-                            {"name": "AvgSalary", "type": "formula", "result": {"type": "customInteger"}},
+                            {
+                                "name": "AvgSalary",
+                                "type": "formula",
+                                "result": {"type": "customInteger"},
+                            },
                             {"name": "Currency", "type": "formula", "result": {"type": "currency"}},
                             {"name": "Currency", "type": "formula", "result": {"type": "currency"}},
                             {"name": "WorkingDays", "type": "formula"},

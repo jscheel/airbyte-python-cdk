@@ -5,10 +5,10 @@
 from airbyte_cdk.sources.declarative.schema.default_schema_loader import DefaultSchemaLoader
 from airbyte_cdk.sources.declarative.schema.dynamic_schema_loader import (
     DynamicSchemaLoader,
+    ItemsTypeMap,
+    PropertyTypesMap,
     SchemaTypeIdentifier,
     TypesMap,
-    PropertyTypesMap,
-    ItemsTypeMap,
 )
 from airbyte_cdk.sources.declarative.schema.inline_schema_loader import InlineSchemaLoader
 from airbyte_cdk.sources.declarative.schema.json_file_schema_loader import JsonFileSchemaLoader
