@@ -134,17 +134,34 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Use GitHub Actions context to get the current check run ID
-          check_run_id="${{ github.run_id }}_${{ github.job }}"
-          echo "Using check run ID from GitHub Actions context: $check_run_id"
+          # Get check run ID using GitHub API and current job name
+          HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "Getting check run ID for commit: $HEAD_SHA"
           
-          # Validate the check run ID
+          # Wait for check run to be created
+          sleep 30
+          
+          # Use GitHub API to get check runs and filter by current job name
+          check_runs=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs)
+          
+          # Get current job name
+          JOB_NAME="Check: '${{ matrix.connector }}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
+          echo "Looking for check run with name: $JOB_NAME"
+          
+          # Extract check run ID
+          check_run_id=$(echo "$check_runs" | jq -r --arg name "$JOB_NAME" '.check_runs[] | select(.name == $name) | .id')
+          
           if [ -z "$check_run_id" ]; then
-            echo "No check run ID available from GitHub Actions context"
+            echo "Available check runs:"
+            echo "$check_runs" | jq -r '.check_runs[].name'
+            echo "No matching check run found"
             exit 3
           fi
           
-          # Store for later use
+          echo "Found check run ID: $check_run_id"
           echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
           echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
       - name: Test Connector
