@@ -222,6 +222,8 @@ class PerPartitionCursor(DeclarativeCursor):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
         if stream_slice:
+            if self._to_partition_key(stream_slice.partition) not in self._cursor_per_partition:
+                self.create_cursor_for_partition(self._to_partition_key(stream_slice.partition))
             return self._partition_router.get_request_params(  # type: ignore # this always returns a mapping
                 stream_state=stream_state,
                 stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
@@ -244,6 +246,8 @@ class PerPartitionCursor(DeclarativeCursor):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
         if stream_slice:
+            if self._to_partition_key(stream_slice.partition) not in self._cursor_per_partition:
+                self.create_cursor_for_partition(self._to_partition_key(stream_slice.partition))
             return self._partition_router.get_request_headers(  # type: ignore # this always returns a mapping
                 stream_state=stream_state,
                 stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
@@ -266,6 +270,8 @@ class PerPartitionCursor(DeclarativeCursor):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Union[Mapping[str, Any], str]:
         if stream_slice:
+            if self._to_partition_key(stream_slice.partition) not in self._cursor_per_partition:
+                self.create_cursor_for_partition(self._to_partition_key(stream_slice.partition))
             return self._partition_router.get_request_body_data(  # type: ignore # this always returns a mapping
                 stream_state=stream_state,
                 stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
@@ -288,6 +294,8 @@ class PerPartitionCursor(DeclarativeCursor):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
         if stream_slice:
+            if self._to_partition_key(stream_slice.partition) not in self._cursor_per_partition:
+                self.create_cursor_for_partition(self._to_partition_key(stream_slice.partition))
             return self._partition_router.get_request_body_json(  # type: ignore # this always returns a mapping
                 stream_state=stream_state,
                 stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
@@ -303,21 +311,6 @@ class PerPartitionCursor(DeclarativeCursor):
             raise ValueError("A partition needs to be provided in order to get request body json")
 
     def should_be_synced(self, record: Record) -> bool:
-        if (
-            record.associated_slice
-            and self._to_partition_key(record.associated_slice.partition)
-            not in self._cursor_per_partition
-        ):
-            partition_state = (
-                self._state_to_migrate_from
-                if self._state_to_migrate_from
-                else self._NO_CURSOR_STATE
-            )
-            cursor = self._create_cursor(partition_state)
-
-            self._cursor_per_partition[
-                self._to_partition_key(record.associated_slice.partition)
-            ] = cursor
         return self._get_cursor(record).should_be_synced(
             self._convert_record_to_cursor_record(record)
         )
@@ -356,8 +349,14 @@ class PerPartitionCursor(DeclarativeCursor):
             )
         partition_key = self._to_partition_key(record.associated_slice.partition)
         if partition_key not in self._cursor_per_partition:
-            raise ValueError(
-                "Invalid state as stream slices that are emitted should refer to an existing cursor"
-            )
+            self.create_cursor_for_partition(partition_key)
         cursor = self._cursor_per_partition[partition_key]
         return cursor
+
+    def create_cursor_for_partition(self, partition_key: str) -> None:
+        partition_state = (
+            self._state_to_migrate_from if self._state_to_migrate_from else self._NO_CURSOR_STATE
+        )
+        cursor = self._create_cursor(partition_state)
+
+        self._cursor_per_partition[partition_key] = cursor
