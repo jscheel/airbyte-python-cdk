@@ -85,7 +85,10 @@ _MANIFEST = {
                     "key_pointer": ["name"],
                     "type_pointer": ["type"],
                     "types_mapping": [
-                        {"target_type": "string", "current_type": "singleLineText"},
+                        {
+                            "target_type": "string",
+                            "current_type": "singleLineText"
+                        },
                         {
                             "target_type": "array",
                             "current_type": "formula",
@@ -97,26 +100,6 @@ _MANIFEST = {
                                 },
                             },
                             "condition": "{{ raw_schema['result']['type'] == 'customInteger' }}",
-                        },
-                        {
-                            "target_type": "object",
-                            "current_type": "customObjectType",
-                            "properties_types": [
-                                {
-                                    "property_name": "property_1",
-                                    "type_mapping": {
-                                        "target_type": "string",
-                                        "current_type": "singleLineText",
-                                    },
-                                },
-                                {
-                                    "property_name": "property_2",
-                                    "type_mapping": {
-                                        "target_type": "integer",
-                                        "current_type": "customInteger",
-                                    },
-                                },
-                            ],
                         },
                     ],
                 },

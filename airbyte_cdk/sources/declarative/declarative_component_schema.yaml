@@ -1800,26 +1800,6 @@ definitions:
       $parameters:
         type: object
         additionalProperties: true
-
-  PropertyTypesMap:
-    title: Types Map
-    description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type for property.
-    type: object
-    required:
-      - property_name
-      - property_type_pointer
-      - type_mapping
-    properties:
-      property_name:
-        type: string
-      property_type_pointer:
-        title: Key Path
-        description: List of potentially nested fields describing the full path of the property type to extract.
-        type: array
-        items:
-          - type: string
-      type_mapping:
-        "$ref": "#/definitions/TypesMap"
   ItemsTypeMap:
     title: Types Map
     description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type for property.
@@ -1864,10 +1844,6 @@ definitions:
           - raw_schema
       items_type:
         "$ref": "#/definitions/ItemsTypeMap"
-      properties_types:
-        type: array
-        items:
-          - "$ref": "#/definitions/PropertyTypesMap"
   SchemaTypeIdentifier:
     title: Schema Type Identifier
     description: (This component is experimental. Use at your own risk.) Identifies schema details for dynamic schema extraction and processing.

@@ -47,18 +47,6 @@ AIRBYTE_DATA_TYPES: Mapping[str, Mapping[str, Any]] = {
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
 @dataclass(frozen=True)
-class PropertyTypesMap:
-    """
-    Represents a mapping between a current type and its corresponding target type for property.
-    """
-
-    property_name: str
-    property_type_pointer: List[Union[InterpolatedString, str]]
-    type_mapping: "TypesMap"
-
-
-@deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
-@dataclass(frozen=True)
 class ItemsTypeMap:
     """
     Represents a mapping between a current type and its corresponding target type for item.
@@ -79,27 +67,14 @@ class TypesMap:
     current_type: Union[List[str], str]
     condition: Optional[str]
     items_type: Optional[ItemsTypeMap] = None
-    properties_types: Optional[List[PropertyTypesMap]] = None
 
     def __post_init__(self):
         """
-        Ensures that only one of `items_type` or `properties_types` can be set.
-        Additionally, enforces that `items_type` is only used when `target_type` is a list,
-        and `properties_types` is only used when `target_type` is an object.
+        Enforces that `items_type` is only used when `target_type` is a array
         """
-        # Ensure only one of `items_type` or `properties_types` is set
-        if self.items_type and self.properties_types:
-            raise ValueError(
-                "Cannot specify both 'items_type' and 'properties_types' at the same time."
-            )
-
         # `items_type` is valid only for array target types
         if self.items_type and self.target_type != "array":
             raise ValueError("'items_type' can only be used when 'target_type' is an array.")
-
-        # `properties_types` is valid only for object target types
-        if self.properties_types and self.target_type != "object":
-            raise ValueError("'properties_types' can only be used when 'target_type' is an object.")
 
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
@@ -277,7 +252,6 @@ class DynamicSchemaLoader(SchemaLoader):
                             and items_type_condition
                         ):
                             additional_types = [types_map.items_type.type_mapping.target_type]
-
                     return types_map.target_type, additional_types
         return field_type, additional_types
 
@@ -298,11 +272,6 @@ class DynamicSchemaLoader(SchemaLoader):
 
         if field_type == "array" and additional_types:
             airbyte_type["items"] = deepcopy(AIRBYTE_DATA_TYPES[additional_types[0]])
-
-        # elif field_type == "object" and additional_types:
-        #     for additional_type in additional_types:
-        #
-        #         airbyte_type["properties"] =
 
         return airbyte_type
 
