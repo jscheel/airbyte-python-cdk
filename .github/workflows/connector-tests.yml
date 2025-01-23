@@ -62,7 +62,7 @@ jobs:
     # Forked PRs are handled by the community_ci.yml workflow
     # If the condition is not met the job will be skipped (it will not fail)
     # runs-on: connector-test-large
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04  # Ubuntu 24 doesn't work as of now
     timeout-minutes: 360 # 6 hours
     strategy:
       fail-fast: false
@@ -139,30 +139,30 @@ jobs:
           # Get check run ID using GitHub API and current job name
           HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           echo "Getting check run ID for commit: $HEAD_SHA"
-          
+
           # Wait for check run to be created
           sleep 30
-          
+
           # Use GitHub API to get check runs and filter by current job name
           check_runs=$(gh api \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs)
-          
+
           # Get current job name
           JOB_NAME="Check: '${{ matrix.connector }}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
           echo "Looking for check run with name: $JOB_NAME"
-          
+
           # Extract check run ID
           check_run_id=$(echo "$check_runs" | jq -r --arg name "$JOB_NAME" '.check_runs[] | select(.name == $name) | .id')
-          
+
           if [ -z "$check_run_id" ]; then
             echo "Available check runs:"
             echo "$check_runs" | jq -r '.check_runs[].name'
             echo "No matching check run found"
             exit 3
           fi
-          
+
           echo "Found check run ID: $check_run_id"
           echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
           echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
@@ -192,7 +192,7 @@ jobs:
           # save job output json file as ci step output
           mkdir -p airbyte/airbyte-ci/connectors/pipelines/pipeline_reports
           json_output_file=$(find airbyte/airbyte-ci/connectors/pipelines/pipeline_reports -name 'output.json' -print -quit || true)
-          
+
           if [ -z "$json_output_file" ] || [ ! -f "$json_output_file" ]; then
             echo "No output.json found - test may have failed to generate report"
             echo "## Job Output for ${{matrix.connector}}" >> $GITHUB_STEP_SUMMARY
@@ -200,13 +200,13 @@ jobs:
             echo "::error::Test failed for connector '${{ matrix.connector }}' - no output report generated"
             exit 1
           fi
-          
+
           job_output=$(cat ${json_output_file})
           success=$(echo ${job_output} | jq -r '.success')
           failed_step=$(echo ${job_output} | jq -r '.failed_steps | select(length > 0) | .[0] // "None"')
           run_duration=$(echo ${job_output} | jq -r '.run_duration')
           html_report_url=$(echo ${job_output} | jq -r '.html_report_url')
-          
+
           echo "## Job Output for ${{matrix.connector}}" >> $GITHUB_STEP_SUMMARY
           echo "- [HTML Report](${html_report_url})" >> $GITHUB_STEP_SUMMARY
           echo "- Success: ${success}" >> $GITHUB_STEP_SUMMARY
