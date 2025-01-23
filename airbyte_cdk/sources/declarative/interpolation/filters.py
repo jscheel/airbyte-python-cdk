@@ -8,7 +8,7 @@ import re
 from typing import Any, Optional
 
 
-def hash(value: Any, hash_type: str = "md5", salt: Optional[str] = None) -> str:
+def hash(value: Any, hash_type: str = "md5", salt: Optional[str] = None):
     """
       Implementation of a custom Jinja2 hash filter
       Hash type defaults to 'md5' if one is not specified.
