@@ -5,8 +5,8 @@
 from airbyte_cdk.sources.declarative.schema.default_schema_loader import DefaultSchemaLoader
 from airbyte_cdk.sources.declarative.schema.dynamic_schema_loader import (
     DynamicSchemaLoader,
-    ItemsTypeMap,
     SchemaTypeIdentifier,
+    ComplexFieldType,
     TypesMap,
 )
 from airbyte_cdk.sources.declarative.schema.inline_schema_loader import InlineSchemaLoader
@@ -19,7 +19,7 @@ __all__ = [
     "SchemaLoader",
     "InlineSchemaLoader",
     "DynamicSchemaLoader",
+    "ComplexFieldType",
     "TypesMap",
-    "ItemsTypeMap",
     "SchemaTypeIdentifier",
 ]

@@ -245,7 +245,7 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     InlineSchemaLoader as InlineSchemaLoaderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    ItemsTypeMap as ItemsTypeMapModel,
+    ComplexFieldType as ComplexFieldTypeModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     IterableDecoder as IterableDecoderModel,
@@ -435,7 +435,7 @@ from airbyte_cdk.sources.declarative.schema import (
     DefaultSchemaLoader,
     DynamicSchemaLoader,
     InlineSchemaLoader,
-    ItemsTypeMap,
+    ComplexFieldType,
     JsonFileSchemaLoader,
     SchemaTypeIdentifier,
     TypesMap,
@@ -576,7 +576,7 @@ class ModelToComponentFactory:
             DynamicSchemaLoaderModel: self.create_dynamic_schema_loader,
             SchemaTypeIdentifierModel: self.create_schema_type_identifier,
             TypesMapModel: self.create_types_map,
-            ItemsTypeMapModel: self.create_items_type_map,
+            ComplexFieldTypeModel: self.create_complex_field_type,
             JwtAuthenticatorModel: self.create_jwt_authenticator,
             LegacyToPerPartitionStateMigrationModel: self.create_legacy_to_per_partition_state_migration,
             ListPartitionRouterModel: self.create_list_partition_router,
@@ -1899,27 +1899,28 @@ class ModelToComponentFactory:
     ) -> InlineSchemaLoader:
         return InlineSchemaLoader(schema=model.schema_ or {}, parameters={})
 
-    def create_items_type_map(
-        self, model: ItemsTypeMapModel, config: Config, **kwargs: Any
-    ) -> ItemsTypeMap:
-        type_mapping = self._create_component_from_model(model=model.type_mapping, config=config)
-        model_items_type_pointer: List[Union[InterpolatedString, str]] = (
-            [x for x in model.items_type_pointer] if model.items_type_pointer else []
+    def create_complex_field_type(
+        self, model: ComplexFieldTypeModel, config: Config, **kwargs: Any
+    ) -> ComplexFieldType:
+        items = (
+            self._create_component_from_model(model=model.items, config=config)
+            if isinstance(model.items, ComplexFieldTypeModel)
+            else model.items
         )
-        return ItemsTypeMap(items_type_pointer=model_items_type_pointer, type_mapping=type_mapping)
+
+        return ComplexFieldType(field_type=model.field_type, items=items)
 
     def create_types_map(self, model: TypesMapModel, config: Config, **kwargs: Any) -> TypesMap:
-        items_type = (
-            self._create_component_from_model(model=model.items_type, config=config)
-            if isinstance(model.items_type, ItemsTypeMapModel)
-            else model.items_type
+        target_type = (
+            self._create_component_from_model(model=model.target_type, config=config)
+            if isinstance(model.target_type, ComplexFieldTypeModel)
+            else model.target_type
         )
 
         return TypesMap(
-            target_type=model.target_type,
+            target_type=target_type,
             current_type=model.current_type,
             condition=model.condition if model.condition is not None else "True",
-            items_type=items_type,
         )
 
     def create_schema_type_identifier(

@@ -18,7 +18,7 @@ from airbyte_cdk.sources.declarative.transformations import RecordTransformation
 from airbyte_cdk.sources.source import ExperimentalClassWarning
 from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 
-AIRBYTE_DATA_TYPES: Mapping[str, Mapping[str, Any]] = {
+AIRBYTE_DATA_TYPES: Mapping[str, MutableMapping[str, Any]] = {
     "string": {"type": ["null", "string"]},
     "boolean": {"type": ["null", "boolean"]},
     "date": {"type": ["null", "string"], "format": "date"},
@@ -47,12 +47,31 @@ AIRBYTE_DATA_TYPES: Mapping[str, Mapping[str, Any]] = {
 
 @deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
 @dataclass(frozen=True)
+class ComplexFieldType:
+    """
+    Identifies complex field type
+    """
+
+    field_type: str
+    items: Optional[Union[str, "ComplexFieldType"]] = None
+
+    def __post_init__(self) -> None:
+        """
+        Enforces that `items` is only used when `field_type` is a array
+        """
+        # `items_type` is valid only for array target types
+        if self.items and self.field_type != "array":
+            raise ValueError("'items' can only be used when 'field_type' is an array.")
+
+
+@deprecated("This class is experimental. Use at your own risk.", category=ExperimentalClassWarning)
+@dataclass(frozen=True)
 class TypesMap:
     """
     Represents a mapping between a current type and its corresponding target type.
     """
 
-    target_type: Union[List[str], str]
+    target_type: Union[List[str], str, ComplexFieldType]
     current_type: Union[List[str], str]
     condition: Optional[str]
 
@@ -188,12 +207,38 @@ class DynamicSchemaLoader(SchemaLoader):
             first_type = self._get_airbyte_type(mapped_field_type[0])
             second_type = self._get_airbyte_type(mapped_field_type[1])
             return {"oneOf": [first_type, second_type]}
+
         elif isinstance(mapped_field_type, str):
             return self._get_airbyte_type(mapped_field_type)
+
+        elif isinstance(mapped_field_type, ComplexFieldType):
+            return self._resolve_complex_type(mapped_field_type)
+
         else:
             raise ValueError(
                 f"Invalid data type. Available string or two items list of string. Got {mapped_field_type}."
             )
+
+    def _resolve_complex_type(self, complex_type: ComplexFieldType) -> Mapping[str, Any]:
+        types = [complex_type]
+        resolved_type = {}
+
+        while types:
+            current_type = types.pop()
+            if not current_type.items:
+                resolved_type = self._get_airbyte_type(current_type.field_type)
+            else:
+                field_type = self._get_airbyte_type(current_type.field_type)
+
+                if isinstance(current_type.items, str):
+                    items_type = current_type.items
+                else:
+                    types.append(current_type.items)
+                    continue  # Skip the following lines until the stack is resolved
+                field_type["items"] = self._get_airbyte_type(items_type)
+                resolved_type = field_type
+
+        return resolved_type
 
     def _replace_type_if_not_valid(
         self,
@@ -216,7 +261,7 @@ class DynamicSchemaLoader(SchemaLoader):
         return field_type
 
     @staticmethod
-    def _get_airbyte_type(field_type: str) -> Mapping[str, Any]:
+    def _get_airbyte_type(field_type: str) -> MutableMapping[str, Any]:
         """
         Maps a field type to its corresponding Airbyte type definition.
         """

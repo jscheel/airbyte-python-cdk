@@ -1800,9 +1800,9 @@ definitions:
       $parameters:
         type: object
         additionalProperties: true
-  SchemaFieldType:
+  ComplexFieldType:
     title: Schema Field Type
-    description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type for property.
+    description: (This component is experimental. Use at your own risk.) Represents a complex field type.
     type: object
     required:
       - field_type
@@ -1810,20 +1810,9 @@ definitions:
       field_type:
         type: string
       items:
-        "$ref": "#/definitions/SchemaFieldType"
-  ItemsTypeMap:
-    title: Types Map
-    description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type for property.
-    type: object
-    required:
-      - target_type
-    properties:
-      condition:
-        type: string
-        interpolation_context:
-          - raw_schema
-      target_type:
-          "$ref": "#/definitions/SchemaFieldType"
+        anyOf:
+          - type: string
+          - "$ref": "#/definitions/ComplexFieldType"
   TypesMap:
     title: Types Map
     description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type.
@@ -1838,6 +1827,7 @@ definitions:
           - type: array
             items:
               type: string
+          - "$ref": "#/definitions/ComplexFieldType"
       current_type:
         anyOf:
           - type: string
@@ -1848,8 +1838,6 @@ definitions:
         type: string
         interpolation_context:
           - raw_schema
-      items_type:
-        "$ref": "#/definitions/ItemsTypeMap"
   SchemaTypeIdentifier:
     title: Schema Type Identifier
     description: (This component is experimental. Use at your own risk.) Identifies schema details for dynamic schema extraction and processing.

@@ -738,21 +738,15 @@ class HttpResponseFilter(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
-class SchemaFieldType(BaseModel):
+class ComplexFieldType(BaseModel):
     field_type: str
-    items: Optional[SchemaFieldType] = None
-
-
-class ItemsTypeMap(BaseModel):
-    condition: Optional[str] = None
-    target_type: SchemaFieldType
+    items: Optional[Union[str, ComplexFieldType]] = None
 
 
 class TypesMap(BaseModel):
-    target_type: Union[str, List[str]]
+    target_type: Union[str, List[str], ComplexFieldType]
     current_type: Union[str, List[str]]
     condition: Optional[str] = None
-    items_type: Optional[ItemsTypeMap] = None
 
 
 class SchemaTypeIdentifier(BaseModel):
@@ -2297,7 +2291,7 @@ class DynamicDeclarativeStream(BaseModel):
     )
 
 
-SchemaFieldType.update_forward_refs()
+ComplexFieldType.update_forward_refs()
 CompositeErrorHandler.update_forward_refs()
 DeclarativeSource1.update_forward_refs()
 DeclarativeSource2.update_forward_refs()
