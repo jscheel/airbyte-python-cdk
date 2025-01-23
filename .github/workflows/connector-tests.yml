@@ -138,12 +138,18 @@ jobs:
           sleep 45
           HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           RUN_NAME="Check: '${{ matrix.connector }}' (skip=${{needs.cdk_changes.outputs['src'] == 'false' || needs.cdk_changes.outputs[matrix.cdk_extra] == 'false'}})"
+          echo "Looking for check run with name: $RUN_NAME"
           check_runs_json=$(gh api repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs --jq '.check_runs')
-          check_run_id=$(echo "$check_runs_json" | jq -r '.[] | select(.name == "'$RUN_NAME'") | .id')
+          echo "Available check runs:"
+          echo "$check_runs_json" | jq -r '.[].name'
+          check_run_id=$(echo "$check_runs_json" | jq -r --arg name "$RUN_NAME" '.[] | select(.name == $name) | .id')
           if [ -z "$check_run_id" ]; then
             echo "No check run ID found after delay, this might indicate a deeper issue"
+            echo "Full check runs response:"
+            echo "$check_runs_json" | jq '.'
             exit 3
           fi
+          echo "Found check run ID: $check_run_id"
           echo "check_run_id=$check_run_id" >> $GITHUB_OUTPUT
       - name: Test Connector
         if: steps.no_changes.outputs.status != 'cancelled'
