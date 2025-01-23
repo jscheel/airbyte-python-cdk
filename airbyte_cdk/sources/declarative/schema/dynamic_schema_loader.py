@@ -221,7 +221,7 @@ class DynamicSchemaLoader(SchemaLoader):
 
     def _resolve_complex_type(self, complex_type: ComplexFieldType) -> Mapping[str, Any]:
         types = [complex_type]
-        resolved_type = {}
+        resolved_type: MutableMapping[str, Any] = {}
 
         while types:
             current_type = types.pop()
@@ -244,7 +244,7 @@ class DynamicSchemaLoader(SchemaLoader):
         self,
         field_type: Union[List[str], str],
         raw_schema: MutableMapping[str, Any],
-    ) -> Union[List[str], str]:
+    ) -> Union[List[str], str, ComplexFieldType]:
         """
         Replaces a field type if it matches a type mapping in `types_map`.
         """
