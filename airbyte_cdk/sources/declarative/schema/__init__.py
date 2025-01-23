@@ -7,6 +7,8 @@ from airbyte_cdk.sources.declarative.schema.dynamic_schema_loader import (
     DynamicSchemaLoader,
     SchemaTypeIdentifier,
     TypesMap,
+    PropertyTypesMap,
+    ItemsTypeMap,
 )
 from airbyte_cdk.sources.declarative.schema.inline_schema_loader import InlineSchemaLoader
 from airbyte_cdk.sources.declarative.schema.json_file_schema_loader import JsonFileSchemaLoader
@@ -19,5 +21,7 @@ __all__ = [
     "InlineSchemaLoader",
     "DynamicSchemaLoader",
     "TypesMap",
+    "PropertyTypesMap",
+    "ItemsTypeMap",
     "SchemaTypeIdentifier",
 ]
