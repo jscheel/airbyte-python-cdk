@@ -125,6 +125,7 @@ jobs:
           repository: airbytehq/airbyte
           ref: master
           path: airbyte
+          token: ${{ github.token }}
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -225,6 +226,8 @@ jobs:
       # Update the check run with the HTML report URL if available
       - name: Update Check Run details URL
         if: always() && steps.no_changes.outputs.status != 'cancelled'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -z "${{ steps.evaluate_output.outputs.html_report_url }}" ] || [ "${{ steps.evaluate_output.outputs.html_report_url }}" = "null" ]; then
             echo "HTML report URL missing; skipping details_url update."
