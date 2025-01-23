@@ -85,10 +85,7 @@ _MANIFEST = {
                     "key_pointer": ["name"],
                     "type_pointer": ["type"],
                     "types_mapping": [
-                        {
-                            "target_type": "string",
-                            "current_type": "singleLineText"
-                        },
+                        {"target_type": "string", "current_type": "singleLineText"},
                         {
                             "target_type": "array",
                             "current_type": "formula",
