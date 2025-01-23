@@ -130,6 +130,8 @@ jobs:
       - name: Obtain Check Run ID
         id: obtain_check_run_id
         if: steps.no_changes.outputs.status != 'cancelled'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           RUN_NAME="Check: '${{ matrix.connector }}'"
@@ -160,12 +162,23 @@ jobs:
         if: always() && steps.no_changes.outputs.status != 'cancelled'
         run: |
           # save job output json file as ci step output
-          json_output_file=$(find airbyte/airbyte-ci/connectors/pipelines/pipeline_reports -name 'output.json' -print -quit)
+          mkdir -p airbyte/airbyte-ci/connectors/pipelines/pipeline_reports
+          json_output_file=$(find airbyte/airbyte-ci/connectors/pipelines/pipeline_reports -name 'output.json' -print -quit || true)
+          
+          if [ -z "$json_output_file" ] || [ ! -f "$json_output_file" ]; then
+            echo "No output.json found - test may have failed to generate report"
+            echo "## Job Output for ${{matrix.connector}}" >> $GITHUB_STEP_SUMMARY
+            echo "- Test failed to generate report" >> $GITHUB_STEP_SUMMARY
+            echo "::error::Test failed for connector '${{ matrix.connector }}' - no output report generated"
+            exit 1
+          fi
+          
           job_output=$(cat ${json_output_file})
           success=$(echo ${job_output} | jq -r '.success')
           failed_step=$(echo ${job_output} | jq -r '.failed_steps | select(length > 0) | .[0] // "None"')
           run_duration=$(echo ${job_output} | jq -r '.run_duration')
           html_report_url=$(echo ${job_output} | jq -r '.html_report_url')
+          
           echo "## Job Output for ${{matrix.connector}}" >> $GITHUB_STEP_SUMMARY
           echo "- [HTML Report](${html_report_url})" >> $GITHUB_STEP_SUMMARY
           echo "- Success: ${success}" >> $GITHUB_STEP_SUMMARY
