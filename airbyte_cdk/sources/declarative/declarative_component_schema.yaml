@@ -1807,7 +1807,7 @@ definitions:
     type: object
     required:
       - property_name
-      - property_type_pinter
+      - property_type_pointer
       - type_mapping
     properties:
       property_name:
@@ -1825,7 +1825,7 @@ definitions:
     description: (This component is experimental. Use at your own risk.) Represents a mapping between a current type and its corresponding target type for property.
     type: object
     required:
-      - items_type_pinter
+      - items_type_pointer
       - type_mapping
     properties:
       property_name:

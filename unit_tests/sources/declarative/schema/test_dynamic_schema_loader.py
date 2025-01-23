@@ -417,5 +417,4 @@ def test_dynamic_schema_loader_with_type_conditions():
         actual_catalog = source.discover(logger=source.logger, config=_CONFIG)
 
     assert len(actual_catalog.streams) == 1
-    breakpoint()
     assert actual_catalog.streams[0].json_schema == expected_schema

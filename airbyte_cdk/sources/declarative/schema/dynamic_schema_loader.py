@@ -251,7 +251,7 @@ class DynamicSchemaLoader(SchemaLoader):
         """
         Replaces a field type if it matches a type mapping in `types_map`.
         """
-        additional_types = []
+        additional_types: List[str] = []
         if self.schema_type_identifier.types_mapping:
             for types_map in self.schema_type_identifier.types_mapping:
                 # conditional is optional param, setting to true if not provided
@@ -288,7 +288,6 @@ class DynamicSchemaLoader(SchemaLoader):
         """
         Maps a field type to its corresponding Airbyte type definition.
         """
-        print(additional_types)
         if additional_types is None:
             additional_types = []
 
@@ -299,6 +298,11 @@ class DynamicSchemaLoader(SchemaLoader):
 
         if field_type == "array" and additional_types:
             airbyte_type["items"] = deepcopy(AIRBYTE_DATA_TYPES[additional_types[0]])
+
+        # elif field_type == "object" and additional_types:
+        #     for additional_type in additional_types:
+        #
+        #         airbyte_type["properties"] =
 
         return airbyte_type
 

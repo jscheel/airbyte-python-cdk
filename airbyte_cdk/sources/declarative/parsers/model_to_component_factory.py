@@ -1930,7 +1930,7 @@ class ModelToComponentFactory:
         items_type = (
             self._create_component_from_model(model=model.items_type, config=config)
             if model.items_type
-            else model.items_type
+            else None
         )
 
         properties_types = []
