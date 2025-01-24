@@ -157,7 +157,8 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
                 ]
             ),
             {
-                "$schema": "http://json-schema.org/draft-07/schema#",
+                "$schema": "https://json-schema.org/draft-07/schema#",
+                "additionalProperties": True,
                 "type": "object",
                 "properties": {
                     "name": {"type": ["null", "string"]},
@@ -178,7 +179,8 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
                 ]
             ),
             {
-                "$schema": "http://json-schema.org/draft-07/schema#",
+                "$schema": "https://json-schema.org/draft-07/schema#",
+                "additionalProperties": True,
                 "type": "object",
                 "properties": {
                     "name": {"type": ["null", "string"]},
@@ -198,7 +200,8 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
                 ]
             ),
             {
-                "$schema": "http://json-schema.org/draft-07/schema#",
+                "$schema": "https://json-schema.org/draft-07/schema#",
+                "additionalProperties": True,
                 "type": "object",
                 "properties": {
                     "address": {
@@ -211,7 +214,8 @@ def dynamic_schema_loader(mock_retriever, mock_schema_type_identifier):
             # Test case: Empty record set
             iter([]),
             {
-                "$schema": "http://json-schema.org/draft-07/schema#",
+                "$schema": "https://json-schema.org/draft-07/schema#",
+                "additionalProperties": True,
                 "type": "object",
                 "properties": {},
             },
@@ -249,7 +253,8 @@ def test_dynamic_schema_loader_invalid_type(dynamic_schema_loader):
 
 def test_dynamic_schema_loader_manifest_flow():
     expected_schema = {
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$schema": "https://json-schema.org/draft-07/schema#",
+        "additionalProperties": True,
         "type": "object",
         "properties": {
             "id": {"type": ["null", "integer"]},
