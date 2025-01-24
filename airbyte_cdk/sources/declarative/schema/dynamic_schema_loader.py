@@ -154,8 +154,9 @@ class DynamicSchemaLoader(SchemaLoader):
         transformed_properties = self._transform(properties, {})
 
         return {
-            "$schema": "http://json-schema.org/draft-07/schema#",
+            "$schema": "https://json-schema.org/draft-07/schema#",
             "type": "object",
+            "additionalProperties": True,
             "properties": transformed_properties,
         }
 
@@ -220,25 +221,14 @@ class DynamicSchemaLoader(SchemaLoader):
             )
 
     def _resolve_complex_type(self, complex_type: ComplexFieldType) -> Mapping[str, Any]:
-        types = [complex_type]
-        resolved_type: MutableMapping[str, Any] = {}
+        if not complex_type.items:
+            return self._get_airbyte_type(complex_type.field_type)
 
-        while types:
-            current_type = types.pop()
-            if not current_type.items:
-                resolved_type = self._get_airbyte_type(current_type.field_type)
-            else:
-                field_type = self._get_airbyte_type(current_type.field_type)
+        field_type = self._get_airbyte_type(complex_type.field_type)
+        field_type["items"] = self._get_airbyte_type(complex_type.items) if isinstance(complex_type.items, str) else self._resolve_complex_type(
+            complex_type.items)
 
-                if isinstance(current_type.items, str):
-                    items_type = current_type.items
-                else:
-                    types.append(current_type.items)
-                    continue  # Skip the following lines until the stack is resolved
-                field_type["items"] = self._get_airbyte_type(items_type)
-                resolved_type = field_type
-
-        return resolved_type
+        return field_type
 
     def _replace_type_if_not_valid(
         self,

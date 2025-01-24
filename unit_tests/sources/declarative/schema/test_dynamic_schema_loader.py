@@ -87,7 +87,7 @@ _MANIFEST = {
                     "types_mapping": [
                         {"target_type": "string", "current_type": "singleLineText"},
                         {
-                            "target_type": {"field_type": "array", "items": "integer"},
+                            "target_type": {"field_type": "array", "items": {"field_type": "array", "items": "integer"}},
                             "current_type": "formula",
                             "condition": "{{ raw_schema['result']['type'] == 'customInteger' }}",
                         },
@@ -321,7 +321,8 @@ def test_dynamic_schema_loader_with_type_conditions():
     ]["types_mapping"].append({"target_type": "array", "current_type": "formula"})
 
     expected_schema = {
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$schema": "https://json-schema.org/draft-07/schema#",
+        "additionalProperties": True,
         "type": "object",
         "properties": {
             "id": {"type": ["null", "integer"]},
@@ -331,7 +332,7 @@ def test_dynamic_schema_loader_with_type_conditions():
             "currency": {"type": ["null", "number"]},
             "salary": {"type": ["null", "number"]},
             "working_days": {"type": ["null", "array"]},
-            "avg_salary": {"type": ["null", "array"], "items": {"type": ["null", "integer"]}},
+            "avg_salary": {"type": ["null", "array"], "items": {"type": ["null", "array"], "items": {"type": ["null", "integer"]}}},
         },
     }
     source = ConcurrentDeclarativeSource(
