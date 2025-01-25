@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Airbyte, Inc., all rights reserved.
+
 import pytest
 
 from airbyte_cdk.sources.streams.concurrent.helpers import get_primary_key_from_stream

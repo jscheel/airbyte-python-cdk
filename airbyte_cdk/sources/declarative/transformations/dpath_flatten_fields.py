@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Airbyte, Inc., all rights reserved.
+
 from dataclasses import InitVar, dataclass
 from typing import Any, Dict, List, Mapping, Optional, Union
 

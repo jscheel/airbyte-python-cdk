@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Airbyte, Inc., all rights reserved.
+
 import hashlib
 import json
 from typing import Any, Final, Mapping, Optional

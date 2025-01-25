@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Airbyte, Inc., all rights reserved.
+
 import pytest
 
 from airbyte_cdk.sources.declarative.transformations.dpath_flatten_fields import DpathFlattenFields
