@@ -232,12 +232,12 @@ class ConcurrentPerPartitionCursor(Cursor):
                 self._over_limit += 1
                 # Try removing finished partitions first
                 for partition_key in list(self._cursor_per_partition.keys()):
-                    if partition_key in self._finished_partitions:
+                    if partition_key in self._finished_partitions and self._semaphore_per_partition[partition_key]._value == 0:
                         oldest_partition = self._cursor_per_partition.pop(
                             partition_key
                         )  # Remove the oldest partition
                         logger.warning(
-                            f"The maximum number of partitions has been reached. Dropping the oldest partition: {oldest_partition}. Over limit: {self._over_limit}."
+                            f"The maximum number of partitions has been reached. Dropping the oldest finished partition: {oldest_partition}. Over limit: {self._over_limit}."
                         )
                         break
                 else:
