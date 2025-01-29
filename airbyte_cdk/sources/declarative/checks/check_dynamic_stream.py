@@ -41,13 +41,17 @@ class CheckDynamicStream(ConnectionChecker):
         availability_strategy = HttpAvailabilityStrategy()
 
         try:
-            for stream in streams[:min(self.stream_count, len(streams))]:
-                stream_is_available, reason = availability_strategy.check_availability(stream, logger)
+            for stream in streams[: min(self.stream_count, len(streams))]:
+                stream_is_available, reason = availability_strategy.check_availability(
+                    stream, logger
+                )
                 if not stream_is_available:
                     logger.warning(f"Stream {stream.name} is not available: {reason}")
                     return False, reason
         except Exception as error:
-            error_message = f"Encountered an error trying to connect to stream {stream.name}. Error: {error}"
+            error_message = (
+                f"Encountered an error trying to connect to stream {stream.name}. Error: {error}"
+            )
             logger.error(error_message, exc_info=True)
             return False, error_message
 

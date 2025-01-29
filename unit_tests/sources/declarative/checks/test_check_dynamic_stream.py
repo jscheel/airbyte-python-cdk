@@ -3,8 +3,8 @@
 #
 
 import json
-from copy import deepcopy
 import logging
+from copy import deepcopy
 
 import pytest
 
@@ -132,12 +132,16 @@ _MANIFEST = {
         ),
     ],
 )
-def test_check_dynamic_stream(response_code, available_expectation, use_check_availability, expected_messages):
+def test_check_dynamic_stream(
+    response_code, available_expectation, use_check_availability, expected_messages
+):
     manifest = deepcopy(_MANIFEST)
 
     with HttpMocker() as http_mocker:
         items_request = HttpRequest(url="https://api.test.com/items")
-        items_response = HttpResponse(body=json.dumps([{"id": 1, "name": "item_1"}, {"id": 2, "name": "item_2"}]))
+        items_response = HttpResponse(
+            body=json.dumps([{"id": 1, "name": "item_1"}, {"id": 2, "name": "item_2"}])
+        )
         items_request_count = 1
         http_mocker.get(items_request, items_response)
 
