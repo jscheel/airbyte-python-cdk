@@ -406,7 +406,9 @@ PARENT_COMMENT_CURSOR_PARTITION_1 = "2023-01-04T00:00:00Z"  # Parent comment cur
 PARENT_POSTS_CURSOR = "2024-01-05T00:00:00Z"  # Parent posts cursor (expected in state)
 
 INITIAL_STATE_PARTITION_10_CURSOR = "2024-01-02T00:00:01Z"
+INITIAL_STATE_PARTITION_10_CURSOR_TIMESTAMP = 1704153601000
 INITIAL_STATE_PARTITION_11_CURSOR = "2024-01-03T00:00:02Z"
+INITIAL_STATE_PARTITION_11_CURSOR_TIMESTAMP = 1704240002000
 INITIAL_GLOBAL_CURSOR = INITIAL_STATE_PARTITION_11_CURSOR
 INITIAL_GLOBAL_CURSOR_DATE = datetime.fromisoformat(
     INITIAL_STATE_PARTITION_11_CURSOR.replace("Z", "")
@@ -663,7 +665,7 @@ PARTITION_SYNC_START_TIME = "2024-01-02T00:00:00Z"
                             "id": 10,
                             "parent_slice": {"id": 1, "parent_slice": {}},
                         },
-                        "cursor": {"created_at": INITIAL_STATE_PARTITION_10_CURSOR},
+                        "cursor": {"created_at": INITIAL_STATE_PARTITION_10_CURSOR_TIMESTAMP},
                     },
                     {
                         "partition": {
@@ -673,7 +675,7 @@ PARTITION_SYNC_START_TIME = "2024-01-02T00:00:00Z"
                         "cursor": {"created_at": INITIAL_STATE_PARTITION_11_CURSOR},
                     },
                 ],
-                "state": {"created_at": INITIAL_STATE_PARTITION_11_CURSOR},
+                "state": {"created_at": INITIAL_STATE_PARTITION_11_CURSOR_TIMESTAMP},
                 "lookback_window": 86400,
             },
             # Expected state
