@@ -423,7 +423,6 @@ class HttpStream(Stream, CheckpointMixin, ABC):
         stream_slice: Optional[Mapping[str, Any]] = None,
         stream_state: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[StreamData]:
-
         stream_state = stream_state or {}
         pagination_complete = False
         next_page_token = None
