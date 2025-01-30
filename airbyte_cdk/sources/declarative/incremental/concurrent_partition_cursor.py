@@ -23,6 +23,7 @@ from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import 
 from airbyte_cdk.sources.streams.concurrent.cursor import ConcurrentCursor, Cursor, CursorField
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
+from airbyte_cdk.utils.datetime_helpers import ab_datetime_parse, AirbyteDateTime
 
 logger = logging.getLogger("airbyte")
 
@@ -146,8 +147,12 @@ class ConcurrentPerPartitionCursor(Cursor):
             ):
                 if (
                     self._new_global_cursor is None
-                    or self._new_global_cursor[self.cursor_field.cursor_field_key]
-                    < cursor.state[self.cursor_field.cursor_field_key]
+                    or ab_datetime_parse(
+                        self._new_global_cursor[self.cursor_field.cursor_field_key]
+                    ).to_epoch_millis()
+                    < ab_datetime_parse(
+                        cursor.state[self.cursor_field.cursor_field_key]
+                    ).to_epoch_millis()
                 ):
                     self._new_global_cursor = copy.deepcopy(cursor.state)
             if not self._use_global_cursor:
