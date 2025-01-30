@@ -23,7 +23,7 @@ from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import 
 from airbyte_cdk.sources.streams.concurrent.cursor import ConcurrentCursor, Cursor, CursorField
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
-from airbyte_cdk.utils.datetime_helpers import ab_datetime_parse, AirbyteDateTime
+from airbyte_cdk.utils.datetime_helpers import AirbyteDateTime, ab_datetime_parse
 
 logger = logging.getLogger("airbyte")
 
