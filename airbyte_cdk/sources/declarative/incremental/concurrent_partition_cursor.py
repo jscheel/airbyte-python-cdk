@@ -22,6 +22,9 @@ from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import 
 )
 from airbyte_cdk.sources.streams.concurrent.cursor import ConcurrentCursor, Cursor, CursorField
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
+from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import (
+    AbstractStreamStateConverter,
+)
 from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
 
 logger = logging.getLogger("airbyte")
@@ -72,6 +75,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         stream_state: Any,
         message_repository: MessageRepository,
         connector_state_manager: ConnectorStateManager,
+        connector_state_converter: AbstractStreamStateConverter,
         cursor_field: CursorField,
     ) -> None:
         self._global_cursor: Optional[StreamState] = {}
@@ -79,6 +83,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         self._stream_namespace = stream_namespace
         self._message_repository = message_repository
         self._connector_state_manager = connector_state_manager
+        self._connector_state_converter = connector_state_converter
         self._cursor_field = cursor_field
 
         self._cursor_factory = cursor_factory
@@ -144,11 +149,9 @@ class ConcurrentPerPartitionCursor(Cursor):
                 partition_key in self._finished_partitions
                 and self._semaphore_per_partition[partition_key]._value == 0
             ):
-                if (
-                    self._new_global_cursor is None
-                    or self._new_global_cursor[self.cursor_field.cursor_field_key]
-                    < cursor.state[self.cursor_field.cursor_field_key]
-                ):
+                if self._new_global_cursor is None or self._extract_cursor_value_from_state(
+                    self._new_global_cursor
+                ) < self._extract_cursor_value_from_state(cursor.state):
                     self._new_global_cursor = copy.deepcopy(cursor.state)
             if not self._use_global_cursor:
                 self._emit_state_message()
@@ -371,6 +374,11 @@ class ConcurrentPerPartitionCursor(Cursor):
             )
         cursor = self._cursor_per_partition[partition_key]
         return cursor
+
+    def _extract_cursor_value_from_state(self, state: StreamState) -> Any:
+        return self._connector_state_converter.parse_value(
+            state[self.cursor_field.cursor_field_key]
+        )
 
     def limit_reached(self) -> bool:
         return self._over_limit > self.DEFAULT_MAX_PARTITIONS_NUMBER
