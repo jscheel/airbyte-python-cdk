@@ -84,7 +84,9 @@ whenever = "^0.6.16"
 
 [tool.poetry.group.dev.dependencies]
 freezegun = "*"
+mitmproxy = "^10.0"
 mypy = "*"
+psutil = "*"
 asyncio = "3.4.3"
 ruff = "^0.7.2"
 pdoc = "^15.0.0"
@@ -107,6 +109,7 @@ types-cachetools = "^5.5.0.20240820"
 file-based = ["avro", "fastavro", "pyarrow", "unstructured", "pdf2image", "pdfminer.six", "unstructured.pytesseract", "pytesseract", "markdown", "python-calamine", "python-snappy"]
 vector-db-based = ["langchain", "openai", "cohere", "tiktoken"]
 sql = ["sqlalchemy"]
+testing = ["mitmproxy"]
 
 [tool.poetry.scripts]
 

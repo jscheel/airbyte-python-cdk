@@ -15,6 +15,7 @@ from airbyte_cdk.models import (
     TraceType,
 )
 from airbyte_cdk.models import Type as MessageType
+from airbyte_cdk.testing.proxy_cache.fixtures.manual import mitmproxy_cache
 
 
 @pytest.fixture
