@@ -6336,10 +6336,10 @@ cffi = ["cffi (>=1.11)"]
 [extras]
 file-based = ["avro", "fastavro", "markdown", "pdf2image", "pdfminer.six", "pyarrow", "pytesseract", "python-calamine", "python-snappy", "unstructured", "unstructured.pytesseract"]
 sql = ["sqlalchemy"]
-testing = []
+testing = ["psutil"]
 vector-db-based = ["cohere", "langchain", "openai", "tiktoken"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "ef1b7ec4c1709c93d0dda76c1564313f07ace481ed488bc724abf21a253dabd5"
+content-hash = "7083e21b8bced0ef50e667c4e09637416e642e001652b2c93848e4aaa64c852a"

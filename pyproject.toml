@@ -109,7 +109,7 @@ types-cachetools = "^5.5.0.20240820"
 file-based = ["avro", "fastavro", "pyarrow", "unstructured", "pdf2image", "pdfminer.six", "unstructured.pytesseract", "pytesseract", "markdown", "python-calamine", "python-snappy"]
 vector-db-based = ["langchain", "openai", "cohere", "tiktoken"]
 sql = ["sqlalchemy"]
-testing = ["mitmproxy"]
+testing = ["mitmproxy", "psutil"]
 
 [tool.poetry.scripts]
 
