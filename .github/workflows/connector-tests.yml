@@ -153,19 +153,15 @@ jobs:
           POETRY_DYNAMIC_VERSIONING_BYPASS: "0.0.0"
         run: |
           cd airbyte
-          # Debug the make target
-          echo "Contents of tools.airbyte-ci-dev.install make target:"
-          grep -A 5 "tools.airbyte-ci-dev.install:" Makefile
+          
+          # Let's look at the install script first
+          echo "Contents of install script:"
+          cat airbyte-ci/connectors/pipelines/pipelines/external_scripts/airbyte_ci_dev_install.py
           
           make tools.airbyte-ci-dev.install
           
-          # Try to find where airbyte-ci was installed
-          echo "Looking for airbyte-ci:"
-          find ~/.local/bin -name airbyte-ci || true
-          find . -name airbyte-ci || true
-          
-          # Try running with full path if found
-          ~/.local/bin/airbyte-ci \
+          # Try running with the local path we found
+          ./airbyte-ci \
           --ci-report-bucket-name=airbyte-ci-reports-multi \
           connectors \
           --name ${{matrix.connector}} \
