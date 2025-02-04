@@ -153,13 +153,19 @@ jobs:
           POETRY_DYNAMIC_VERSIONING_BYPASS: "0.0.0"
         run: |
           cd airbyte
+          # Debug the make target
+          echo "Contents of tools.airbyte-ci-dev.install make target:"
+          grep -A 5 "tools.airbyte-ci-dev.install:" Makefile
+          
           make tools.airbyte-ci-dev.install
-          # Add debug output
-          echo "Checking airbyte-ci installation:"
-          which airbyte-ci || true
-          echo "Current PATH: $PATH"
-          # Try using pipx directly
-          pipx run airbyte-ci \
+          
+          # Try to find where airbyte-ci was installed
+          echo "Looking for airbyte-ci:"
+          find ~/.local/bin -name airbyte-ci || true
+          find . -name airbyte-ci || true
+          
+          # Try running with full path if found
+          ~/.local/bin/airbyte-ci \
           --ci-report-bucket-name=airbyte-ci-reports-multi \
           connectors \
           --name ${{matrix.connector}} \
@@ -167,7 +173,7 @@ jobs:
           test \
           --fail-fast \
           --skip-step qa_checks \
-          --skip-step connector_live_tests \
+          --skip-step connector_live_tests
 
       - name: Evaluate Test
         id: evaluate_output
