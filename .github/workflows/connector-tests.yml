@@ -154,7 +154,12 @@ jobs:
         run: |
           cd airbyte
           make tools.airbyte-ci-dev.install
-          airbyte-ci \
+          # Add debug output
+          echo "Checking airbyte-ci installation:"
+          which airbyte-ci || true
+          echo "Current PATH: $PATH"
+          # Try using pipx directly
+          pipx run airbyte-ci \
           --ci-report-bucket-name=airbyte-ci-reports-multi \
           connectors \
           --name ${{matrix.connector}} \
@@ -162,7 +167,7 @@ jobs:
           test \
           --fail-fast \
           --skip-step qa_checks \
-          --skip-step connector_live_tests
+          --skip-step connector_live_tests \
 
       - name: Evaluate Test
         id: evaluate_output
