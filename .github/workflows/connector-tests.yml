@@ -154,14 +154,19 @@ jobs:
         run: |
           cd airbyte
           
-          # Let's look at the install script first
-          echo "Contents of install script:"
-          cat airbyte-ci/connectors/pipelines/pipelines/external_scripts/airbyte_ci_dev_install.py
+          # Create a temporary modified version of the install script
+          sed 's/python3.11/python3.10/' airbyte-ci/connectors/pipelines/pipelines/external_scripts/airbyte_ci_dev_install.py > modified_install.py
           
-          make tools.airbyte-ci-dev.install
+          # Run the modified install script
+          python modified_install.py
           
-          # Try running with the local path we found
-          ./airbyte-ci \
+          # Find the actual executable
+          echo "Looking for airbyte-ci executable:"
+          find /opt/pipx -name airbyte-ci || true
+          find ~/.local -name airbyte-ci || true
+          
+          # Try using the pipx run command directly with the local package
+          PYTHONPATH=airbyte-ci/connectors/pipelines/ pipx run --python python3.10 --spec airbyte-ci/connectors/pipelines/ airbyte-ci \
           --ci-report-bucket-name=airbyte-ci-reports-multi \
           connectors \
           --name ${{matrix.connector}} \
