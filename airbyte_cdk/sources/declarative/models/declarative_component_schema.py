@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
 
@@ -640,6 +641,36 @@ class OAuthAuthenticator(BaseModel):
         title="Use Profile Assertion",
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class Rate(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    limit: int = Field(
+        ...,
+        description="The maximum number of calls allowed within the interval.",
+        title="Limit",
+    )
+    interval: timedelta = Field(
+        ..., description="The time interval for the rate limit.", title="Interval"
+    )
+
+
+class HttpRequestMatcher(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    method: Optional[str] = Field(
+        None, description="The HTTP method to match (e.g., GET, POST).", title="Method"
+    )
+    url: Optional[str] = Field(None, description="The URL to match.", title="URL")
+    params: Optional[Dict[str, Any]] = Field(
+        None, description="The query parameters to match.", title="Parameters"
+    )
+    headers: Optional[Dict[str, Any]] = Field(
+        None, description="The headers to match.", title="Headers"
+    )
 
 
 class DpathExtractor(BaseModel):
@@ -1578,6 +1609,60 @@ class DatetimeBasedCursor(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 
+class FixedWindowCallRatePolicy(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    type: Literal["FixedWindowCallRatePolicy"]
+    next_reset_ts: datetime = Field(
+        ...,
+        description="The timestamp when the rate limit will reset.",
+        title="Next Reset Timestamp",
+    )
+    period: timedelta = Field(
+        ..., description="The time interval for the rate limit window.", title="Period"
+    )
+    call_limit: int = Field(
+        ...,
+        description="The maximum number of calls allowed within the period.",
+        title="Call Limit",
+    )
+    matchers: List[HttpRequestMatcher] = Field(
+        ...,
+        description="List of matchers that define which requests this policy applies to.",
+        title="Matchers",
+    )
+
+
+class MovingWindowCallRatePolicy(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    type: Literal["MovingWindowCallRatePolicy"]
+    rates: List[Rate] = Field(
+        ...,
+        description="List of rates that define the call limits for different time intervals.",
+        title="Rates",
+    )
+    matchers: List[HttpRequestMatcher] = Field(
+        ...,
+        description="List of matchers that define which requests this policy applies to.",
+        title="Matchers",
+    )
+
+
+class UnlimitedCallRatePolicy(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    type: Literal["UnlimitedCallRatePolicy"]
+    matchers: List[HttpRequestMatcher] = Field(
+        ...,
+        description="List of matchers that define which requests this policy applies to.",
+        title="Matchers",
+    )
+
+
 class DefaultErrorHandler(BaseModel):
     type: Literal["DefaultErrorHandler"]
     backoff_strategies: Optional[
@@ -1707,6 +1792,46 @@ class CompositeErrorHandler(BaseModel):
         title="Error Handlers",
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
+
+
+class APIBudget(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    type: Literal["APIBudget"]
+    policies: Optional[
+        List[
+            Union[
+                FixedWindowCallRatePolicy,
+                MovingWindowCallRatePolicy,
+                UnlimitedCallRatePolicy,
+            ]
+        ]
+    ] = Field(
+        None,
+        description="List of policies that define the rate limits for different types of requests.",
+        title="Policies",
+    )
+    ratelimit_reset_header: Optional[str] = Field(
+        "ratelimit-reset",
+        description="The name of the header that contains the timestamp for when the rate limit will reset.",
+        title="Rate Limit Reset Header",
+    )
+    ratelimit_remaining_header: Optional[str] = Field(
+        "ratelimit-remaining",
+        description="The name of the header that contains the number of remaining requests.",
+        title="Rate Limit Remaining Header",
+    )
+    status_codes_for_ratelimit_hit: Optional[List[int]] = Field(
+        [429],
+        description="List of HTTP status codes that indicate a rate limit has been hit.",
+        title="Status Codes for Rate Limit Hit",
+    )
+    maximum_attempts_to_acquire: Optional[int] = Field(
+        100000,
+        description="The maximum number of attempts to acquire a call before giving up.",
+        title="Maximum Attempts to Acquire",
+    )
 
 
 class ZipfileDecoder(BaseModel):
@@ -1978,6 +2103,11 @@ class HttpRequester(BaseModel):
         None,
         description="Error handler component that defines how to handle errors.",
         title="Error Handler",
+    )
+    api_budget: Optional[APIBudget] = Field(
+        None,
+        description="Component that defines how many requests can be made to the API in a given time frame.",
+        title="API Budget",
     )
     http_method: Optional[HttpMethod] = Field(
         HttpMethod.GET,

@@ -113,6 +113,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     AddFields as AddFieldsModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    APIBudget as APIBudgetModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ApiKeyAuthenticator as ApiKeyAuthenticatorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -227,6 +230,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     ExponentialBackoffStrategy as ExponentialBackoffStrategyModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    FixedWindowCallRatePolicy as FixedWindowCallRatePolicyModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     FlattenFields as FlattenFieldsModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -240,6 +246,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpRequester as HttpRequesterModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    HttpRequestMatcher as HttpRequestMatcherModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpResponseFilter as HttpResponseFilterModel,
@@ -296,6 +305,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     MinMaxDatetime as MinMaxDatetimeModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    MovingWindowCallRatePolicy as MovingWindowCallRatePolicyModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     NoAuth as NoAuthModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -312,6 +324,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ParentStreamConfig as ParentStreamConfigModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    Rate as RateModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     RecordFilter as RecordFilterModel,
@@ -355,6 +370,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     TypesMap as TypesMapModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    UnlimitedCallRatePolicy as UnlimitedCallRatePolicyModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import ValueType
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -468,6 +486,14 @@ from airbyte_cdk.sources.message import (
     LogAppenderMessageRepositoryDecorator,
     MessageRepository,
     NoopMessageRepository,
+)
+from airbyte_cdk.sources.streams.call_rate import (
+    FixedWindowCallRatePolicy,
+    HttpAPIBudget,
+    HttpRequestMatcher,
+    MovingWindowCallRatePolicy,
+    Rate,
+    UnlimitedCallRatePolicy,
 )
 from airbyte_cdk.sources.streams.concurrent.clamping import (
     ClampingEndProvider,
@@ -607,6 +633,12 @@ class ModelToComponentFactory:
             StreamConfigModel: self.create_stream_config,
             ComponentMappingDefinitionModel: self.create_components_mapping_definition,
             ZipfileDecoderModel: self.create_zipfile_decoder,
+            APIBudgetModel: self.create_api_budget,
+            FixedWindowCallRatePolicyModel: self.create_fixed_window_call_rate_policy,
+            MovingWindowCallRatePolicyModel: self.create_moving_window_call_rate_policy,
+            UnlimitedCallRatePolicyModel: self.create_unlimited_call_rate_policy,
+            RateModel: self.create_rate,
+            HttpRequestMatcherModel: self.create_http_request_matcher,
         }
 
         # Needed for the case where we need to perform a second parse on the fields of a custom component
@@ -813,7 +845,8 @@ class ModelToComponentFactory:
 
         return LegacyToPerPartitionStateMigration(
             partition_router,  # type: ignore # was already checked above
-            declarative_stream.incremental_sync,  # type: ignore # was already checked. Migration can be applied only to incremental streams.
+            declarative_stream.incremental_sync,
+            # type: ignore # was already checked. Migration can be applied only to incremental streams.
             config,
             declarative_stream.parameters,  # type: ignore # different type is expected here Mapping[str, Any], got Dict[str, Any]
         )
@@ -1111,7 +1144,8 @@ class ModelToComponentFactory:
                     clamping_strategy = DayClampingStrategy()
                     end_date_provider = ClampingEndProvider(
                         DayClampingStrategy(is_ceiling=False),
-                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,
+                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(seconds=1),
                     )
                 case "WEEK":
@@ -1128,14 +1162,16 @@ class ModelToComponentFactory:
                     clamping_strategy = WeekClampingStrategy(weekday)
                     end_date_provider = ClampingEndProvider(
                         WeekClampingStrategy(weekday, is_ceiling=False),
-                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,
+                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(days=1),
                     )
                 case "MONTH":
                     clamping_strategy = MonthClampingStrategy()
                     end_date_provider = ClampingEndProvider(
                         MonthClampingStrategy(is_ceiling=False),
-                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,
+                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(days=1),
                     )
                 case _:
@@ -1152,8 +1188,10 @@ class ModelToComponentFactory:
             connector_state_converter=connector_state_converter,
             cursor_field=cursor_field,
             slice_boundary_fields=slice_boundary_fields,
-            start=start_date,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-            end_provider=end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            start=start_date,
+            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            end_provider=end_date_provider,
+            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
             lookback_window=lookback_window,
             slice_range=step_length,
             cursor_granularity=cursor_granularity,
@@ -1911,6 +1949,12 @@ class ModelToComponentFactory:
             )
         )
 
+        api_budget = (
+            self._create_component_from_model(model=model.api_budget, config=config)
+            if model.api_budget
+            else None
+        )
+
         request_options_provider = InterpolatedRequestOptionsProvider(
             request_body_data=model.request_body_data,
             request_body_json=model.request_body_json,
@@ -1931,6 +1975,7 @@ class ModelToComponentFactory:
             path=model.path,
             authenticator=authenticator,
             error_handler=error_handler,
+            api_budget=api_budget,
             http_method=HttpMethod[model.http_method.value],
             request_options_provider=request_options_provider,
             config=config,
@@ -2919,3 +2964,76 @@ class ModelToComponentFactory:
             return isinstance(parser.inner_parser, JsonParser)
         else:
             return False
+
+    def create_api_budget(
+        self, model: APIBudgetModel, config: Config, **kwargs: Any
+    ) -> HttpAPIBudget:
+        policies = [
+            self._create_component_from_model(model=policy, config=config)
+            for policy in model.policies
+        ]
+
+        return HttpAPIBudget(
+            policies=policies,
+            ratelimit_reset_header=model.ratelimit_reset_header,
+            ratelimit_remaining_header=model.ratelimit_remaining_header,
+            status_codes_for_ratelimit_hit=model.status_codes_for_ratelimit_hit,
+            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire,
+        )
+
+    def create_fixed_window_call_rate_policy(
+        self, model: FixedWindowCallRatePolicyModel, config: Config, **kwargs: Any
+    ) -> FixedWindowCallRatePolicy:
+        matchers = [
+            self._create_component_from_model(model=matcher, config=config)
+            for matcher in model.matchers
+        ]
+        return FixedWindowCallRatePolicy(
+            next_reset_ts=model.next_reset_ts,
+            period=parse_duration(model.period),
+            call_limit=model.call_limit,
+            matchers=matchers,
+        )
+
+    def create_moving_window_call_rate_policy(
+        self, model: MovingWindowCallRatePolicyModel, config: Config, **kwargs: Any
+    ) -> MovingWindowCallRatePolicy:
+        rates = [
+            self._create_component_from_model(model=rate, config=config) for rate in model.rates
+        ]
+        matchers = [
+            self._create_component_from_model(model=matcher, config=config)
+            for matcher in model.matchers
+        ]
+        return MovingWindowCallRatePolicy(
+            rates=rates,
+            matchers=matchers,
+        )
+
+    def create_unlimited_call_rate_policy(
+        self, model: UnlimitedCallRatePolicyModel, config: Config, **kwargs: Any
+    ) -> UnlimitedCallRatePolicy:
+        matchers = [
+            self._create_component_from_model(model=matcher, config=config)
+            for matcher in model.matchers
+        ]
+
+        return UnlimitedCallRatePolicy(
+            matchers=matchers,
+        )
+
+    def create_rate(self, model: RateModel, config: Config, **kwargs: Any) -> Rate:
+        return Rate(
+            limit=model.limit,
+            interval=model.interval,
+        )
+
+    def create_http_request_matcher(
+        self, model: HttpRequestMatcherModel, config: Config, **kwargs: Any
+    ) -> HttpRequestMatcher:
+        return HttpRequestMatcher(
+            method=model.method,
+            url=model.url,
+            params=model.params,
+            headers=model.headers,
+        )
