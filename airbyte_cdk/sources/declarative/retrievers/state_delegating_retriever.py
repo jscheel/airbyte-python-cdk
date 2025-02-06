@@ -7,9 +7,9 @@ from dataclasses import dataclass
 
 from typing_extensions import deprecated
 
+from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
 from airbyte_cdk.sources.declarative.retrievers.retriever import Retriever
 from airbyte_cdk.sources.source import ExperimentalClassWarning
-from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
 
 
 @deprecated(
@@ -18,14 +18,19 @@ from airbyte_cdk.sources.declarative.incremental.declarative_cursor import Decla
 )
 @dataclass
 class StateDelegatingRetriever:
-
     full_data_retriever: Retriever
     incremental_data_retriever: Retriever
     cursor: DeclarativeCursor
 
     def __getattr__(self, name):
         # Avoid delegation for these internal names.
-        if name in {"full_data_retriever", "incremental_data_retriever", "cursor", "retriever", "state"}:
+        if name in {
+            "full_data_retriever",
+            "incremental_data_retriever",
+            "cursor",
+            "retriever",
+            "state",
+        }:
             return object.__getattribute__(self, name)
         # Delegate everything else to the active retriever.
         return getattr(self.retriever, name)
@@ -40,7 +45,11 @@ class StateDelegatingRetriever:
 
     @property
     def retriever(self):
-        return self.incremental_data_retriever if self.cursor.get_stream_state() else self.full_data_retriever
+        return (
+            self.incremental_data_retriever
+            if self.cursor.get_stream_state()
+            else self.full_data_retriever
+        )
 
     @property
     def state(self):

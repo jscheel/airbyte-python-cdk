@@ -346,10 +346,10 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SimpleRetriever as SimpleRetrieverModel,
 )
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import Spec as SpecModel
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     StateDelegatingRetriever as StateDelegatingRetrieverModel,
 )
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import Spec as SpecModel
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     StreamConfig as StreamConfigModel,
 )
@@ -432,8 +432,8 @@ from airbyte_cdk.sources.declarative.resolvers import (
 from airbyte_cdk.sources.declarative.retrievers import (
     AsyncRetriever,
     SimpleRetriever,
-    StateDelegatingRetriever,
     SimpleRetrieverTestReadDecorator,
+    StateDelegatingRetriever,
 )
 from airbyte_cdk.sources.declarative.schema import (
     ComplexFieldType,
@@ -2520,19 +2520,18 @@ class ModelToComponentFactory:
         )
 
     def create_state_delegating_retriever(
-            self,
-            model: StateDelegatingRetrieverModel,
-            config: Config,
-            *,
-            name: str,
-            primary_key: Optional[Union[str, List[str], List[List[str]]]],
-            stream_slicer: Optional[StreamSlicer],
-            request_options_provider: Optional[RequestOptionsProvider] = None,
-            stop_condition_on_cursor: bool = False,
-            client_side_incremental_sync: Optional[Dict[str, Any]] = None,
-            transformations: List[RecordTransformation],
+        self,
+        model: StateDelegatingRetrieverModel,
+        config: Config,
+        *,
+        name: str,
+        primary_key: Optional[Union[str, List[str], List[List[str]]]],
+        stream_slicer: Optional[StreamSlicer],
+        request_options_provider: Optional[RequestOptionsProvider] = None,
+        stop_condition_on_cursor: bool = False,
+        client_side_incremental_sync: Optional[Dict[str, Any]] = None,
+        transformations: List[RecordTransformation],
     ) -> StateDelegatingRetriever:
-
         cursor = stream_slicer if isinstance(stream_slicer, DeclarativeCursor) else None
 
         full_data_retriever = self._create_component_from_model(
@@ -2559,7 +2558,11 @@ class ModelToComponentFactory:
             transformations=transformations,
         )
 
-        return StateDelegatingRetriever(full_data_retriever=full_data_retriever, incremental_data_retriever=incremental_data_retriever, cursor=cursor)
+        return StateDelegatingRetriever(
+            full_data_retriever=full_data_retriever,
+            incremental_data_retriever=incremental_data_retriever,
+            cursor=cursor,
+        )
 
     def _create_async_job_status_mapping(
         self, model: AsyncJobStatusMapModel, config: Config, **kwargs: Any
