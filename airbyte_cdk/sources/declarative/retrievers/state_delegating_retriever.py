@@ -2,11 +2,11 @@
 # Copyright (c) 2025 Airbyte, Inc., all rights reserved.
 #
 
+from dataclasses import dataclass
 from typing import (
     Any,
     MutableMapping,
 )
-from dataclasses import dataclass
 
 from typing_extensions import deprecated
 
@@ -48,7 +48,11 @@ class StateDelegatingRetriever:
 
     @property
     def retriever(self) -> Retriever:
-        return self.incremental_data_retriever if self.cursor.get_stream_state() else self.full_data_retriever
+        return (
+            self.incremental_data_retriever
+            if self.cursor.get_stream_state()
+            else self.full_data_retriever
+        )
 
     @property
     def state(self) -> MutableMapping[str, Any]:

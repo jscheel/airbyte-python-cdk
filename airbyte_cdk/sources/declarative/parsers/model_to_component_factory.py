@@ -2588,7 +2588,11 @@ class ModelToComponentFactory:
             transformations=transformations,
         )
 
-        return StateDelegatingRetriever(full_data_retriever=full_data_retriever, incremental_data_retriever=incremental_data_retriever, cursor=stream_slicer)
+        return StateDelegatingRetriever(
+            full_data_retriever=full_data_retriever,
+            incremental_data_retriever=incremental_data_retriever,
+            cursor=stream_slicer,
+        )
 
     def _create_async_job_status_mapping(
         self, model: AsyncJobStatusMapModel, config: Config, **kwargs: Any
