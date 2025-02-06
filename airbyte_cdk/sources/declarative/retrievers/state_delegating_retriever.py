@@ -25,7 +25,7 @@ class StateDelegatingRetriever:
     incremental_data_retriever: Retriever
     cursor: DeclarativeCursor
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         # Avoid delegation for these internal names.
         if name in {
             "full_data_retriever",
