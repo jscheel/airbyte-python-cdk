@@ -2969,9 +2969,7 @@ class ModelToComponentFactory:
 
         return APIBudget(
             policies=policies,
-            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire
-            if model.maximum_attempts_to_acquire
-            else 100000,
+            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire or 100000,
         )
 
     def create_http_api_budget(
@@ -2984,18 +2982,10 @@ class ModelToComponentFactory:
 
         return HttpAPIBudget(
             policies=policies,
-            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire
-            if model.maximum_attempts_to_acquire
-            else 100000,
-            ratelimit_reset_header=model.ratelimit_reset_header
-            if model.ratelimit_reset_header
-            else "ratelimit-reset",
-            ratelimit_remaining_header=model.ratelimit_remaining_header
-            if model.ratelimit_remaining_header
-            else "ratelimit-remaining",
-            status_codes_for_ratelimit_hit=model.status_codes_for_ratelimit_hit
-            if model.status_codes_for_ratelimit_hit
-            else (429,),
+            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire or 100000,
+            ratelimit_reset_header=model.ratelimit_reset_header or "ratelimit-reset",
+            ratelimit_remaining_header=model.ratelimit_remaining_header or "ratelimit-remaining",
+            status_codes_for_ratelimit_hit=model.status_codes_for_ratelimit_hit or (429,),
         )
 
     def create_fixed_window_call_rate_policy(
