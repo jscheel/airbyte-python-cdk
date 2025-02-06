@@ -738,8 +738,8 @@ class ModelToComponentFactory:
         }
         return names_to_types[value_type]
 
-    @staticmethod
     def create_api_key_authenticator(
+        self,
         model: ApiKeyAuthenticatorModel,
         config: Config,
         token_provider: Optional[TokenProvider] = None,
@@ -761,10 +761,8 @@ class ModelToComponentFactory:
             )
 
         request_option = (
-            RequestOption(
-                inject_into=RequestOptionType(model.inject_into.inject_into.value),
-                field_name=model.inject_into.field_name,
-                parameters=model.parameters or {},
+            self._create_component_from_model(
+                model.inject_into, config, parameters=model.parameters or {}
             )
             if model.inject_into
             else RequestOption(
@@ -773,6 +771,7 @@ class ModelToComponentFactory:
                 parameters=model.parameters or {},
             )
         )
+
         return ApiKeyAuthenticator(
             token_provider=(
                 token_provider
@@ -854,7 +853,7 @@ class ModelToComponentFactory:
                 token_provider=token_provider,
             )
         else:
-            return ModelToComponentFactory.create_api_key_authenticator(
+            return self.create_api_key_authenticator(
                 ApiKeyAuthenticatorModel(
                     type="ApiKeyAuthenticator",
                     api_token="",
@@ -1494,19 +1493,15 @@ class ModelToComponentFactory:
             )
 
         end_time_option = (
-            RequestOption(
-                inject_into=RequestOptionType(model.end_time_option.inject_into.value),
-                field_name=model.end_time_option.field_name,
-                parameters=model.parameters or {},
+            self._create_component_from_model(
+                model.end_time_option, config, parameters=model.parameters or {}
             )
             if model.end_time_option
             else None
         )
         start_time_option = (
-            RequestOption(
-                inject_into=RequestOptionType(model.start_time_option.inject_into.value),
-                field_name=model.start_time_option.field_name,
-                parameters=model.parameters or {},
+            self._create_component_from_model(
+                model.start_time_option, config, parameters=model.parameters or {}
             )
             if model.start_time_option
             else None
@@ -1577,19 +1572,15 @@ class ModelToComponentFactory:
             cursor_model = model.incremental_sync
 
             end_time_option = (
-                RequestOption(
-                    inject_into=RequestOptionType(cursor_model.end_time_option.inject_into.value),
-                    field_name=cursor_model.end_time_option.field_name,
-                    parameters=cursor_model.parameters or {},
+                self._create_component_from_model(
+                    cursor_model.end_time_option, config, parameters=cursor_model.parameters or {}
                 )
                 if cursor_model.end_time_option
                 else None
             )
             start_time_option = (
-                RequestOption(
-                    inject_into=RequestOptionType(cursor_model.start_time_option.inject_into.value),
-                    field_name=cursor_model.start_time_option.field_name,
-                    parameters=cursor_model.parameters or {},
+                self._create_component_from_model(
+                    cursor_model.start_time_option, config, parameters=cursor_model.parameters or {}
                 )
                 if cursor_model.start_time_option
                 else None
@@ -1661,7 +1652,7 @@ class ModelToComponentFactory:
     ) -> Optional[PartitionRouter]:
         if (
             hasattr(model, "partition_router")
-            and isinstance(model, SimpleRetrieverModel)
+            and isinstance(model, SimpleRetrieverModel | AsyncRetrieverModel)
             and model.partition_router
         ):
             stream_slicer_model = model.partition_router
@@ -1695,6 +1686,31 @@ class ModelToComponentFactory:
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
 
         if model.incremental_sync and stream_slicer:
+            if model.retriever.type == "AsyncRetriever":
+                if model.incremental_sync.type != "DatetimeBasedCursor":
+                    # We are currently in a transition to the Concurrent CDK and AsyncRetriever can only work with the support or unordered slices (for example, when we trigger reports for January and February, the report in February can be completed first). Once we have support for custom concurrent cursor or have a new implementation available in the CDK, we can enable more cursors here.
+                    raise ValueError(
+                        "AsyncRetriever with cursor other than DatetimeBasedCursor is not supported yet"
+                    )
+                if stream_slicer:
+                    return self.create_concurrent_cursor_from_perpartition_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
+                        state_manager=self._connector_state_manager,
+                        model_type=DatetimeBasedCursorModel,
+                        component_definition=model.incremental_sync.__dict__,
+                        stream_name=model.name or "",
+                        stream_namespace=None,
+                        config=config or {},
+                        stream_state={},
+                        partition_router=stream_slicer,
+                    )
+                return self.create_concurrent_cursor_from_datetime_based_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
+                    model_type=DatetimeBasedCursorModel,
+                    component_definition=model.incremental_sync.__dict__,
+                    stream_name=model.name or "",
+                    stream_namespace=None,
+                    config=config or {},
+                )
+
             incremental_sync_model = model.incremental_sync
             if (
                 hasattr(incremental_sync_model, "global_substream_cursor")
@@ -2130,16 +2146,11 @@ class ModelToComponentFactory:
             additional_jwt_payload=model.additional_jwt_payload,
         )
 
-    @staticmethod
     def create_list_partition_router(
-        model: ListPartitionRouterModel, config: Config, **kwargs: Any
+        self, model: ListPartitionRouterModel, config: Config, **kwargs: Any
     ) -> ListPartitionRouter:
         request_option = (
-            RequestOption(
-                inject_into=RequestOptionType(model.request_option.inject_into.value),
-                field_name=model.request_option.field_name,
-                parameters=model.parameters or {},
-            )
+            self._create_component_from_model(model.request_option, config)
             if model.request_option
             else None
         )
@@ -2335,7 +2346,25 @@ class ModelToComponentFactory:
         model: RequestOptionModel, config: Config, **kwargs: Any
     ) -> RequestOption:
         inject_into = RequestOptionType(model.inject_into.value)
-        return RequestOption(field_name=model.field_name, inject_into=inject_into, parameters={})
+        field_path: Optional[List[Union[InterpolatedString, str]]] = (
+            [
+                InterpolatedString.create(segment, parameters=kwargs.get("parameters", {}))
+                for segment in model.field_path
+            ]
+            if model.field_path
+            else None
+        )
+        field_name = (
+            InterpolatedString.create(model.field_name, parameters=kwargs.get("parameters", {}))
+            if model.field_name
+            else None
+        )
+        return RequestOption(
+            field_name=field_name,
+            field_path=field_path,
+            inject_into=inject_into,
+            parameters=kwargs.get("parameters", {}),
+        )
 
     def create_record_selector(
         self,
