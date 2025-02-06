@@ -16,10 +16,11 @@ from airbyte_cdk.models import (
     StreamDescriptor,
     Type,
 )
-from airbyte_cdk.sources.declarative.concurrent_declarative_source import ConcurrentDeclarativeSource
+from airbyte_cdk.sources.declarative.concurrent_declarative_source import (
+    ConcurrentDeclarativeSource,
+)
 from airbyte_cdk.sources.embedded.catalog import to_configured_catalog, to_configured_stream
 from airbyte_cdk.test.mock_http import HttpMocker, HttpRequest, HttpResponse
-
 
 _CONFIG = {"start_date": "2024-07-01T00:00:00.000Z"}
 _MANIFEST = {
@@ -107,7 +108,9 @@ _MANIFEST = {
 }
 
 
-def create_configured_catalog(source: ConcurrentDeclarativeSource, config: dict) -> ConfiguredAirbyteCatalog:
+def create_configured_catalog(
+    source: ConcurrentDeclarativeSource, config: dict
+) -> ConfiguredAirbyteCatalog:
     """
     Discovers streams from the source and converts them into a configured catalog.
     """
@@ -120,7 +123,10 @@ def create_configured_catalog(source: ConcurrentDeclarativeSource, config: dict)
 
 
 def get_records(
-    source: ConcurrentDeclarativeSource, config: dict, catalog: ConfiguredAirbyteCatalog, state: list = None
+    source: ConcurrentDeclarativeSource,
+    config: dict,
+    catalog: ConfiguredAirbyteCatalog,
+    state: list = None,
 ) -> list:
     """
     Reads records from the source given a configuration, catalog, and optional state.
@@ -148,7 +154,9 @@ def test_state_retriever():
             ),
         )
         http_mocker.get(
-            HttpRequest(url="https://api.test.com/items_with_filtration?start=2024-07-13&end=2024-07-15"),
+            HttpRequest(
+                url="https://api.test.com/items_with_filtration?start=2024-07-13&end=2024-07-15"
+            ),
             HttpResponse(
                 body=json.dumps(
                     [
