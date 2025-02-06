@@ -242,6 +242,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     GzipParser as GzipParserModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    HTTPAPIBudget as HTTPAPIBudgetModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpComponentsResolver as HttpComponentsResolverModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -488,6 +491,7 @@ from airbyte_cdk.sources.message import (
     NoopMessageRepository,
 )
 from airbyte_cdk.sources.streams.call_rate import (
+    APIBudget,
     FixedWindowCallRatePolicy,
     HttpAPIBudget,
     HttpRequestMatcher,
@@ -546,6 +550,7 @@ class ModelToComponentFactory:
             self._evaluate_log_level(emit_connector_builder_messages)
         )
         self._connector_state_manager = connector_state_manager or ConnectorStateManager()
+        self._api_budget: Optional[Union[APIBudget, HttpAPIBudget]] = None
 
     def _init_mappings(self) -> None:
         self.PYDANTIC_MODEL_TO_CONSTRUCTOR: Mapping[Type[BaseModel], Callable[..., Any]] = {
@@ -634,6 +639,7 @@ class ModelToComponentFactory:
             ComponentMappingDefinitionModel: self.create_components_mapping_definition,
             ZipfileDecoderModel: self.create_zipfile_decoder,
             APIBudgetModel: self.create_api_budget,
+            HTTPAPIBudgetModel: self.create_http_api_budget,
             FixedWindowCallRatePolicyModel: self.create_fixed_window_call_rate_policy,
             MovingWindowCallRatePolicyModel: self.create_moving_window_call_rate_policy,
             UnlimitedCallRatePolicyModel: self.create_unlimited_call_rate_policy,
@@ -845,8 +851,7 @@ class ModelToComponentFactory:
 
         return LegacyToPerPartitionStateMigration(
             partition_router,  # type: ignore # was already checked above
-            declarative_stream.incremental_sync,
-            # type: ignore # was already checked. Migration can be applied only to incremental streams.
+            declarative_stream.incremental_sync,  # type: ignore # was already checked. Migration can be applied only to incremental streams.
             config,
             declarative_stream.parameters,  # type: ignore # different type is expected here Mapping[str, Any], got Dict[str, Any]
         )
@@ -1144,8 +1149,7 @@ class ModelToComponentFactory:
                     clamping_strategy = DayClampingStrategy()
                     end_date_provider = ClampingEndProvider(
                         DayClampingStrategy(is_ceiling=False),
-                        end_date_provider,
-                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(seconds=1),
                     )
                 case "WEEK":
@@ -1162,16 +1166,14 @@ class ModelToComponentFactory:
                     clamping_strategy = WeekClampingStrategy(weekday)
                     end_date_provider = ClampingEndProvider(
                         WeekClampingStrategy(weekday, is_ceiling=False),
-                        end_date_provider,
-                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(days=1),
                     )
                 case "MONTH":
                     clamping_strategy = MonthClampingStrategy()
                     end_date_provider = ClampingEndProvider(
                         MonthClampingStrategy(is_ceiling=False),
-                        end_date_provider,
-                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(days=1),
                     )
                 case _:
@@ -1188,10 +1190,8 @@ class ModelToComponentFactory:
             connector_state_converter=connector_state_converter,
             cursor_field=cursor_field,
             slice_boundary_fields=slice_boundary_fields,
-            start=start_date,
-            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-            end_provider=end_date_provider,
-            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            start=start_date,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            end_provider=end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
             lookback_window=lookback_window,
             slice_range=step_length,
             cursor_granularity=cursor_granularity,
@@ -1949,11 +1949,7 @@ class ModelToComponentFactory:
             )
         )
 
-        api_budget = (
-            self._create_component_from_model(model=model.api_budget, config=config)
-            if model.api_budget
-            else None
-        )
+        api_budget = self._api_budget
 
         request_options_provider = InterpolatedRequestOptionsProvider(
             request_body_data=model.request_body_data,
@@ -2965,8 +2961,21 @@ class ModelToComponentFactory:
         else:
             return False
 
-    def create_api_budget(
-        self, model: APIBudgetModel, config: Config, **kwargs: Any
+    def create_api_budget(self, model: APIBudgetModel, config: Config, **kwargs: Any) -> APIBudget:
+        policies = [
+            self._create_component_from_model(model=policy, config=config)
+            for policy in model.policies
+        ]
+
+        return APIBudget(
+            policies=policies,
+            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire
+            if model.maximum_attempts_to_acquire
+            else 100000,
+        )
+
+    def create_http_api_budget(
+        self, model: HTTPAPIBudgetModel, config: Config, **kwargs: Any
     ) -> HttpAPIBudget:
         policies = [
             self._create_component_from_model(model=policy, config=config)
@@ -2975,10 +2984,18 @@ class ModelToComponentFactory:
 
         return HttpAPIBudget(
             policies=policies,
-            ratelimit_reset_header=model.ratelimit_reset_header,
-            ratelimit_remaining_header=model.ratelimit_remaining_header,
-            status_codes_for_ratelimit_hit=model.status_codes_for_ratelimit_hit,
-            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire,
+            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire
+            if model.maximum_attempts_to_acquire
+            else 100000,
+            ratelimit_reset_header=model.ratelimit_reset_header
+            if model.ratelimit_reset_header
+            else "ratelimit-reset",
+            ratelimit_remaining_header=model.ratelimit_remaining_header
+            if model.ratelimit_remaining_header
+            else "ratelimit-remaining",
+            status_codes_for_ratelimit_hit=model.status_codes_for_ratelimit_hit
+            if model.status_codes_for_ratelimit_hit
+            else (429,),
         )
 
     def create_fixed_window_call_rate_policy(
@@ -3033,7 +3050,23 @@ class ModelToComponentFactory:
     ) -> HttpRequestMatcher:
         return HttpRequestMatcher(
             method=model.method,
-            url=model.url,
+            url_base=model.url_base,
+            url_path_pattern=model.url_path_pattern,
             params=model.params,
             headers=model.headers,
+        )
+
+    def set_api_budget(self, component_definition: ComponentDefinition, config: Config) -> None:
+        model_str = component_definition.get("type")
+        if model_str == "APIBudget":
+            # Annotate model_type as a type that is a subclass of BaseModel
+            model_type: Union[Type[APIBudgetModel], Type[HTTPAPIBudgetModel]] = APIBudgetModel
+        elif model_str == "HTTPAPIBudget":
+            model_type = HTTPAPIBudgetModel
+        else:
+            raise ValueError(f"Unknown API Budget type: {model_str}")
+
+        # create_component expects a type[BaseModel] and returns an instance of that model.
+        self._api_budget = self.create_component(
+            model_type=model_type, component_definition=component_definition, config=config
         )

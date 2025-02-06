@@ -664,7 +664,16 @@ class HttpRequestMatcher(BaseModel):
     method: Optional[str] = Field(
         None, description="The HTTP method to match (e.g., GET, POST).", title="Method"
     )
-    url: Optional[str] = Field(None, description="The URL to match.", title="URL")
+    url_base: Optional[str] = Field(
+        None,
+        description='The base URL (scheme and host, e.g. "https://api.example.com") to match.',
+        title="URL Base",
+    )
+    url_path_pattern: Optional[str] = Field(
+        None,
+        description="A regular expression pattern to match the URL path.",
+        title="URL Path Pattern",
+    )
     params: Optional[Dict[str, Any]] = Field(
         None, description="The query parameters to match.", title="Parameters"
     )
@@ -1799,27 +1808,48 @@ class APIBudget(BaseModel):
         extra = Extra.allow
 
     type: Literal["APIBudget"]
-    policies: Optional[
-        List[
-            Union[
-                FixedWindowCallRatePolicy,
-                MovingWindowCallRatePolicy,
-                UnlimitedCallRatePolicy,
-            ]
+    policies: List[
+        Union[
+            FixedWindowCallRatePolicy,
+            MovingWindowCallRatePolicy,
+            UnlimitedCallRatePolicy,
         ]
     ] = Field(
-        None,
-        description="List of policies that define the rate limits for different types of requests.",
+        ...,
+        description="List of call rate policies that define how many calls are allowed.",
+        title="Policies",
+    )
+    maximum_attempts_to_acquire: Optional[int] = Field(
+        100000,
+        description="The maximum number of attempts to acquire a call before giving up.",
+        title="Maximum Attempts to Acquire",
+    )
+
+
+class HTTPAPIBudget(BaseModel):
+    class Config:
+        extra = Extra.allow
+
+    type: Literal["HTTPAPIBudget"]
+    policies: List[
+        Union[
+            FixedWindowCallRatePolicy,
+            MovingWindowCallRatePolicy,
+            UnlimitedCallRatePolicy,
+        ]
+    ] = Field(
+        ...,
+        description="List of call rate policies that define how many calls are allowed.",
         title="Policies",
     )
     ratelimit_reset_header: Optional[str] = Field(
         "ratelimit-reset",
-        description="The name of the header that contains the timestamp for when the rate limit will reset.",
+        description="The HTTP response header name that indicates when the rate limit resets.",
         title="Rate Limit Reset Header",
     )
     ratelimit_remaining_header: Optional[str] = Field(
         "ratelimit-remaining",
-        description="The name of the header that contains the number of remaining requests.",
+        description="The HTTP response header name that indicates the number of remaining allowed calls.",
         title="Rate Limit Remaining Header",
     )
     status_codes_for_ratelimit_hit: Optional[List[int]] = Field(
@@ -1867,6 +1897,11 @@ class DeclarativeSource1(BaseModel):
     definitions: Optional[Dict[str, Any]] = None
     spec: Optional[Spec] = None
     concurrency_level: Optional[ConcurrencyLevel] = None
+    api_budget: Optional[Union[APIBudget, HTTPAPIBudget]] = Field(
+        None,
+        description="Defines how many requests can be made to the API in a given time frame. This field accepts either a generic APIBudget or an HTTP-specific configuration (HTTPAPIBudget) to be applied across all streams.",
+        title="API Budget",
+    )
     metadata: Optional[Dict[str, Any]] = Field(
         None,
         description="For internal Airbyte use only - DO NOT modify manually. Used by consumers of declarative manifests for storing related metadata.",
@@ -1893,6 +1928,11 @@ class DeclarativeSource2(BaseModel):
     definitions: Optional[Dict[str, Any]] = None
     spec: Optional[Spec] = None
     concurrency_level: Optional[ConcurrencyLevel] = None
+    api_budget: Optional[Union[APIBudget, HTTPAPIBudget]] = Field(
+        None,
+        description="Defines how many requests can be made to the API in a given time frame. This field accepts either a generic APIBudget or an HTTP-specific configuration (HTTPAPIBudget) to be applied across all streams.",
+        title="API Budget",
+    )
     metadata: Optional[Dict[str, Any]] = Field(
         None,
         description="For internal Airbyte use only - DO NOT modify manually. Used by consumers of declarative manifests for storing related metadata.",
@@ -2103,11 +2143,6 @@ class HttpRequester(BaseModel):
         None,
         description="Error handler component that defines how to handle errors.",
         title="Error Handler",
-    )
-    api_budget: Optional[APIBudget] = Field(
-        None,
-        description="Component that defines how many requests can be made to the API in a given time frame.",
-        title="API Budget",
     )
     http_method: Optional[HttpMethod] = Field(
         HttpMethod.GET,

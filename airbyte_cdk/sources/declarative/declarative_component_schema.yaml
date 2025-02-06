@@ -40,6 +40,12 @@ properties:
     "$ref": "#/definitions/Spec"
   concurrency_level:
     "$ref": "#/definitions/ConcurrencyLevel"
+  api_budget:
+    title: API Budget
+    description: Defines how many requests can be made to the API in a given time frame. This field accepts either a generic APIBudget or an HTTP-specific configuration (HTTPAPIBudget) to be applied across all streams.
+    anyOf:
+      - "$ref": "#/definitions/APIBudget"
+      - "$ref": "#/definitions/HTTPAPIBudget"
   metadata:
     type: object
     description: For internal Airbyte use only - DO NOT modify manually. Used by consumers of declarative manifests for storing related metadata.
@@ -794,7 +800,7 @@ definitions:
         description: This option is used to adjust the upper and lower boundaries of each datetime window to beginning and end of the provided target period (day, week, month)
         type: object
         required:
-        - target
+          - target
         properties:
           target:
             title: Target
@@ -1367,17 +1373,49 @@ definitions:
         additional_properties: true
   APIBudget:
     title: API Budget
-    description: Component that defines how many requests can be made to the API in a given time frame.
+    description: >
+      A generic API budget configuration that defines the policies (rate limiting rules)
+      and the maximum number of attempts to acquire a call credit. This budget does not automatically
+      update itself based on HTTP response headers.
     type: object
     required:
       - type
+      - policies
     properties:
       type:
         type: string
         enum: [APIBudget]
       policies:
         title: Policies
-        description: List of policies that define the rate limits for different types of requests.
+        description: List of call rate policies that define how many calls are allowed.
+        type: array
+        items:
+          anyOf:
+            - "$ref": "#/definitions/FixedWindowCallRatePolicy"
+            - "$ref": "#/definitions/MovingWindowCallRatePolicy"
+            - "$ref": "#/definitions/UnlimitedCallRatePolicy"
+      maximum_attempts_to_acquire:
+        title: Maximum Attempts to Acquire
+        description: The maximum number of attempts to acquire a call before giving up.
+        type: integer
+        default: 100000
+    additionalProperties: true
+  HTTPAPIBudget:
+    title: HTTP API Budget
+    description: >
+      An HTTP-specific API budget that extends APIBudget by updating rate limiting information based
+      on HTTP response headers. It extracts available calls and the next reset timestamp from the HTTP responses.
+    type: object
+    required:
+      - type
+      - policies
+    properties:
+      type:
+        type: string
+        enum: [HTTPAPIBudget]
+      policies:
+        title: Policies
+        description: List of call rate policies that define how many calls are allowed.
         type: array
         items:
           anyOf:
@@ -1386,12 +1424,12 @@ definitions:
             - "$ref": "#/definitions/UnlimitedCallRatePolicy"
       ratelimit_reset_header:
         title: Rate Limit Reset Header
-        description: The name of the header that contains the timestamp for when the rate limit will reset.
+        description: The HTTP response header name that indicates when the rate limit resets.
         type: string
         default: "ratelimit-reset"
       ratelimit_remaining_header:
         title: Rate Limit Remaining Header
-        description: The name of the header that contains the number of remaining requests.
+        description: The HTTP response header name that indicates the number of remaining allowed calls.
         type: string
         default: "ratelimit-remaining"
       status_codes_for_ratelimit_hit:
@@ -1505,16 +1543,23 @@ definitions:
     additionalProperties: true
   HttpRequestMatcher:
     title: HTTP Request Matcher
-    description: Matches HTTP requests based on method, URL, parameters, and headers.
+    description: >
+      Matches HTTP requests based on method, base URL, URL path pattern, query parameters, and headers.
+      Use `url_base` to specify the scheme and host (without trailing slash) and
+      `url_path_pattern` to apply a regex to the request path.
     type: object
     properties:
       method:
         title: Method
         description: The HTTP method to match (e.g., GET, POST).
         type: string
-      url:
-        title: URL
-        description: The URL to match.
+      url_base:
+        title: URL Base
+        description: The base URL (scheme and host, e.g. "https://api.example.com") to match.
+        type: string
+      url_path_pattern:
+        title: URL Path Pattern
+        description: A regular expression pattern to match the URL path.
         type: string
       params:
         title: Parameters
@@ -1799,10 +1844,6 @@ definitions:
           - "$ref": "#/definitions/DefaultErrorHandler"
           - "$ref": "#/definitions/CustomErrorHandler"
           - "$ref": "#/definitions/CompositeErrorHandler"
-      api_budget:
-        title: API Budget
-        description: Component that defines how many requests can be made to the API in a given time frame.
-        "$ref": "#/definitions/APIBudget"
       http_method:
         title: HTTP Method
         description: The HTTP method used to fetch data from the source (can be GET or POST).
