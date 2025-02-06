@@ -2,7 +2,10 @@
 # Copyright (c) 2025 Airbyte, Inc., all rights reserved.
 #
 
-
+from typing import (
+    Any,
+    MutableMapping,
+)
 from dataclasses import dataclass
 
 from typing_extensions import deprecated
@@ -30,7 +33,7 @@ class StateDelegatingRetriever:
         # Delegate everything else to the active retriever.
         return getattr(self.retriever, name)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         # For the internal attributes, set them directly on self.
         if name in {"full_data_retriever", "incremental_data_retriever", "cursor", "state"}:
             super().__setattr__(name, value)
@@ -39,15 +42,15 @@ class StateDelegatingRetriever:
             setattr(self.retriever, name, value)
 
     @property
-    def retriever(self):
+    def retriever(self) -> Retriever:
         return self.incremental_data_retriever if self.cursor.get_stream_state() else self.full_data_retriever
 
     @property
-    def state(self):
+    def state(self) -> MutableMapping[str, Any]:
         return self.cursor.get_stream_state() if self.cursor else {}
 
     @state.setter
-    def state(self, value) -> None:
+    def state(self, value: MutableMapping[str, Any]) -> None:
         """State setter, accept state serialized by state getter."""
         if self.cursor:
             self.cursor.set_initial_state(value)

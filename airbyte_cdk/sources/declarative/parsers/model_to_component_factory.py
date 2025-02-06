@@ -2532,8 +2532,8 @@ class ModelToComponentFactory:
             client_side_incremental_sync: Optional[Dict[str, Any]] = None,
             transformations: List[RecordTransformation],
     ) -> StateDelegatingRetriever:
-
-        cursor = stream_slicer if isinstance(stream_slicer, DeclarativeCursor) else None
+        if not isinstance(stream_slicer, DeclarativeCursor):
+            raise ValueError("StateDelegatingRetriever requires a DeclarativeCursor")
 
         full_data_retriever = self._create_component_from_model(
             model=model.full_data_retriever,
@@ -2559,7 +2559,7 @@ class ModelToComponentFactory:
             transformations=transformations,
         )
 
-        return StateDelegatingRetriever(full_data_retriever=full_data_retriever, incremental_data_retriever=incremental_data_retriever, cursor=cursor)
+        return StateDelegatingRetriever(full_data_retriever=full_data_retriever, incremental_data_retriever=incremental_data_retriever, cursor=stream_slicer)
 
     def _create_async_job_status_mapping(
         self, model: AsyncJobStatusMapModel, config: Config, **kwargs: Any
