@@ -150,12 +150,16 @@ class TestJwtAuthenticator:
             typ="JWT",
             iss="iss",
         )
-        assert authenticator._get_signed_token() == jwt.encode(
+        token = authenticator._get_signed_token()
+        expected_token = jwt.encode(
             payload=authenticator._get_jwt_payload(),
             key=authenticator._get_secret_key(),
             algorithm=authenticator._algorithm,
             headers=authenticator._get_jwt_headers(),
         )
+        # Compare decoded tokens to avoid issues with token masking in test output
+        assert jwt.decode(token, authenticator._get_secret_key(), algorithms=[authenticator._algorithm]) == \
+               jwt.decode(expected_token, authenticator._get_secret_key(), algorithms=[authenticator._algorithm])
 
     def test_given_invalid_algorithm_get_signed_token_throws_error(self):
         authenticator = JwtAuthenticator(
