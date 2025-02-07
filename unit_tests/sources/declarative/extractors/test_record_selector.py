@@ -99,6 +99,7 @@ def test_record_filter(test_name, field_path, filter_template, body, expected_da
             config=config, condition=filter_template, parameters=parameters
         )
     record_selector = RecordSelector(
+        name="test_stream",
         extractor=extractor,
         record_filter=record_filter,
         transformations=transformations,
@@ -189,6 +190,7 @@ def test_schema_normalization(test_name, schema, schema_transformation, body, ex
         field_path=["data"], decoder=decoder, config=config, parameters=parameters
     )
     record_selector = RecordSelector(
+        name="test_stream",
         extractor=extractor,
         record_filter=None,
         transformations=[],
