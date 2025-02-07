@@ -73,6 +73,7 @@ class RecordSelector(HttpSelector):
         records_schema: Mapping[str, Any],
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_interval: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Record]:
         """
         Selects records from the response
@@ -81,11 +82,12 @@ class RecordSelector(HttpSelector):
         :param records_schema: json schema of records to return
         :param stream_slice: The stream slice
         :param next_page_token: The paginator token
+        :param stream_interval: The stream interval for incremental sync values
         :return: List of Records selected from the response
         """
         all_data: Iterable[Mapping[str, Any]] = self.extractor.extract_records(response)
         yield from self.filter_and_transform(
-            all_data, stream_state, records_schema, stream_slice, next_page_token
+            all_data, stream_state, records_schema, stream_slice, next_page_token, stream_interval
         )
 
     def filter_and_transform(
@@ -95,6 +97,7 @@ class RecordSelector(HttpSelector):
         records_schema: Mapping[str, Any],
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_interval: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Record]:
         """
         There is an issue with the selector as of 2024-08-30: it does technology-agnostic processing like filtering, transformation and
@@ -104,7 +107,7 @@ class RecordSelector(HttpSelector):
         Until we decide to move this logic away from the selector, we made this method public so that users like AsyncJobRetriever could
         share the logic of doing transformations on a set of records.
         """
-        filtered_data = self._filter(all_data, stream_state, stream_slice, next_page_token)
+        filtered_data = self._filter(all_data, stream_state, stream_slice, next_page_token, stream_interval)
         transformed_data = self._transform(filtered_data, stream_state, stream_slice)
         normalized_data = self._normalize_by_schema(transformed_data, schema=records_schema)
         for data in normalized_data:
@@ -128,6 +131,7 @@ class RecordSelector(HttpSelector):
         stream_state: StreamState,
         stream_slice: Optional[StreamSlice],
         next_page_token: Optional[Mapping[str, Any]],
+        stream_interval: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         if self.record_filter:
             yield from self.record_filter.filter_records(
@@ -135,6 +139,7 @@ class RecordSelector(HttpSelector):
                 stream_state=stream_state,
                 stream_slice=stream_slice,
                 next_page_token=next_page_token,
+                stream_interval=stream_interval,
             )
         else:
             yield from records
