@@ -8,6 +8,7 @@ from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import (
     JsonParser,
     Parser,
 )
+from airbyte_cdk.sources.declarative.decoders.csv_decoder import CsvDecoder
 from airbyte_cdk.sources.declarative.decoders.decoder import Decoder
 from airbyte_cdk.sources.declarative.decoders.json_decoder import (
     GzipJsonDecoder,
@@ -20,7 +21,6 @@ from airbyte_cdk.sources.declarative.decoders.pagination_decoder_decorator impor
     PaginationDecoderDecorator,
 )
 from airbyte_cdk.sources.declarative.decoders.xml_decoder import XmlDecoder
-from airbyte_cdk.sources.declarative.decoders.csv_decoder import CsvDecoder
 from airbyte_cdk.sources.declarative.decoders.zipfile_decoder import ZipfileDecoder
 
 __all__ = [

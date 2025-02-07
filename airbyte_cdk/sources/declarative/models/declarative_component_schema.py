@@ -872,6 +872,7 @@ class IterableDecoder(BaseModel):
 class XmlDecoder(BaseModel):
     type: Literal["XmlDecoder"]
 
+
 class CsvDecoder(BaseModel):
     type: Literal["CsvDecoder"]
     delimiter: Optional[str] = Field(
