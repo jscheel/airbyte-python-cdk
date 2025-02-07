@@ -6,6 +6,7 @@ import ast
 from functools import cache
 from typing import Any, Mapping, Optional, Set, Tuple, Type
 
+from airbyte_protocol.models import AirbyteTracedException
 from jinja2 import meta
 from jinja2.environment import Template
 from jinja2.exceptions import UndefinedError
@@ -15,6 +16,11 @@ from airbyte_cdk.sources.declarative.interpolation.filters import filters
 from airbyte_cdk.sources.declarative.interpolation.interpolation import Interpolation
 from airbyte_cdk.sources.declarative.interpolation.macros import macros
 from airbyte_cdk.sources.types import Config
+
+STREAM_STATE_DEPRECATION_MESSAGE = (
+    "Using 'stream_state' in interpolation is no longer supported as it is not thread-safe. "
+    "Please use 'stream_interval' for incremental sync values or 'stream_partition' for partition router values instead."
+)
 
 
 class StreamPartitionAccessEnvironment(SandboxedEnvironment):
@@ -84,6 +90,9 @@ class JinjaInterpolation(Interpolation):
         valid_types: Optional[Tuple[Type[Any]]] = None,
         **additional_parameters: Any,
     ) -> Any:
+        if isinstance(input_str, str) and "stream_state" in input_str:
+            raise AirbyteTracedException(STREAM_STATE_DEPRECATION_MESSAGE)
+
         context = {"config": config, **additional_parameters}
 
         for alias, equivalent in _ALIASES.items():
