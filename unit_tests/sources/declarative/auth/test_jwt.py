@@ -158,8 +158,11 @@ class TestJwtAuthenticator:
             headers=authenticator._get_jwt_headers(),
         )
         # Compare decoded tokens to avoid issues with token masking in test output
-        assert jwt.decode(token, authenticator._get_secret_key(), algorithms=[authenticator._algorithm]) == \
-               jwt.decode(expected_token, authenticator._get_secret_key(), algorithms=[authenticator._algorithm])
+        assert jwt.decode(
+            token, authenticator._get_secret_key(), algorithms=[authenticator._algorithm]
+        ) == jwt.decode(
+            expected_token, authenticator._get_secret_key(), algorithms=[authenticator._algorithm]
+        )
 
     def test_given_invalid_algorithm_get_signed_token_throws_error(self):
         authenticator = JwtAuthenticator(
