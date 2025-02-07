@@ -22,13 +22,13 @@ new_date = "2022-06-24T20:12:19.597854Z"
         (
             "test_time_is_greater_than_min",
             "{{ config['older'] }}",
-            "{{ stream_state['newer'] }}",
+            "{{ stream_interval['newer'] }}",
             "",
             new_date,
         ),
         (
             "test_time_is_less_than_min",
-            "{{ stream_state['newer'] }}",
+            "{{ stream_interval['newer'] }}",
             "{{ config['older'] }}",
             "",
             new_date,
@@ -42,7 +42,7 @@ new_date = "2022-06-24T20:12:19.597854Z"
         ),
         (
             "test_time_is_greater_than_max",
-            "{{ stream_state['newer'] }}",
+            "{{ stream_interval['newer'] }}",
             "",
             "{{ config['older'] }}",
             old_date,
@@ -51,13 +51,13 @@ new_date = "2022-06-24T20:12:19.597854Z"
             "test_time_is_less_than_max",
             "{{ config['older'] }}",
             "",
-            "{{ stream_state['newer'] }}",
+            "{{ stream_interval['newer'] }}",
             old_date,
         ),
         (
             "test_time_is_equal_to_min",
-            "{{ stream_state['newer'] }}",
-            "{{ stream_state['newer'] }}",
+            "{{ stream_interval['newer'] }}",
+            "{{ stream_interval['newer'] }}",
             "",
             new_date,
         ),
@@ -65,7 +65,7 @@ new_date = "2022-06-24T20:12:19.597854Z"
             "test_time_is_between_min_and_max",
             "{{ config['middle'] }}",
             "{{ config['older'] }}",
-            "{{ stream_state['newer'] }}",
+            "{{ stream_interval['newer'] }}",
             middle_date,
         ),
         (
@@ -86,13 +86,13 @@ new_date = "2022-06-24T20:12:19.597854Z"
 )
 def test_min_max_datetime(test_name, date, min_date, max_date, expected_date):
     config = {"older": old_date, "middle": middle_date}
-    stream_state = {"newer": new_date}
+    stream_interval = {"newer": new_date}
     parameters = {"newer": new_date, "older": old_date}
 
     min_max_date = MinMaxDatetime(
         datetime=date, min_datetime=min_date, max_datetime=max_date, parameters=parameters
     )
-    actual_date = min_max_date.get_datetime(config, **{"stream_state": stream_state})
+    actual_date = min_max_date.get_datetime(config, **{"stream_interval": stream_interval})
 
     assert actual_date == datetime.datetime.strptime(expected_date, date_format)
 
