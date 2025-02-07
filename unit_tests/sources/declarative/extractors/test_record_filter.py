@@ -131,6 +131,7 @@ def test_record_filter(
             stream_state={},
             stream_slice=stream_slice,
             next_page_token=next_page_token,
+            stream_interval=stream_interval,
         )
     )
     assert actual_records == expected_records
