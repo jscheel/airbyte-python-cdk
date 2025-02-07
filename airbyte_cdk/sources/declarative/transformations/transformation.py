@@ -4,7 +4,7 @@
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
 
@@ -19,8 +19,8 @@ class RecordTransformation:
     def transform(
         self,
         record: Dict[str, Any],
-        config: Optional[Config] = None,
-        stream_state: Optional[StreamState] = None,
+        config: Optional[Mapping[str, Any]] = None,
+        stream_state: Optional[Mapping[str, Any]] = None,
         stream_slice: Optional[StreamSlice] = None,
         stream_interval: Optional[Dict[str, Any]] = None,
     ) -> None:
