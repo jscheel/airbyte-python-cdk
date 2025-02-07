@@ -4,7 +4,9 @@
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
+
+from typing_extensions import override
 
 import unidecode
 
@@ -18,6 +20,7 @@ class KeysToSnakeCaseTransformation(RecordTransformation):
         r"[A-Z]+[a-z]*|[a-z]+|\d+|(?P<NoToken>[^a-zA-Z\d]+)"
     )
 
+    @override
     def transform(
         self,
         record: Dict[str, Any],

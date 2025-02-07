@@ -5,6 +5,8 @@
 from dataclasses import InitVar, dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Type, Union
 
+from typing_extensions import override
+
 import dpath
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
@@ -119,6 +121,7 @@ class AddFields(RecordTransformation):
                     )
                 )
 
+    @override
     def transform(
         self,
         record: Dict[str, Any],

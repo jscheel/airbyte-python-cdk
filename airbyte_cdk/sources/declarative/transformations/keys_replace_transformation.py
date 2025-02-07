@@ -5,6 +5,8 @@
 from dataclasses import InitVar, dataclass
 from typing import Any, Dict, Mapping, Optional
 
+from typing_extensions import override
+
 from airbyte_cdk import InterpolatedString
 from airbyte_cdk.sources.declarative.transformations import RecordTransformation
 from airbyte_cdk.sources.types import Config, StreamSlice, StreamState
@@ -32,6 +34,7 @@ class KeysReplaceTransformation(RecordTransformation):
         self._old = InterpolatedString.create(self.old, parameters=parameters)
         self._new = InterpolatedString.create(self.new, parameters=parameters)
 
+    @override
     def transform(
         self,
         record: Dict[str, Any],

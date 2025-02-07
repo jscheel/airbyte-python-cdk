@@ -5,6 +5,8 @@
 from dataclasses import InitVar, dataclass
 from typing import Any, Dict, List, Mapping, Optional
 
+from typing_extensions import override
+
 import dpath
 import dpath.exceptions
 
@@ -49,6 +51,7 @@ class RemoveFields(RecordTransformation):
             condition=self.condition, parameters=parameters
         )
 
+    @override
     def transform(
         self,
         record: Dict[str, Any],
