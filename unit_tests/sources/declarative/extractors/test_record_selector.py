@@ -23,7 +23,7 @@ from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
         (
             "test_with_extractor_and_filter",
             ["data"],
-            "{{ record['created_at'] > stream_state['created_at'] }}",
+            "{{ record['created_at'] > stream_interval['created_at'] }}",
             {
                 "data": [
                     {"id": 1, "created_at": "06-06-21"},
@@ -79,7 +79,7 @@ from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 def test_record_filter(test_name, field_path, filter_template, body, expected_data):
     config = {"response_override": "stop_if_you_see_me"}
     parameters = {"parameters_field": "data", "created_at": "06-07-21"}
-    stream_state = {"created_at": "06-06-21"}
+    stream_interval = {"created_at": "06-06-21"}
     stream_slice = StreamSlice(partition={}, cursor_slice={"last_seen": "06-10-21"})
     next_page_token = {"last_seen_id": 14}
     schema = create_schema()
@@ -111,9 +111,10 @@ def test_record_filter(test_name, field_path, filter_template, body, expected_da
         record_selector.select_records(
             response=response,
             records_schema=schema,
-            stream_state=stream_state,
+            stream_state={},
             stream_slice=stream_slice,
             next_page_token=next_page_token,
+            stream_interval=stream_interval,
         )
     )
     assert actual_records == [
@@ -123,7 +124,7 @@ def test_record_filter(test_name, field_path, filter_template, body, expected_da
     calls = []
     for record in expected_data:
         calls.append(
-            call(record, config=config, stream_state=stream_state, stream_slice=stream_slice)
+            call(record, config=config, stream_state={}, stream_slice=stream_slice, stream_interval=stream_interval)
         )
     for transformation in transformations:
         assert transformation.transform.call_count == len(expected_data)
@@ -171,7 +172,7 @@ def test_record_filter(test_name, field_path, filter_template, body, expected_da
 def test_schema_normalization(test_name, schema, schema_transformation, body, expected_data):
     config = {"response_override": "stop_if_you_see_me"}
     parameters = {"parameters_field": "data", "created_at": "06-07-21"}
-    stream_state = {"created_at": "06-06-21"}
+    stream_interval = {"created_at": "06-06-21"}
     stream_slice = {"last_seen": "06-10-21"}
     next_page_token = {"last_seen_id": 14}
 
@@ -193,10 +194,11 @@ def test_schema_normalization(test_name, schema, schema_transformation, body, ex
     actual_records = list(
         record_selector.select_records(
             response=response,
-            stream_state=stream_state,
+            stream_state={},
             stream_slice=stream_slice,
             next_page_token=next_page_token,
             records_schema=schema,
+            stream_interval=stream_interval,
         )
     )
 
