@@ -3,7 +3,7 @@
 #
 
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
 import requests
 
@@ -50,7 +50,7 @@ class RecordSelector(HttpSelector):
             else self._name
         )
 
-    @property  # type: ignore
+    @property
     def name(self) -> str:
         """
         :return: Stream name
@@ -73,7 +73,7 @@ class RecordSelector(HttpSelector):
         records_schema: Mapping[str, Any],
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
-        stream_interval: Optional[Mapping[str, Any]] = None,
+        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> Iterable[Record]:
         """
         Selects records from the response
@@ -97,7 +97,7 @@ class RecordSelector(HttpSelector):
         records_schema: Mapping[str, Any],
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
-        stream_interval: Optional[Mapping[str, Any]] = None,
+        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> Iterable[Record]:
         """
         There is an issue with the selector as of 2024-08-30: it does technology-agnostic processing like filtering, transformation and
@@ -110,7 +110,9 @@ class RecordSelector(HttpSelector):
         filtered_data = self._filter(
             all_data, stream_state, stream_slice, next_page_token, stream_interval
         )
-        transformed_data = self._transform(filtered_data, stream_state, stream_slice, stream_interval)
+        transformed_data = self._transform(
+            filtered_data, stream_state, stream_slice, stream_interval
+        )
         normalized_data = self._normalize_by_schema(transformed_data, schema=records_schema)
         for data in normalized_data:
             yield Record(data=data, stream_name=self.name, associated_slice=stream_slice)
@@ -133,7 +135,7 @@ class RecordSelector(HttpSelector):
         stream_state: StreamState,
         stream_slice: Optional[StreamSlice],
         next_page_token: Optional[Mapping[str, Any]],
-        stream_interval: Optional[Mapping[str, Any]] = None,
+        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         if self.record_filter:
             yield from self.record_filter.filter_records(
@@ -151,7 +153,7 @@ class RecordSelector(HttpSelector):
         records: Iterable[Mapping[str, Any]],
         stream_state: StreamState,
         stream_slice: Optional[StreamSlice] = None,
-        stream_interval: Optional[Mapping[str, Any]] = None,
+        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         for record in records:
             for transformation in self.transformations:
