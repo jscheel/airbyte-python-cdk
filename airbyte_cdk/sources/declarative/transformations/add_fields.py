@@ -132,7 +132,12 @@ class AddFields(RecordTransformation):
     ) -> None:
         if config is None:
             config = {}
-        kwargs = {"record": record, "stream_state": stream_state, "stream_slice": stream_slice, "stream_interval": stream_interval}
+        kwargs = {
+            "record": record,
+            "stream_state": stream_state,
+            "stream_slice": stream_slice,
+            "stream_interval": stream_interval,
+        }
         for parsed_field in self._parsed_fields:
             valid_types = (parsed_field.value_type,) if parsed_field.value_type else None
             value = parsed_field.value.eval(config, valid_types=valid_types, **kwargs)
