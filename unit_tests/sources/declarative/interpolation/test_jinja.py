@@ -9,7 +9,11 @@ from freezegun import freeze_time
 from jinja2.exceptions import TemplateSyntaxError
 
 from airbyte_cdk import StreamSlice
-from airbyte_cdk.sources.declarative.interpolation.jinja import JinjaInterpolation
+from airbyte_cdk.sources.declarative.interpolation.jinja import (
+    JinjaInterpolation,
+    STREAM_STATE_DEPRECATION_MESSAGE,
+)
+from airbyte_protocol.models import AirbyteTracedException
 
 interpolation = JinjaInterpolation()
 
@@ -351,3 +355,9 @@ def test_interpolation_private_partition_attribute():
     actual_output = JinjaInterpolation().eval(template, {}, **{"stream_slice": stream_slice})
 
     assert actual_output == expected_output
+
+
+def test_stream_state_interpolation_raises_error():
+    interpolator = JinjaInterpolation()
+    with pytest.raises(AirbyteTracedException, match=STREAM_STATE_DEPRECATION_MESSAGE):
+        interpolator.eval("{{ stream_state['cursor'] }}", {})
