@@ -17,6 +17,7 @@ class KeysToLowerTransformation(RecordTransformation):
         config: Optional[Config] = None,
         stream_state: Optional[StreamState] = None,
         stream_slice: Optional[StreamSlice] = None,
+        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> None:
         for key in set(record.keys()):
             record[key.lower()] = record.pop(key)

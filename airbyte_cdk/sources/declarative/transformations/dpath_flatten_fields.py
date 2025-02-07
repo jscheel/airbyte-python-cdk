@@ -39,6 +39,7 @@ class DpathFlattenFields(RecordTransformation):
         config: Optional[Config] = None,
         stream_state: Optional[StreamState] = None,
         stream_slice: Optional[StreamSlice] = None,
+        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> None:
         path = [path.eval(self.config) for path in self._field_path]
         if "*" in path:
