@@ -59,6 +59,7 @@ from airbyte_cdk.sources.declarative.concurrency_level import ConcurrencyLevel
 from airbyte_cdk.sources.declarative.datetime import MinMaxDatetime
 from airbyte_cdk.sources.declarative.declarative_stream import DeclarativeStream
 from airbyte_cdk.sources.declarative.decoders import (
+    CsvDecoder,
     Decoder,
     GzipJsonDecoder,
     IterableDecoder,
@@ -66,7 +67,6 @@ from airbyte_cdk.sources.declarative.decoders import (
     JsonlDecoder,
     PaginationDecoderDecorator,
     XmlDecoder,
-    CsvDecoder,
     ZipfileDecoder,
 )
 from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import (
@@ -154,6 +154,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ConstantBackoffStrategy as ConstantBackoffStrategyModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CsvDecoder as CsvDecoderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     CsvParser as CsvParserModel,
@@ -366,9 +369,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     XmlDecoder as XmlDecoderModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    CsvDecoder as CsvDecoderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ZipfileDecoder as ZipfileDecoderModel,

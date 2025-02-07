@@ -36,7 +36,7 @@ class CsvDecoder(Decoder):
                 return
 
             # First validate CSV structure
-            lines = response.text.strip().split('\n')
+            lines = response.text.strip().split("\n")
             if not lines:
                 yield {}
                 return
@@ -55,7 +55,7 @@ class CsvDecoder(Decoder):
                     iterator=True,
                     dtype=object,
                     delimiter=self.delimiter,
-                    encoding=self.encoding
+                    encoding=self.encoding,
                 )
             except (pd.errors.EmptyDataError, pd.errors.ParserError):
                 yield {}

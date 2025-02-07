@@ -15,7 +15,11 @@ from airbyte_cdk.sources.declarative.decoders import CsvDecoder
         ("name;age\nJohn;30", [{"name": "John", "age": "30"}], ";"),
         ("", [{}], ","),  # Empty response
         ("invalid,csv,data\nno,columns", [{}], ","),  # Malformed CSV
-        ("name,age\nJohn,30\nJane,25", [{"name": "John", "age": "30"}, {"name": "Jane", "age": "25"}], ","),  # Multiple rows
+        (
+            "name,age\nJohn,30\nJane,25",
+            [{"name": "John", "age": "30"}, {"name": "Jane", "age": "25"}],
+            ",",
+        ),  # Multiple rows
     ],
 )
 def test_csv_decoder(requests_mock, response_body, expected, delimiter):
