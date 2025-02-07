@@ -51,7 +51,7 @@ class RecordSelector(HttpSelector):
         )
 
     @property
-    def name(self) -> str:
+    def stream_name(self) -> str:
         """
         :return: Stream name
         """
@@ -61,8 +61,8 @@ class RecordSelector(HttpSelector):
             else self._name
         )
 
-    @name.setter
-    def name(self, value: str) -> None:
+    @stream_name.setter
+    def stream_name(self, value: str) -> None:
         if not isinstance(value, property):
             self._name = value
 

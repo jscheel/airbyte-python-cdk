@@ -48,7 +48,6 @@ class KeysReplaceTransformation(RecordTransformation):
 
         kwargs = {
             "record": record,
-            "stream_state": stream_state,
             "stream_slice": stream_slice,
             "stream_interval": stream_interval,
         }
