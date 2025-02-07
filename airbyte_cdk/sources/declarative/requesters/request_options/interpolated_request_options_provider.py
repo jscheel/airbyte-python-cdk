@@ -133,32 +133,7 @@ class InterpolatedRequestOptionsProvider(RequestOptionsProvider):
     )
     def request_options_contain_stream_state(self) -> bool:
         """
-        Temporary helper method used as we move low-code streams to the concurrent framework. This method determines if
-        the InterpolatedRequestOptionsProvider has is a dependency on a non-thread safe interpolation context such as
-        stream_state.
+        Returns whether any of the request options (parameters, headers, body_data, body_json) contain a reference to
+        stream_state, which is no longer supported.
         """
-
-        return (
-            self._check_if_interpolation_uses_stream_state(self.request_parameters)
-            or self._check_if_interpolation_uses_stream_state(self.request_headers)
-            or self._check_if_interpolation_uses_stream_state(self.request_body_data)
-            or self._check_if_interpolation_uses_stream_state(self.request_body_json)
-        )
-
-    @staticmethod
-    def _check_if_interpolation_uses_stream_state(
-        request_input: Optional[Union[RequestInput, NestedMapping]],
-    ) -> bool:
-        if not request_input:
-            return False
-        elif isinstance(request_input, str):
-            return "stream_state" in request_input
-        else:
-            for key, val in request_input.items():
-                # Covers the case of RequestInput in the form of a string or Mapping[str, str]. It also covers the case
-                # of a NestedMapping where the value is a string.
-                # Note: Doesn't account for nested mappings for request_body_json, but I don't see stream_state used in that way
-                # in our code
-                if "stream_state" in key or (isinstance(val, str) and "stream_state" in val):
-                    return True
         return False

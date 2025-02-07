@@ -3,7 +3,7 @@
 #
 
 from dataclasses import InitVar, dataclass, field
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from airbyte_cdk.sources.declarative.interpolation.interpolated_nested_mapping import (
     InterpolatedNestedMapping,
@@ -45,18 +45,20 @@ class InterpolatedNestedRequestInputProvider:
         stream_state: Optional[StreamState] = None,
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
+        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> Mapping[str, Any]:
         """
         Returns the request inputs to set on an outgoing HTTP request
 
-        :param stream_state: The stream state
+        :param stream_state: The stream state (deprecated, use stream_interval instead)
         :param stream_slice: The stream slice
         :param next_page_token: The pagination token
+        :param stream_interval: The stream interval for incremental sync values
         :return: The request inputs to set on an outgoing HTTP request
         """
         kwargs = {
-            "stream_state": stream_state,
             "stream_slice": stream_slice,
+            "stream_interval": stream_state,  # Use stream_state as stream_interval for backward compatibility
             "next_page_token": next_page_token,
         }
         return self._interpolator.eval(self.config, **kwargs)  # type: ignore  # self._interpolator is always initialized with a value and will not be None
