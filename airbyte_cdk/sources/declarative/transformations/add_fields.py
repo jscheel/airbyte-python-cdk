@@ -46,7 +46,7 @@ class AddFields(RecordTransformation):
     This transformation has access to the following contextual values:
         record: the record about to be output by the connector
         config: the input configuration provided to a connector
-        stream_state: the current state of the stream
+        stream_interval: the stream interval for incremental sync values
         stream_slice: the current stream slice being read
 
 
@@ -66,9 +66,9 @@ class AddFields(RecordTransformation):
         - path: ["shop_id"]
           value: "{{ config.shop_id }}"
 
-        # from state
+        # from stream_interval
         - path: ["current_state"]
-          value: "{{ stream_state.cursor_field }}" # Or {{ stream_state['cursor_field'] }}
+          value: "{{ stream_interval.cursor_field }}"
 
         # from record
         - path: ["unnested_value"]
@@ -134,7 +134,6 @@ class AddFields(RecordTransformation):
             config = {}
         kwargs = {
             "record": record,
-            "stream_state": stream_state,
             "stream_slice": stream_slice,
             "stream_interval": stream_interval,
         }
