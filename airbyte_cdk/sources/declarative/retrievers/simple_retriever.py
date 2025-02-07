@@ -116,7 +116,6 @@ class SimpleRetriever(Retriever):
 
     def _get_request_options(
         self,
-        stream_state: Optional[StreamData],
         stream_slice: Optional[StreamSlice],
         next_page_token: Optional[Mapping[str, Any]],
         paginator_method: Callable[..., Optional[Union[Mapping[str, Any], str]]],
@@ -127,13 +126,10 @@ class SimpleRetriever(Retriever):
         Raise a ValueError if there's a key collision
         Returned merged mapping otherwise
         """
-        # FIXME we should eventually remove the usage of stream_state as part of the interpolation
-
         is_body_json = paginator_method.__name__ == "get_request_body_json"
 
         mappings = [
             paginator_method(
-                stream_state=stream_state,
                 stream_slice=stream_slice,
                 next_page_token=next_page_token,
             ),
@@ -141,7 +137,6 @@ class SimpleRetriever(Retriever):
         if not next_page_token or not self.ignore_stream_slicer_parameters_on_paginated_requests:
             mappings.append(
                 stream_slicer_method(
-                    stream_state=stream_state,
                     stream_slice=stream_slice,
                     next_page_token=next_page_token,
                 )
@@ -159,7 +154,6 @@ class SimpleRetriever(Retriever):
         Authentication headers will overwrite any overlapping headers returned from this method.
         """
         headers = self._get_request_options(
-            stream_state,
             stream_slice,
             next_page_token,
             self._paginator.get_request_headers,
@@ -181,7 +175,6 @@ class SimpleRetriever(Retriever):
         E.g: you might want to define query parameters for paging if next_page_token is not None.
         """
         params = self._get_request_options(
-            stream_state,
             stream_slice,
             next_page_token,
             self._paginator.get_request_params,
@@ -207,7 +200,6 @@ class SimpleRetriever(Retriever):
         At the same time only one of the 'request_body_data' and 'request_body_json' functions can be overridden.
         """
         return self._get_request_options(
-            stream_state,
             stream_slice,
             next_page_token,
             self._paginator.get_request_body_data,
@@ -226,7 +218,6 @@ class SimpleRetriever(Retriever):
         At the same time only one of the 'request_body_data' and 'request_body_json' functions can be overridden.
         """
         body_json = self._get_request_options(
-            stream_state,
             stream_slice,
             next_page_token,
             self._paginator.get_request_body_json,
