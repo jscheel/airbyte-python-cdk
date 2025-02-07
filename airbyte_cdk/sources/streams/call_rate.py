@@ -100,6 +100,69 @@ class RequestMatcher(abc.ABC):
 
 
 class HttpRequestMatcher(RequestMatcher):
+    """Simple implementation of RequestMatcher for http requests case"""
+
+    def __init__(
+        self,
+        method: Optional[str] = None,
+        url: Optional[str] = None,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[Mapping[str, Any]] = None,
+    ):
+        """Constructor
+
+        :param method:
+        :param url:
+        :param params:
+        :param headers:
+        """
+        self._method = method
+        self._url = url
+        self._params = {str(k): str(v) for k, v in (params or {}).items()}
+        self._headers = {str(k): str(v) for k, v in (headers or {}).items()}
+
+    @staticmethod
+    def _match_dict(obj: Mapping[str, Any], pattern: Mapping[str, Any]) -> bool:
+        """Check that all elements from pattern dict present and have the same values in obj dict
+
+        :param obj:
+        :param pattern:
+        :return:
+        """
+        return pattern.items() <= obj.items()
+
+    def __call__(self, request: Any) -> bool:
+        """
+
+        :param request:
+        :return: True if matches the provided request object, False - otherwise
+        """
+        if isinstance(request, requests.Request):
+            prepared_request = request.prepare()
+        elif isinstance(request, requests.PreparedRequest):
+            prepared_request = request
+        else:
+            return False
+
+        if self._method is not None:
+            if prepared_request.method != self._method:
+                return False
+        if self._url is not None and prepared_request.url is not None:
+            url_without_params = prepared_request.url.split("?")[0]
+            if url_without_params != self._url:
+                return False
+        if self._params is not None:
+            parsed_url = parse.urlsplit(prepared_request.url)
+            params = dict(parse.parse_qsl(str(parsed_url.query)))
+            if not self._match_dict(params, self._params):
+                return False
+        if self._headers is not None:
+            if not self._match_dict(prepared_request.headers, self._headers):
+                return False
+        return True
+
+
+class HttpRequestRegexMatcher(RequestMatcher):
     """
     Extended RequestMatcher for HTTP requests that supports matching on:
       - HTTP method (case-insensitive)

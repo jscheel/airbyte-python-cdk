@@ -251,7 +251,7 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     HttpRequester as HttpRequesterModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    HttpRequestMatcher as HttpRequestMatcherModel,
+    HttpRequestRegexMatcher as HttpRequestRegexMatcherModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpResponseFilter as HttpResponseFilterModel,
@@ -494,7 +494,7 @@ from airbyte_cdk.sources.streams.call_rate import (
     APIBudget,
     FixedWindowCallRatePolicy,
     HttpAPIBudget,
-    HttpRequestMatcher,
+    HttpRequestRegexMatcher,
     MovingWindowCallRatePolicy,
     Rate,
     UnlimitedCallRatePolicy,
@@ -644,7 +644,7 @@ class ModelToComponentFactory:
             MovingWindowCallRatePolicyModel: self.create_moving_window_call_rate_policy,
             UnlimitedCallRatePolicyModel: self.create_unlimited_call_rate_policy,
             RateModel: self.create_rate,
-            HttpRequestMatcherModel: self.create_http_request_matcher,
+            HttpRequestRegexMatcherModel: self.create_http_request_matcher,
         }
 
         # Needed for the case where we need to perform a second parse on the fields of a custom component
@@ -3040,9 +3040,9 @@ class ModelToComponentFactory:
         )
 
     def create_http_request_matcher(
-        self, model: HttpRequestMatcherModel, config: Config, **kwargs: Any
-    ) -> HttpRequestMatcher:
-        return HttpRequestMatcher(
+        self, model: HttpRequestRegexMatcherModel, config: Config, **kwargs: Any
+    ) -> HttpRequestRegexMatcher:
+        return HttpRequestRegexMatcher(
             method=model.method,
             url_base=model.url_base,
             url_path_pattern=model.url_path_pattern,

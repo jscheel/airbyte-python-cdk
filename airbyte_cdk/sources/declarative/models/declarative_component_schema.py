@@ -657,7 +657,7 @@ class Rate(BaseModel):
     )
 
 
-class HttpRequestMatcher(BaseModel):
+class HttpRequestRegexMatcher(BaseModel):
     class Config:
         extra = Extra.allow
 
@@ -1642,7 +1642,7 @@ class FixedWindowCallRatePolicy(BaseModel):
         description="The maximum number of calls allowed within the period.",
         title="Call Limit",
     )
-    matchers: List[HttpRequestMatcher] = Field(
+    matchers: List[HttpRequestRegexMatcher] = Field(
         ...,
         description="List of matchers that define which requests this policy applies to.",
         title="Matchers",
@@ -1659,7 +1659,7 @@ class MovingWindowCallRatePolicy(BaseModel):
         description="List of rates that define the call limits for different time intervals.",
         title="Rates",
     )
-    matchers: List[HttpRequestMatcher] = Field(
+    matchers: List[HttpRequestRegexMatcher] = Field(
         ...,
         description="List of matchers that define which requests this policy applies to.",
         title="Matchers",
@@ -1671,7 +1671,7 @@ class UnlimitedCallRatePolicy(BaseModel):
         extra = Extra.allow
 
     type: Literal["UnlimitedCallRatePolicy"]
-    matchers: List[HttpRequestMatcher] = Field(
+    matchers: List[HttpRequestRegexMatcher] = Field(
         ...,
         description="List of matchers that define which requests this policy applies to.",
         title="Matchers",

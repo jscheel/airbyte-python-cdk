@@ -1478,7 +1478,7 @@ definitions:
         description: List of matchers that define which requests this policy applies to.
         type: array
         items:
-          "$ref": "#/definitions/HttpRequestMatcher"
+          "$ref": "#/definitions/HttpRequestRegexMatcher"
     additionalProperties: true
   MovingWindowCallRatePolicy:
     title: Moving Window Call Rate Policy
@@ -1503,7 +1503,7 @@ definitions:
         description: List of matchers that define which requests this policy applies to.
         type: array
         items:
-          "$ref": "#/definitions/HttpRequestMatcher"
+          "$ref": "#/definitions/HttpRequestRegexMatcher"
     additionalProperties: true
   UnlimitedCallRatePolicy:
     title: Unlimited Call Rate Policy
@@ -1521,7 +1521,7 @@ definitions:
         description: List of matchers that define which requests this policy applies to.
         type: array
         items:
-          "$ref": "#/definitions/HttpRequestMatcher"
+          "$ref": "#/definitions/HttpRequestRegexMatcher"
     additionalProperties: true
   Rate:
     title: Rate
@@ -1541,7 +1541,7 @@ definitions:
         type: string
         format: duration
     additionalProperties: true
-  HttpRequestMatcher:
+  HttpRequestRegexMatcher:
     title: HTTP Request Matcher
     description: >
       Matches HTTP requests based on method, base URL, URL path pattern, query parameters, and headers.
