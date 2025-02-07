@@ -119,7 +119,8 @@ def test_record_filter(test_name, field_path, filter_template, body, expected_da
         )
     )
     assert actual_records == [
-        Record(data=data, associated_slice=stream_slice, stream_name="test_stream") for data in expected_data
+        Record(data=data, associated_slice=stream_slice, stream_name="test_stream")
+        for data in expected_data
     ]
 
     calls = []
@@ -210,7 +211,10 @@ def test_schema_normalization(test_name, schema, schema_transformation, body, ex
         )
     )
 
-    assert actual_records == [Record(data=data, associated_slice=stream_slice, stream_name="test_stream") for data in expected_data]
+    assert actual_records == [
+        Record(data=data, associated_slice=stream_slice, stream_name="test_stream")
+        for data in expected_data
+    ]
 
 
 def create_response(body):
