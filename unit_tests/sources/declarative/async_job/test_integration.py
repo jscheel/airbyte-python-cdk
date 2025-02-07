@@ -69,6 +69,7 @@ class MockSource(AbstractSource):
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         noop_record_selector = RecordSelector(
+            name=_A_STREAM_NAME,
             extractor=_EXTRACTOR_NOT_USED,
             config={},
             parameters={},
