@@ -110,7 +110,7 @@ class RecordSelector(HttpSelector):
         filtered_data = self._filter(
             all_data, stream_state, stream_slice, next_page_token, stream_interval
         )
-        transformed_data = self._transform(filtered_data, stream_state, stream_slice)
+        transformed_data = self._transform(filtered_data, stream_state, stream_slice, stream_interval)
         normalized_data = self._normalize_by_schema(transformed_data, schema=records_schema)
         for data in normalized_data:
             yield Record(data=data, stream_name=self.name, associated_slice=stream_slice)
@@ -151,6 +151,7 @@ class RecordSelector(HttpSelector):
         records: Iterable[Mapping[str, Any]],
         stream_state: StreamState,
         stream_slice: Optional[StreamSlice] = None,
+        stream_interval: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         for record in records:
             for transformation in self.transformations:
@@ -159,5 +160,6 @@ class RecordSelector(HttpSelector):
                     config=self.config,
                     stream_state=stream_state,
                     stream_slice=stream_slice,
+                    stream_interval=stream_interval,
                 )
             yield record
