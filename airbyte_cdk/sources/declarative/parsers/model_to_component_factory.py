@@ -66,6 +66,7 @@ from airbyte_cdk.sources.declarative.decoders import (
     JsonlDecoder,
     PaginationDecoderDecorator,
     XmlDecoder,
+    CsvDecoder,
     ZipfileDecoder,
 )
 from airbyte_cdk.sources.declarative.decoders.composite_raw_decoder import (
@@ -365,6 +366,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     XmlDecoder as XmlDecoderModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CsvDecoder as CsvDecoderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ZipfileDecoder as ZipfileDecoderModel,
@@ -2082,6 +2086,14 @@ class ModelToComponentFactory:
         return XmlDecoder(parameters={})
 
     @staticmethod
+    def create_csv_decoder(model: CsvDecoderModel, config: Config, **kwargs: Any) -> CsvDecoder:
+        parameters = {
+            "delimiter": model.delimiter,
+            "encoding": model.encoding,
+        }
+        return CsvDecoder(parameters=parameters)
+
+    @staticmethod
     def create_gzipjson_decoder(
         model: GzipJsonDecoderModel, config: Config, **kwargs: Any
     ) -> GzipJsonDecoder:
@@ -2909,7 +2921,7 @@ class ModelToComponentFactory:
     )
 
     def _is_supported_decoder_for_pagination(self, decoder: Decoder) -> bool:
-        if isinstance(decoder, (JsonDecoder, XmlDecoder)):
+        if isinstance(decoder, (JsonDecoder, XmlDecoder, CsvDecoder)):
             return True
         elif isinstance(decoder, CompositeRawDecoder):
             return self._is_supported_parser_for_pagination(decoder.parser)

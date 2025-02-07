@@ -20,6 +20,7 @@ from airbyte_cdk.sources.declarative.decoders.pagination_decoder_decorator impor
     PaginationDecoderDecorator,
 )
 from airbyte_cdk.sources.declarative.decoders.xml_decoder import XmlDecoder
+from airbyte_cdk.sources.declarative.decoders.csv_decoder import CsvDecoder
 from airbyte_cdk.sources.declarative.decoders.zipfile_decoder import ZipfileDecoder
 
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "NoopDecoder",
     "PaginationDecoderDecorator",
     "XmlDecoder",
+    "CsvDecoder",
     "ZipfileDecoder",
 ]

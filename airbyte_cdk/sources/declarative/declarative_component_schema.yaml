@@ -2111,6 +2111,24 @@ definitions:
       type:
         type: string
         enum: [XmlDecoder]
+  CsvDecoder:
+    title: CSV Decoder
+    description: Decoder that parses CSV content from the response.
+    type: object
+    required:
+      - type
+    properties:
+      type:
+        type: string
+        enum: [CsvDecoder]
+      delimiter:
+        type: string
+        default: ","
+        description: The delimiter character to use when parsing CSV content.
+      encoding:
+        type: string
+        default: "utf-8"
+        description: The encoding to use when reading the CSV content.
   CustomDecoder:
     title: Custom Decoder
     description: Use this to implement custom decoder logic.
