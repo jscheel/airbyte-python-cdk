@@ -124,7 +124,13 @@ def test_record_filter(test_name, field_path, filter_template, body, expected_da
     calls = []
     for record in expected_data:
         calls.append(
-            call(record, config=config, stream_state={}, stream_slice=stream_slice, stream_interval=stream_interval)
+            call(
+                record,
+                config=config,
+                stream_state={},
+                stream_slice=stream_slice,
+                stream_interval=stream_interval,
+            )
         )
     for transformation in transformations:
         assert transformation.transform.call_count == len(expected_data)
