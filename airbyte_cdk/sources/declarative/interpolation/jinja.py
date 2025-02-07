@@ -6,7 +6,7 @@ import ast
 from functools import cache
 from typing import Any, Mapping, Optional, Set, Tuple, Type
 
-from airbyte_cdk.models import AirbyteTracedException
+from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 from jinja2 import meta
 from jinja2.environment import Template
 from jinja2.exceptions import UndefinedError

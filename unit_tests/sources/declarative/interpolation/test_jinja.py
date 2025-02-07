@@ -13,7 +13,7 @@ from airbyte_cdk.sources.declarative.interpolation.jinja import (
     JinjaInterpolation,
     STREAM_STATE_DEPRECATION_MESSAGE,
 )
-from airbyte_protocol.models import AirbyteTracedException
+from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
 interpolation = JinjaInterpolation()
 
