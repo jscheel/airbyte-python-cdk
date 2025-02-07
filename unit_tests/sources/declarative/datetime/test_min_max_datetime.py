@@ -99,16 +99,16 @@ def test_min_max_datetime(test_name, date, min_date, max_date, expected_date):
 
 def test_custom_datetime_format():
     config = {"older": "2021-01-01T20:12:19", "middle": "2022-01-01T20:12:19"}
-    stream_state = {"newer": "2022-06-24T20:12:19"}
+    stream_interval = {"newer": "2022-06-24T20:12:19"}
 
     min_max_date = MinMaxDatetime(
         datetime="{{ config['middle'] }}",
         datetime_format="%Y-%m-%dT%H:%M:%S",
         min_datetime="{{ config['older'] }}",
-        max_datetime="{{ stream_state['newer'] }}",
+        max_datetime="{{ stream_interval['newer'] }}",
         parameters={},
     )
-    actual_date = min_max_date.get_datetime(config, **{"stream_state": stream_state})
+    actual_date = min_max_date.get_datetime(config, **{"stream_interval": stream_interval})
 
     assert actual_date == datetime.datetime.strptime(
         "2022-01-01T20:12:19", "%Y-%m-%dT%H:%M:%S"
@@ -117,16 +117,16 @@ def test_custom_datetime_format():
 
 def test_format_is_a_number():
     config = {"older": "20210101", "middle": "20220101"}
-    stream_state = {"newer": "20220624"}
+    stream_interval = {"newer": "20220624"}
 
     min_max_date = MinMaxDatetime(
         datetime="{{ config['middle'] }}",
         datetime_format="%Y%m%d",
         min_datetime="{{ config['older'] }}",
-        max_datetime="{{ stream_state['newer'] }}",
+        max_datetime="{{ stream_interval['newer'] }}",
         parameters={},
     )
-    actual_date = min_max_date.get_datetime(config, **{"stream_state": stream_state})
+    actual_date = min_max_date.get_datetime(config, **{"stream_interval": stream_interval})
 
     assert actual_date == datetime.datetime.strptime("20220101", "%Y%m%d").replace(
         tzinfo=datetime.timezone.utc
