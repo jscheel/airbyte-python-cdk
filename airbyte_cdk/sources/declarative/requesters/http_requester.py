@@ -202,6 +202,9 @@ class HttpRequester(Requester):
         Raise a ValueError if there's a key collision
         Returned merged mapping otherwise
         """
+
+        is_body_json = requester_method.__name__ == "get_request_body_json"
+
         return combine_mappings(
             [
                 requester_method(
@@ -211,7 +214,8 @@ class HttpRequester(Requester):
                 ),
                 auth_options_method(),
                 extra_options,
-            ]
+            ],
+            allow_same_value_merge=is_body_json,
         )
 
     def _request_headers(
