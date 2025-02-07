@@ -38,7 +38,6 @@ class StreamPartitionAccessEnvironment(SandboxedEnvironment):
 
 # These aliases are used to deprecate existing keywords without breaking all existing connectors.
 _ALIASES = {
-    "stream_interval": "stream_slice",  # Use stream_interval to access incremental_sync values
     "stream_partition": "stream_slice",  # Use stream_partition to access partition router's values
 }
 
