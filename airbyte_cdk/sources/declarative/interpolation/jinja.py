@@ -6,7 +6,6 @@ import ast
 from functools import cache
 from typing import Any, Mapping, Optional, Set, Tuple, Type
 
-from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 from jinja2 import meta
 from jinja2.environment import Template
 from jinja2.exceptions import UndefinedError
@@ -16,6 +15,7 @@ from airbyte_cdk.sources.declarative.interpolation.filters import filters
 from airbyte_cdk.sources.declarative.interpolation.interpolation import Interpolation
 from airbyte_cdk.sources.declarative.interpolation.macros import macros
 from airbyte_cdk.sources.types import Config
+from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
 STREAM_STATE_DEPRECATION_MESSAGE = (
     "Using 'stream_state' in interpolation is no longer supported as it is not thread-safe. "

@@ -10,8 +10,8 @@ from jinja2.exceptions import TemplateSyntaxError
 
 from airbyte_cdk import StreamSlice
 from airbyte_cdk.sources.declarative.interpolation.jinja import (
-    JinjaInterpolation,
     STREAM_STATE_DEPRECATION_MESSAGE,
+    JinjaInterpolation,
 )
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
