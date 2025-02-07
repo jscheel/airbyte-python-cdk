@@ -77,7 +77,7 @@ new_date = "2022-06-24T20:12:19.597854Z"
         ),
         (
             "test_max_newer_time_from_parameters",
-            "{{ stream_state['newer'] }}",
+            "{{ stream_interval['newer'] }}",
             "",
             "{{ parameters['older'] }}",
             old_date,
