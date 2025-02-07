@@ -35,7 +35,7 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
     ModelToComponentFactory,
 )
-from airbyte_cdk.sources.declarative.partition_routers import AsyncJobPartitionRouter
+from airbyte_cdk.sources.declarative.partition_routers import AsyncJobPartitionRouter, SubstreamPartitionRouter
 from airbyte_cdk.sources.declarative.requesters import HttpRequester
 from airbyte_cdk.sources.declarative.retrievers import AsyncRetriever, Retriever, SimpleRetriever
 from airbyte_cdk.sources.declarative.stream_slicers.declarative_partition_generator import (
@@ -397,6 +397,61 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             )
         )
 
+    def _stream_uses_stream_state_interpolation(
+        self, declarative_stream: DeclarativeStream
+    ) -> bool:
+        if isinstance(declarative_stream.retriever, SimpleRetriever) and isinstance(
+            declarative_stream.retriever.requester, HttpRequester
+        ):
+            http_requester = declarative_stream.retriever.requester
+            if "stream_state" in http_requester._path.string:
+                self.logger.warning(
+                    f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the HttpRequester which is not thread-safe."
+                )
+                return True
+
+            request_options_provider = http_requester._request_options_provider
+            if request_options_provider.request_options_contain_stream_state():
+                self.logger.warning(
+                    f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the HttpRequester which is not thread-safe."
+                )
+                return True
+
+            record_selector = declarative_stream.retriever.record_selector
+            if isinstance(record_selector, RecordSelector):
+                if (
+                    record_selector.record_filter
+                    and not isinstance(
+                        record_selector.record_filter, ClientSideIncrementalRecordFilterDecorator
+                    )
+                    and "stream_state" in record_selector.record_filter.condition
+                ):
+                    self.logger.warning(
+                        f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the RecordFilter which is not thread-safe."
+                    )
+                    return True
+
+                for add_fields in [
+                    transformation
+                    for transformation in record_selector.transformations
+                    if isinstance(transformation, AddFields)
+                ]:
+                    for field in add_fields.fields:
+                        if isinstance(field.value, str) and "stream_state" in field.value:
+                            self.logger.warning(
+                                f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the AddFields which is not thread-safe."
+                            )
+                            return True
+                        if (
+                            isinstance(field.value, InterpolatedString)
+                            and "stream_state" in field.value.string
+                        ):
+                            self.logger.warning(
+                                f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the AddFields which is not thread-safe."
+                            )
+                            return True
+        return False
+
     def _stream_supports_concurrent_partition_processing(
         self, declarative_stream: DeclarativeStream
     ) -> bool:
@@ -410,57 +465,21 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
         per-partition, but we need to gate this otherwise some connectors will be blocked from publishing. See the
         cdk-migrations.md for the full list of connectors.
         """
+        # Check if the stream uses stream_state interpolation in any of its components
+        if self._stream_uses_stream_state_interpolation(declarative_stream):
+            return False
 
+        # Check if any parent stream uses stream_state interpolation
         if isinstance(declarative_stream.retriever, SimpleRetriever) and isinstance(
-            declarative_stream.retriever.requester, HttpRequester
+            declarative_stream.retriever.stream_slicer, SubstreamPartitionRouter
         ):
-            http_requester = declarative_stream.retriever.requester
-            if "stream_state" in http_requester._path.string:
-                self.logger.warning(
-                    f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the HttpRequester which is not thread-safe. Defaulting to synchronous processing"
-                )
-                return False
-
-            request_options_provider = http_requester._request_options_provider
-            if request_options_provider.request_options_contain_stream_state():
-                self.logger.warning(
-                    f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the HttpRequester which is not thread-safe. Defaulting to synchronous processing"
-                )
-                return False
-
-            record_selector = declarative_stream.retriever.record_selector
-            if isinstance(record_selector, RecordSelector):
-                if (
-                    record_selector.record_filter
-                    and not isinstance(
-                        record_selector.record_filter, ClientSideIncrementalRecordFilterDecorator
-                    )
-                    and "stream_state" in record_selector.record_filter.condition
-                ):
+            for parent_config in declarative_stream.retriever.stream_slicer.parent_stream_configs:
+                if self._stream_uses_stream_state_interpolation(parent_config.stream):
                     self.logger.warning(
-                        f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the RecordFilter which is not thread-safe. Defaulting to synchronous processing"
+                        f"Low-code stream '{declarative_stream.name}' has a parent stream that uses stream_state interpolation which is not thread-safe. Defaulting to synchronous processing"
                     )
                     return False
 
-                for add_fields in [
-                    transformation
-                    for transformation in record_selector.transformations
-                    if isinstance(transformation, AddFields)
-                ]:
-                    for field in add_fields.fields:
-                        if isinstance(field.value, str) and "stream_state" in field.value:
-                            self.logger.warning(
-                                f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the AddFields which is not thread-safe. Defaulting to synchronous processing"
-                            )
-                            return False
-                        if (
-                            isinstance(field.value, InterpolatedString)
-                            and "stream_state" in field.value.string
-                        ):
-                            self.logger.warning(
-                                f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the AddFields which is not thread-safe. Defaulting to synchronous processing"
-                            )
-                            return False
         return True
 
     @staticmethod
