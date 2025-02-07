@@ -57,7 +57,7 @@ class InterpolatedRequestInputProvider:
         """
         kwargs = {
             "stream_slice": stream_slice,
-            "stream_interval": stream_state,  # Use stream_state as stream_interval for backward compatibility
+            "stream_interval": stream_interval or stream_state,  # Use stream_state as stream_interval for backward compatibility
             "next_page_token": next_page_token,
         }
         interpolated_value = self._interpolator.eval(  # type: ignore # self._interpolator is always initialized with a value and will not be None
