@@ -32,6 +32,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     DatetimeBasedCursor as DatetimeBasedCursorModel,
 )
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    IncrementingCountCursor as IncrementingCountCursorModel,
+)
 from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
     ModelToComponentFactory,
 )
@@ -249,15 +252,27 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             stream_slicer=declarative_stream.retriever.stream_slicer,
                         )
                     else:
-                        cursor = (
-                            self._constructor.create_concurrent_cursor_from_datetime_based_cursor(
+                        cursor: ConcurrentCursor
+                        if (
+                            incremental_sync_component_definition.get("type")
+                            == IncrementingCountCursorModel.__name__
+                        ):
+                            cursor = self._constructor.create_concurrent_cursor_from_incrementing_count_cursor(
+                                model_type=IncrementingCountCursorModel,
+                                component_definition=incremental_sync_component_definition,
+                                # type: ignore  # Not None because of the if condition above
+                                stream_name=declarative_stream.name,
+                                stream_namespace=declarative_stream.namespace,
+                                config=config or {},
+                            )
+                        else:
+                            cursor = self._constructor.create_concurrent_cursor_from_datetime_based_cursor(
                                 model_type=DatetimeBasedCursorModel,
                                 component_definition=incremental_sync_component_definition,  # type: ignore  # Not None because of the if condition above
                                 stream_name=declarative_stream.name,
                                 stream_namespace=declarative_stream.namespace,
                                 config=config or {},
                             )
-                        )
                         partition_generator = StreamSlicerPartitionGenerator(
                             partition_factory=DeclarativePartitionFactory(
                                 declarative_stream.name,
@@ -385,14 +400,21 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
         return (
             incremental_sync_component_definition is not None
             and bool(incremental_sync_component_definition)
-            and incremental_sync_component_definition.get("type", "")
-            == DatetimeBasedCursorModel.__name__
+            and (
+                incremental_sync_component_definition.get("type", "")
+                == DatetimeBasedCursorModel.__name__
+                or incremental_sync_component_definition.get("type", "")
+                == IncrementingCountCursorModel.__name__
+            )
             and self._stream_supports_concurrent_partition_processing(
                 declarative_stream=declarative_stream
             )
             and hasattr(declarative_stream.retriever, "stream_slicer")
             and (
                 isinstance(declarative_stream.retriever.stream_slicer, DatetimeBasedCursor)
+                or isinstance(
+                    declarative_stream.retriever.stream_slicer, IncrementingCountCursorModel
+                )
                 or isinstance(declarative_stream.retriever.stream_slicer, AsyncJobPartitionRouter)
             )
         )
