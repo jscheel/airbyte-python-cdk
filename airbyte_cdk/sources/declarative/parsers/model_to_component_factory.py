@@ -3001,7 +3001,7 @@ class ModelToComponentFactory:
         ]
         return FixedWindowCallRatePolicy(
             next_reset_ts=model.next_reset_ts,
-            period=parse_duration(model.period),
+            period=model.period,
             call_limit=model.call_limit,
             matchers=matchers,
         )
