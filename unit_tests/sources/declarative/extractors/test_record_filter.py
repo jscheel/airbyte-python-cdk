@@ -56,7 +56,7 @@ RECORDS_TO_FILTER_DATE_TIME_WITHOUT_TZ_FORMAT = [
     "filter_template, records, expected_records",
     [
         (
-            "{{ record['created_at'] > stream_state['created_at'] }}",
+            "{{ record['created_at'] > stream_interval['created_at'] }}",
             [
                 {"id": 1, "created_at": "06-06-21"},
                 {"id": 2, "created_at": "06-07-21"},
@@ -116,7 +116,7 @@ def test_record_filter(
 ):
     config = {"response_override": "stop_if_you_see_me"}
     parameters = {"created_at": "06-07-21"}
-    stream_state = {"created_at": "06-06-21"}
+    stream_interval = {"created_at": "06-06-21"}
     stream_slice = StreamSlice(
         partition={},
         cursor_slice={"last_seen": "06-10-21"},
@@ -128,9 +128,10 @@ def test_record_filter(
     actual_records = list(
         record_filter.filter_records(
             records,
-            stream_state=stream_state,
+            stream_state={},
             stream_slice=stream_slice,
             next_page_token=next_page_token,
+            stream_interval=stream_interval,
         )
     )
     assert actual_records == expected_records
