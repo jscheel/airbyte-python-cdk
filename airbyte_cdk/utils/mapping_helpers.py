@@ -6,8 +6,12 @@
 import copy
 from typing import Any, Dict, List, Mapping, Optional, Union
 
-from airbyte_cdk.sources.declarative.requesters.request_option import RequestOption, RequestOptionType
+from airbyte_cdk.sources.declarative.requesters.request_option import (
+    RequestOption,
+    RequestOptionType,
+)
 from airbyte_cdk.sources.types import Config
+
 
 def _merge_mappings(
     target: Dict[str, Any],
@@ -35,13 +39,17 @@ def _merge_mappings(
             if isinstance(target_value, dict) and isinstance(source_value, dict):
                 # Only body_json supports nested_structures
                 if not allow_same_value_merge:
-                    raise ValueError(f"Request body collision, duplicate keys detected at: {'.'.join(current_path)}. Please ensure that all keys in request are unique.")
+                    raise ValueError(
+                        f"Request body collision, duplicate keys detected at key path: {'.'.join(current_path)}. Please ensure that all keys in the request are unique."
+                    )
                 # If both are dictionaries, recursively merge them
                 _merge_mappings(target_value, source_value, current_path, allow_same_value_merge)
 
             elif not allow_same_value_merge or target_value != source_value:
                 # If same key has different values, that's a conflict
-                raise ValueError(f"Request body collision, duplicate keys detected at: {'.'.join(current_path)}. Please ensure that all keys in request are unique.")
+                raise ValueError(
+                    f"Request body collision, duplicate keys detected at key path: {'.'.join(current_path)}. Please ensure that all keys in the request are unique."
+                )
         else:
             # No conflict, just copy the value (using deepcopy for nested structures)
             target[key] = copy.deepcopy(source_value)
@@ -105,9 +113,9 @@ def combine_mappings(
 
     return result
 
-def _validate_multiple_request_options(
-    config: Config,
-    *request_options: Optional[RequestOption]
+
+def _validate_component_request_option_paths(
+    config: Config, *request_options: Optional[RequestOption]
 ) -> None:
     """
     Validates that a component with multiple request options does not have conflicting paths.
@@ -117,24 +125,21 @@ def _validate_multiple_request_options(
     for option in request_options:
         if option:
             grouped_options.setdefault(option.inject_into, []).append(option)
-            
+
     for inject_type, options in grouped_options.items():
         if len(options) <= 1:
             continue
-        
+
         option_dicts: List[Optional[Union[Mapping[str, Any], str]]] = []
         for i, option in enumerate(options):
             option_dict: Dict[str, Any] = {}
             # Use indexed dummy values to ensure we catch conflicts
             option.inject_into_request(option_dict, f"dummy_value_{i}", config)
             option_dicts.append(option_dict)
-            
+
         try:
             combine_mappings(
-                option_dicts,
-                allow_same_value_merge=(inject_type == RequestOptionType.body_json)
+                option_dicts, allow_same_value_merge=(inject_type == RequestOptionType.body_json)
             )
-        except ValueError as e:
-            print(e)
-            raise ValueError(f"Conflict mapping request options: {e}") from e
-        
+        except ValueError as error:
+            raise ValueError(error)
