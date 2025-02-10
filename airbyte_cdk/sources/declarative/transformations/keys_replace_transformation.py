@@ -41,7 +41,6 @@ class KeysReplaceTransformation(RecordTransformation):
         config: Optional[Config] = None,
         stream_state: Optional[StreamState] = None,
         stream_slice: Optional[StreamSlice] = None,
-        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> None:
         if config is None:
             config = {}
@@ -49,7 +48,6 @@ class KeysReplaceTransformation(RecordTransformation):
         kwargs = {
             "record": record,
             "stream_slice": stream_slice,
-            "stream_interval": stream_interval,
         }
         old_key = str(self._old.eval(config, **kwargs))
         new_key = str(self._new.eval(config, **kwargs))

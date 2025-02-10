@@ -22,7 +22,6 @@ class FlattenFields(RecordTransformation):
         config: Optional[Config] = None,
         stream_state: Optional[StreamState] = None,
         stream_slice: Optional[StreamSlice] = None,
-        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> None:
         transformed_record = self.flatten_record(record)
         record.clear()

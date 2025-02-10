@@ -57,7 +57,6 @@ class RemoveFields(RecordTransformation):
         config: Optional[Config] = None,
         stream_state: Optional[StreamState] = None,
         stream_slice: Optional[StreamSlice] = None,
-        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         :param record: The record to be transformed

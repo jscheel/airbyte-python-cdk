@@ -38,6 +38,7 @@ class StreamPartitionAccessEnvironment(SandboxedEnvironment):
 
 # These aliases are used to deprecate existing keywords without breaking all existing connectors.
 _ALIASES = {
+    "stream_interval": "stream_state",  # Use stream_interval to access incremental sync values
     "stream_partition": "stream_slice",  # Use stream_partition to access partition router's values
 }
 
@@ -95,12 +96,7 @@ class JinjaInterpolation(Interpolation):
         context = {"config": config, **additional_parameters}
 
         for alias, equivalent in _ALIASES.items():
-            if alias in context:
-                # This is unexpected. We could ignore or log a warning, but failing loudly should result in fewer surprises
-                raise ValueError(
-                    f"Found reserved keyword {alias} in interpolation context. This is unexpected and indicative of a bug in the CDK."
-                )
-            elif equivalent in context:
+            if equivalent in context:
                 context[alias] = context[equivalent]
 
         try:

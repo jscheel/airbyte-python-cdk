@@ -37,14 +37,12 @@ class RecordFilter:
         stream_state: StreamState,
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
-        stream_interval: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         kwargs = {
             "stream_state": stream_state,
             "stream_slice": stream_slice,
             "next_page_token": next_page_token,
             "stream_slice.extra_fields": stream_slice.extra_fields if stream_slice else {},
-            "stream_interval": stream_interval or {},
         }
         for record in records:
             if self._filter_interpolator.eval(self.config, record=record, **kwargs):
@@ -73,7 +71,6 @@ class ClientSideIncrementalRecordFilterDecorator(RecordFilter):
         stream_state: StreamState,
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
-        stream_interval: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         records = (
             record
@@ -90,6 +87,6 @@ class ClientSideIncrementalRecordFilterDecorator(RecordFilter):
                 stream_state=stream_state,
                 stream_slice=stream_slice,
                 next_page_token=next_page_token,
-                stream_interval=stream_interval,
+
             )
         yield from records

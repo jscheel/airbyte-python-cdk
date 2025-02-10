@@ -22,7 +22,6 @@ class RecordTransformation:
         config: Optional[Mapping[str, Any]] = None,
         stream_state: Optional[Mapping[str, Any]] = None,
         stream_slice: Optional[StreamSlice] = None,
-        stream_interval: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Transform a record by adding, deleting, or mutating fields directly from the record reference passed in argument.
@@ -31,7 +30,6 @@ class RecordTransformation:
         :param config: The user-provided configuration as specified by the source's spec
         :param stream_state: The stream state
         :param stream_slice: The stream slice
-        :param stream_interval: The stream interval for incremental sync values
         :return: The transformed record
         """
 
