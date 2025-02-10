@@ -23,7 +23,10 @@ from airbyte_cdk.sources.declarative.requesters.request_option import (
 )
 from airbyte_cdk.sources.declarative.requesters.request_path import RequestPath
 from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
-from airbyte_cdk.utils.mapping_helpers import combine_mappings, _validate_multiple_request_options
+from airbyte_cdk.utils.mapping_helpers import (
+    combine_mappings,
+    _validate_component_request_option_paths,
+)
 
 
 @dataclass
@@ -113,9 +116,9 @@ class DefaultPaginator(Paginator):
             )
         if isinstance(self.url_base, str):
             self.url_base = InterpolatedString(string=self.url_base, parameters=parameters)
-        
+
         if self.page_token_option and not isinstance(self.page_token_option, RequestPath):
-            _validate_multiple_request_options(
+            _validate_component_request_option_paths(
                 self.config,
                 self.page_size_option,
                 self.page_token_option,

@@ -1,6 +1,11 @@
 import pytest
 
-from airbyte_cdk.utils.mapping_helpers import combine_mappings, _validate_multiple_request_options, RequestOption, RequestOptionType
+from airbyte_cdk.utils.mapping_helpers import (
+    combine_mappings,
+    _validate_component_request_option_paths,
+    RequestOption,
+    RequestOptionType,
+)
 
 
 @pytest.mark.parametrize(
@@ -119,13 +124,18 @@ def test_body_json_requests(test_name, mappings, expected_result, expected_error
 def mock_config() -> dict[str, str]:
     return {"test": "config"}
 
+
 @pytest.mark.parametrize(
     "test_name, option1, option2, should_raise",
     [
         (
             "different_fields",
-            RequestOption(field_name="field1", inject_into=RequestOptionType.body_json, parameters={}),
-            RequestOption(field_name="field2", inject_into=RequestOptionType.body_json, parameters={}),
+            RequestOption(
+                field_name="field1", inject_into=RequestOptionType.body_json, parameters={}
+            ),
+            RequestOption(
+                field_name="field2", inject_into=RequestOptionType.body_json, parameters={}
+            ),
             False,
         ),
         (
@@ -136,41 +146,76 @@ def mock_config() -> dict[str, str]:
         ),
         (
             "different_nested_paths",
-            RequestOption(field_path=["data", "query1", "limit"], inject_into=RequestOptionType.body_json, parameters={}),
-            RequestOption(field_path=["data", "query2", "limit"], inject_into=RequestOptionType.body_json, parameters={}),
+            RequestOption(
+                field_path=["data", "query1", "limit"],
+                inject_into=RequestOptionType.body_json,
+                parameters={},
+            ),
+            RequestOption(
+                field_path=["data", "query2", "limit"],
+                inject_into=RequestOptionType.body_json,
+                parameters={},
+            ),
             False,
         ),
         (
             "same_nested_paths",
-            RequestOption(field_path=["data", "query", "limit"], inject_into=RequestOptionType.body_json, parameters={}),
-            RequestOption(field_path=["data", "query", "limit"], inject_into=RequestOptionType.body_json, parameters={}),
+            RequestOption(
+                field_path=["data", "query", "limit"],
+                inject_into=RequestOptionType.body_json,
+                parameters={},
+            ),
+            RequestOption(
+                field_path=["data", "query", "limit"],
+                inject_into=RequestOptionType.body_json,
+                parameters={},
+            ),
             True,
         ),
         (
             "different_inject_types",
             RequestOption(field_name="field", inject_into=RequestOptionType.header, parameters={}),
-            RequestOption(field_name="field", inject_into=RequestOptionType.body_json, parameters={}),
+            RequestOption(
+                field_name="field", inject_into=RequestOptionType.body_json, parameters={}
+            ),
             False,
         ),
-    ]
+    ],
 )
 def test_request_option_validation(test_name, option1, option2, should_raise, mock_config):
     """Test various combinations of request option validation"""
     if should_raise:
         with pytest.raises(ValueError, match="duplicate keys detected"):
-            _validate_multiple_request_options(mock_config, option1, option2)
+            _validate_component_request_option_paths(mock_config, option1, option2)
     else:
-        _validate_multiple_request_options(mock_config, option1, option2)
+        _validate_component_request_option_paths(mock_config, option1, option2)
+
 
 @pytest.mark.parametrize(
     "test_name, options",
     [
-        ("none_options", [None, RequestOption(field_name="field", inject_into=RequestOptionType.header, parameters={}), None]),
-        ("single_option", [RequestOption(field_name="field", inject_into=RequestOptionType.header, parameters={})]),
+        (
+            "none_options",
+            [
+                None,
+                RequestOption(
+                    field_name="field", inject_into=RequestOptionType.header, parameters={}
+                ),
+                None,
+            ],
+        ),
+        (
+            "single_option",
+            [
+                RequestOption(
+                    field_name="field", inject_into=RequestOptionType.header, parameters={}
+                )
+            ],
+        ),
         ("all_none", [None, None, None]),
         ("empty_list", []),
-    ]
+    ],
 )
 def test_edge_cases(test_name, options, mock_config):
     """Test edge cases like None values and single options"""
-    _validate_multiple_request_options(mock_config, *options)
+    _validate_component_request_option_paths(mock_config, *options)
