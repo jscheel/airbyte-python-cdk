@@ -79,7 +79,10 @@ class SourceLocalYaml(YamlDeclarativeSource):
 
 def _is_local_manifest_command(args: list[str]) -> bool:
     # Check for a local manifest.yaml file
-    return Path("/airbyte/integration_code/source_declarative_manifest/manifest.yaml").exists()
+    cwd = Path.cwd()
+    manifest_path = cwd / "airbyte_cdk" / "cli" / "source_declarative_manifest" / "manifest.yaml"
+    return manifest_path.exists()
+    # return Path("/airbyte/integration_code/source_declarative_manifest/manifest.yaml").exists()
 
 
 def handle_command(args: list[str]) -> None:

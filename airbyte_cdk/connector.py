@@ -52,8 +52,15 @@ class BaseConnector(ABC, Generic[TConfig]):
 
     @staticmethod
     def _read_json_file(file_path: str) -> Any:
-        with open(file_path, "r") as file:
-            contents = file.read()
+        cwd = os.getcwd()
+        abs_path = os.path.abspath(file_path)
+
+        try:
+            with open(abs_path, "r") as file:
+                contents = file.read()
+        except Exception as e:
+            print(f"Error reading config file: {e}")
+            raise FileNotFoundError(f"Error reading config file: {e}")
 
         try:
             return json.loads(contents)
