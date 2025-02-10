@@ -104,12 +104,8 @@ class RecordSelector(HttpSelector):
         Until we decide to move this logic away from the selector, we made this method public so that users like AsyncJobRetriever could
         share the logic of doing transformations on a set of records.
         """
-        filtered_data = self._filter(
-            all_data, stream_state, stream_slice, next_page_token
-        )
-        transformed_data = self._transform(
-            filtered_data, stream_state, stream_slice
-        )
+        filtered_data = self._filter(all_data, stream_state, stream_slice, next_page_token)
+        transformed_data = self._transform(filtered_data, stream_state, stream_slice)
         normalized_data = self._normalize_by_schema(transformed_data, schema=records_schema)
         for data in normalized_data:
             yield Record(data=data, stream_name=self.name, associated_slice=stream_slice)

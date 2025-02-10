@@ -87,6 +87,5 @@ class ClientSideIncrementalRecordFilterDecorator(RecordFilter):
                 stream_state=stream_state,
                 stream_slice=stream_slice,
                 next_page_token=next_page_token,
-
             )
         yield from records
