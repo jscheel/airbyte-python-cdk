@@ -9,10 +9,6 @@ from typing import Any, Literal
 
 import pytest
 import yaml
-from airbyte_connector_tester.instances import (
-    AcceptanceTestScenario,
-    get_acceptance_tests,
-)
 from airbyte_connector_tester.job_runner import run_test_job
 from pydantic import BaseModel
 
@@ -22,6 +18,9 @@ from airbyte_cdk.models import (
     Type,
 )
 from airbyte_cdk.test import entrypoint_wrapper
+from airbyte_cdk.test.declarative.models import (
+    AcceptanceTestScenario,
+)
 
 ACCEPTANCE_TEST_CONFIG_PATH = Path("acceptance-test-config.yml")
 
@@ -52,6 +51,7 @@ class ConnectorTestSuiteBase(abc.ABC):
 
     # Internal Methods - We don't expect subclasses to override these
 
+    @classmethod
     def _get_acceptance_tests(
         category: str,
         accept_test_config_path: Path = ACCEPTANCE_TEST_CONFIG_PATH,
@@ -89,7 +89,7 @@ class ConnectorTestSuiteBase(abc.ABC):
 
     @pytest.mark.parametrize(
         "instance",
-        get_acceptance_tests("connection"),
+        self._get_acceptance_tests("connection"),
         ids=lambda instance: instance.instance_name,
     )
     def test_check(
