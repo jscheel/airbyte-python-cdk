@@ -363,8 +363,8 @@ class ConcurrentPerPartitionCursor(Cursor):
                 "Invalid state as stream slices that are emitted should refer to an existing cursor"
             )
 
-        record_cursor = self._connector_state_converter.parse_value(
-            self._cursor_field.extract_value(record)
+        record_cursor = self._connector_state_converter.output_format(
+            self._connector_state_converter.parse_value(self._cursor_field.extract_value(record))
         )
         self._update_global_cursor(record_cursor)
         if not self._use_global_cursor:
