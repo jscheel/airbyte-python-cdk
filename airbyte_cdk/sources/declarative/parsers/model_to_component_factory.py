@@ -113,9 +113,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     AddFields as AddFieldsModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    APIBudget as APIBudgetModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ApiKeyAuthenticator as ApiKeyAuthenticatorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -230,9 +227,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     ExponentialBackoffStrategy as ExponentialBackoffStrategyModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    FixedWindowCallRatePolicy as FixedWindowCallRatePolicyModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     FlattenFields as FlattenFieldsModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -242,16 +236,10 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     GzipParser as GzipParserModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    HTTPAPIBudget as HTTPAPIBudgetModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpComponentsResolver as HttpComponentsResolverModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpRequester as HttpRequesterModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    HttpRequestRegexMatcher as HttpRequestRegexMatcherModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     HttpResponseFilter as HttpResponseFilterModel,
@@ -308,9 +296,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     MinMaxDatetime as MinMaxDatetimeModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    MovingWindowCallRatePolicy as MovingWindowCallRatePolicyModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     NoAuth as NoAuthModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -327,9 +312,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ParentStreamConfig as ParentStreamConfigModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    Rate as RateModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     RecordFilter as RecordFilterModel,
@@ -373,9 +355,6 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     TypesMap as TypesMapModel,
-)
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
-    UnlimitedCallRatePolicy as UnlimitedCallRatePolicyModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import ValueType
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -490,15 +469,6 @@ from airbyte_cdk.sources.message import (
     MessageRepository,
     NoopMessageRepository,
 )
-from airbyte_cdk.sources.streams.call_rate import (
-    APIBudget,
-    FixedWindowCallRatePolicy,
-    HttpAPIBudget,
-    HttpRequestRegexMatcher,
-    MovingWindowCallRatePolicy,
-    Rate,
-    UnlimitedCallRatePolicy,
-)
 from airbyte_cdk.sources.streams.concurrent.clamping import (
     ClampingEndProvider,
     ClampingStrategy,
@@ -550,7 +520,6 @@ class ModelToComponentFactory:
             self._evaluate_log_level(emit_connector_builder_messages)
         )
         self._connector_state_manager = connector_state_manager or ConnectorStateManager()
-        self._api_budget: Optional[Union[APIBudget, HttpAPIBudget]] = None
 
     def _init_mappings(self) -> None:
         self.PYDANTIC_MODEL_TO_CONSTRUCTOR: Mapping[Type[BaseModel], Callable[..., Any]] = {
@@ -638,13 +607,6 @@ class ModelToComponentFactory:
             StreamConfigModel: self.create_stream_config,
             ComponentMappingDefinitionModel: self.create_components_mapping_definition,
             ZipfileDecoderModel: self.create_zipfile_decoder,
-            APIBudgetModel: self.create_api_budget,
-            HTTPAPIBudgetModel: self.create_http_api_budget,
-            FixedWindowCallRatePolicyModel: self.create_fixed_window_call_rate_policy,
-            MovingWindowCallRatePolicyModel: self.create_moving_window_call_rate_policy,
-            UnlimitedCallRatePolicyModel: self.create_unlimited_call_rate_policy,
-            RateModel: self.create_rate,
-            HttpRequestRegexMatcherModel: self.create_http_request_matcher,
         }
 
         # Needed for the case where we need to perform a second parse on the fields of a custom component
@@ -1957,8 +1919,6 @@ class ModelToComponentFactory:
             )
         )
 
-        api_budget = self._api_budget
-
         request_options_provider = InterpolatedRequestOptionsProvider(
             request_body_data=model.request_body_data,
             request_body_json=model.request_body_json,
@@ -1979,7 +1939,6 @@ class ModelToComponentFactory:
             path=model.path,
             authenticator=authenticator,
             error_handler=error_handler,
-            api_budget=api_budget,
             http_method=HttpMethod[model.http_method.value],
             request_options_provider=request_options_provider,
             config=config,
@@ -2981,103 +2940,3 @@ class ModelToComponentFactory:
             return isinstance(parser.inner_parser, JsonParser)
         else:
             return False
-
-    def create_api_budget(self, model: APIBudgetModel, config: Config, **kwargs: Any) -> APIBudget:
-        policies = [
-            self._create_component_from_model(model=policy, config=config)
-            for policy in model.policies
-        ]
-
-        return APIBudget(
-            policies=policies,
-            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire or 100000,
-        )
-
-    def create_http_api_budget(
-        self, model: HTTPAPIBudgetModel, config: Config, **kwargs: Any
-    ) -> HttpAPIBudget:
-        policies = [
-            self._create_component_from_model(model=policy, config=config)
-            for policy in model.policies
-        ]
-
-        return HttpAPIBudget(
-            policies=policies,
-            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire or 100000,
-            ratelimit_reset_header=model.ratelimit_reset_header or "ratelimit-reset",
-            ratelimit_remaining_header=model.ratelimit_remaining_header or "ratelimit-remaining",
-            status_codes_for_ratelimit_hit=model.status_codes_for_ratelimit_hit or (429,),
-        )
-
-    def create_fixed_window_call_rate_policy(
-        self, model: FixedWindowCallRatePolicyModel, config: Config, **kwargs: Any
-    ) -> FixedWindowCallRatePolicy:
-        matchers = [
-            self._create_component_from_model(model=matcher, config=config)
-            for matcher in model.matchers
-        ]
-        return FixedWindowCallRatePolicy(
-            next_reset_ts=model.next_reset_ts,
-            period=model.period,
-            call_limit=model.call_limit,
-            matchers=matchers,
-        )
-
-    def create_moving_window_call_rate_policy(
-        self, model: MovingWindowCallRatePolicyModel, config: Config, **kwargs: Any
-    ) -> MovingWindowCallRatePolicy:
-        rates = [
-            self._create_component_from_model(model=rate, config=config) for rate in model.rates
-        ]
-        matchers = [
-            self._create_component_from_model(model=matcher, config=config)
-            for matcher in model.matchers
-        ]
-        return MovingWindowCallRatePolicy(
-            rates=rates,
-            matchers=matchers,
-        )
-
-    def create_unlimited_call_rate_policy(
-        self, model: UnlimitedCallRatePolicyModel, config: Config, **kwargs: Any
-    ) -> UnlimitedCallRatePolicy:
-        matchers = [
-            self._create_component_from_model(model=matcher, config=config)
-            for matcher in model.matchers
-        ]
-
-        return UnlimitedCallRatePolicy(
-            matchers=matchers,
-        )
-
-    def create_rate(self, model: RateModel, config: Config, **kwargs: Any) -> Rate:
-        return Rate(
-            limit=model.limit,
-            interval=model.interval,
-        )
-
-    def create_http_request_matcher(
-        self, model: HttpRequestRegexMatcherModel, config: Config, **kwargs: Any
-    ) -> HttpRequestRegexMatcher:
-        return HttpRequestRegexMatcher(
-            method=model.method,
-            url_base=model.url_base,
-            url_path_pattern=model.url_path_pattern,
-            params=model.params,
-            headers=model.headers,
-        )
-
-    def set_api_budget(self, component_definition: ComponentDefinition, config: Config) -> None:
-        model_str = component_definition.get("type")
-        if model_str == "APIBudget":
-            # Annotate model_type as a type that is a subclass of BaseModel
-            model_type: Union[Type[APIBudgetModel], Type[HTTPAPIBudgetModel]] = APIBudgetModel
-        elif model_str == "HTTPAPIBudget":
-            model_type = HTTPAPIBudgetModel
-        else:
-            raise ValueError(f"Unknown API Budget type: {model_str}")
-
-        # create_component expects a type[BaseModel] and returns an instance of that model.
-        self._api_budget = self.create_component(
-            model_type=model_type, component_definition=component_definition, config=config
-        )

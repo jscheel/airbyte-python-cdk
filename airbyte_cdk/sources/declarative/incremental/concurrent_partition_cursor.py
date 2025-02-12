@@ -142,7 +142,8 @@ class ConcurrentPerPartitionCursor(Cursor):
             raise ValueError("stream_slice cannot be None")
 
         partition_key = self._to_partition_key(stream_slice.partition)
-        self._cursor_per_partition[partition_key].close_partition(partition=partition)
+        if not self._use_global_cursor:
+            self._cursor_per_partition[partition_key].close_partition(partition=partition)
         with self._lock:
             self._semaphore_per_partition[partition_key].acquire()
             cursor = self._cursor_per_partition[partition_key]
@@ -150,12 +151,7 @@ class ConcurrentPerPartitionCursor(Cursor):
                 partition_key in self._finished_partitions
                 and self._semaphore_per_partition[partition_key]._value == 0
             ):
-                if (
-                    self._new_global_cursor is None
-                    or self._new_global_cursor[self.cursor_field.cursor_field_key]
-                    < cursor.state[self.cursor_field.cursor_field_key]
-                ):
-                    self._new_global_cursor = copy.deepcopy(cursor.state)
+                self._update_global_cursor(cursor.state[self.cursor_field.cursor_field_key])
             if not self._use_global_cursor:
                 self._emit_state_message()
 
@@ -366,9 +362,22 @@ class ConcurrentPerPartitionCursor(Cursor):
             raise ValueError(
                 "Invalid state as stream slices that are emitted should refer to an existing cursor"
             )
-        self._cursor_per_partition[
-            self._to_partition_key(record.associated_slice.partition)
-        ].observe(record)
+
+        record_cursor = self._connector_state_converter.parse_value(
+            self._cursor_field.extract_value(record)
+        )
+        self._update_global_cursor(record_cursor)
+        if not self._use_global_cursor:
+            self._cursor_per_partition[
+                self._to_partition_key(record.associated_slice.partition)
+            ].observe(record)
+
+    def _update_global_cursor(self, value: Mapping[str, Any]) -> None:
+        if (
+            self._new_global_cursor is None
+            or self._new_global_cursor[self.cursor_field.cursor_field_key] < value
+        ):
+            self._new_global_cursor = {self.cursor_field.cursor_field_key: copy.deepcopy(value)}
 
     def _to_partition_key(self, partition: Mapping[str, Any]) -> str:
         return self._partition_serializer.to_partition_key(partition)

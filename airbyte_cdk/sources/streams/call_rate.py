@@ -6,12 +6,10 @@ import abc
 import dataclasses
 import datetime
 import logging
-import re
 import time
-from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
 from threading import RLock
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Mapping, Optional
 from urllib import parse
 
 import requests
@@ -159,100 +157,6 @@ class HttpRequestMatcher(RequestMatcher):
         if self._headers is not None:
             if not self._match_dict(prepared_request.headers, self._headers):
                 return False
-        return True
-
-
-class HttpRequestRegexMatcher(RequestMatcher):
-    """
-    Extended RequestMatcher for HTTP requests that supports matching on:
-      - HTTP method (case-insensitive)
-      - URL base (scheme + netloc) optionally
-      - URL path pattern (a regex applied to the path portion of the URL)
-      - Query parameters (must be present)
-      - Headers (header names compared case-insensitively)
-    """
-
-    def __init__(
-        self,
-        method: Optional[str] = None,
-        url_base: Optional[str] = None,
-        url_path_pattern: Optional[str] = None,
-        params: Optional[Mapping[str, Any]] = None,
-        headers: Optional[Mapping[str, Any]] = None,
-    ):
-        """
-        :param method: HTTP method (e.g. "GET", "POST"); compared case-insensitively.
-        :param url_base: Base URL (scheme://host) that must match.
-        :param url_path_pattern: A regex pattern that will be applied to the path portion of the URL.
-        :param params: Dictionary of query parameters that must be present in the request.
-        :param headers: Dictionary of headers that must be present (header keys are compared case-insensitively).
-        """
-        self._method = method.upper() if method else None
-
-        # Normalize the url_base if provided: remove trailing slash.
-        self._url_base = url_base.rstrip("/") if url_base else None
-
-        # Compile the URL path pattern if provided.
-        self._url_path_pattern = re.compile(url_path_pattern) if url_path_pattern else None
-
-        # Normalize query parameters to strings.
-        self._params = {str(k): str(v) for k, v in (params or {}).items()}
-
-        # Normalize header keys to lowercase.
-        self._headers = {str(k).lower(): str(v) for k, v in (headers or {}).items()}
-
-    @staticmethod
-    def _match_dict(obj: Mapping[str, Any], pattern: Mapping[str, Any]) -> bool:
-        """Check that every key/value in the pattern exists in the object."""
-        return pattern.items() <= obj.items()
-
-    def __call__(self, request: Any) -> bool:
-        """
-        :param request: A requests.Request or requests.PreparedRequest instance.
-        :return: True if the request matches all provided criteria; False otherwise.
-        """
-        # Prepare the request (if needed) and extract the URL details.
-        if isinstance(request, requests.Request):
-            prepared_request = request.prepare()
-        elif isinstance(request, requests.PreparedRequest):
-            prepared_request = request
-        else:
-            return False
-
-        # Check HTTP method.
-        if self._method is not None and prepared_request.method is not None:
-            if prepared_request.method.upper() != self._method:
-                return False
-
-        # Parse the URL.
-        parsed_url = parse.urlsplit(prepared_request.url)
-        # Reconstruct the base: scheme://netloc
-        request_url_base = f"{str(parsed_url.scheme)}://{str(parsed_url.netloc)}"
-        # The path (without query parameters)
-        request_path = str(parsed_url.path).rstrip("/")
-
-        # If a base URL is provided, check that it matches.
-        if self._url_base is not None:
-            if request_url_base != self._url_base:
-                return False
-
-        # If a URL path pattern is provided, ensure the path matches the regex.
-        if self._url_path_pattern is not None:
-            if not self._url_path_pattern.search(request_path):
-                return False
-
-        # Check query parameters.
-        if self._params:
-            query_params = dict(parse.parse_qsl(str(parsed_url.query)))
-            if not self._match_dict(query_params, self._params):
-                return False
-
-        # Check headers (normalize keys to lower-case).
-        if self._headers:
-            req_headers = {k.lower(): v for k, v in prepared_request.headers.items()}
-            if not self._match_dict(req_headers, self._headers):
-                return False
-
         return True
 
 
@@ -495,17 +399,24 @@ class AbstractAPIBudget(abc.ABC):
         """
 
 
-@dataclass
 class APIBudget(AbstractAPIBudget):
-    """
-    Default APIBudget implementation.
-    """
+    """Default APIBudget implementation"""
 
-    policies: list[AbstractCallRatePolicy]
-    maximum_attempts_to_acquire: int = 100000
+    def __init__(
+        self, policies: list[AbstractCallRatePolicy], maximum_attempts_to_acquire: int = 100000
+    ) -> None:
+        """Constructor
+
+        :param policies: list of policies in this budget
+        :param maximum_attempts_to_acquire: number of attempts before throwing hit ratelimit exception, we put some big number here
+         to avoid situations when many threads compete with each other for a few lots over a significant amount of time
+        """
+
+        self._policies = policies
+        self._maximum_attempts_to_acquire = maximum_attempts_to_acquire
 
     def get_matching_policy(self, request: Any) -> Optional[AbstractCallRatePolicy]:
-        for policy in self.policies:
+        for policy in self._policies:
             if policy.matches(request):
                 return policy
         return None
@@ -526,7 +437,7 @@ class APIBudget(AbstractAPIBudget):
         policy = self.get_matching_policy(request)
         if policy:
             self._do_acquire(request=request, policy=policy, block=block, timeout=timeout)
-        elif self.policies:
+        elif self._policies:
             logger.info("no policies matched with requests, allow call by default")
 
     def update_from_response(self, request: Any, response: Any) -> None:
@@ -549,7 +460,7 @@ class APIBudget(AbstractAPIBudget):
         """
         last_exception = None
         # sometimes we spend all budget before a second attempt, so we have few more here
-        for attempt in range(1, self.maximum_attempts_to_acquire):
+        for attempt in range(1, self._maximum_attempts_to_acquire):
             try:
                 policy.try_acquire(request, weight=1)
                 return
@@ -573,18 +484,31 @@ class APIBudget(AbstractAPIBudget):
 
         if last_exception:
             logger.info(
-                "we used all %s attempts to acquire and failed", self.maximum_attempts_to_acquire
+                "we used all %s attempts to acquire and failed", self._maximum_attempts_to_acquire
             )
             raise last_exception
 
 
-@dataclass
 class HttpAPIBudget(APIBudget):
     """Implementation of AbstractAPIBudget for HTTP"""
 
-    ratelimit_reset_header: str = "ratelimit-reset"
-    ratelimit_remaining_header: str = "ratelimit-remaining"
-    status_codes_for_ratelimit_hit: Union[tuple[int], list[int]] = (429,)
+    def __init__(
+        self,
+        ratelimit_reset_header: str = "ratelimit-reset",
+        ratelimit_remaining_header: str = "ratelimit-remaining",
+        status_codes_for_ratelimit_hit: tuple[int] = (429,),
+        **kwargs: Any,
+    ):
+        """Constructor
+
+        :param ratelimit_reset_header: name of the header that has a timestamp of the next reset of call budget
+        :param ratelimit_remaining_header: name of the header that has the number of calls left
+        :param status_codes_for_ratelimit_hit: list of HTTP status codes that signal about rate limit being hit
+        """
+        self._ratelimit_reset_header = ratelimit_reset_header
+        self._ratelimit_remaining_header = ratelimit_remaining_header
+        self._status_codes_for_ratelimit_hit = status_codes_for_ratelimit_hit
+        super().__init__(**kwargs)
 
     def update_from_response(self, request: Any, response: Any) -> None:
         policy = self.get_matching_policy(request)
@@ -599,17 +523,17 @@ class HttpAPIBudget(APIBudget):
     def get_reset_ts_from_response(
         self, response: requests.Response
     ) -> Optional[datetime.datetime]:
-        if response.headers.get(self.ratelimit_reset_header):
+        if response.headers.get(self._ratelimit_reset_header):
             return datetime.datetime.fromtimestamp(
-                int(response.headers[self.ratelimit_reset_header])
+                int(response.headers[self._ratelimit_reset_header])
             )
         return None
 
     def get_calls_left_from_response(self, response: requests.Response) -> Optional[int]:
-        if response.headers.get(self.ratelimit_remaining_header):
-            return int(response.headers[self.ratelimit_remaining_header])
+        if response.headers.get(self._ratelimit_remaining_header):
+            return int(response.headers[self._ratelimit_remaining_header])
 
-        if response.status_code in self.status_codes_for_ratelimit_hit:
+        if response.status_code in self._status_codes_for_ratelimit_hit:
             return 0
 
         return None
