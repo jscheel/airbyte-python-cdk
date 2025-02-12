@@ -1680,7 +1680,12 @@ class ModelToComponentFactory:
 
     def _build_stream_slicer_from_partition_router(
         self,
-        model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel, StateDelegatingRetrieverModel],
+        model: Union[
+            AsyncRetrieverModel,
+            CustomRetrieverModel,
+            SimpleRetrieverModel,
+            StateDelegatingRetrieverModel,
+        ],
         config: Config,
     ) -> Optional[PartitionRouter]:
         if (
@@ -1726,7 +1731,10 @@ class ModelToComponentFactory:
             cursor_component = self._create_component_from_model(
                 model=incremental_sync_model, config=config
             )
-            is_global_cursor = hasattr(incremental_sync_model, "global_substream_cursor") and incremental_sync_model.global_substream_cursor
+            is_global_cursor = (
+                hasattr(incremental_sync_model, "global_substream_cursor")
+                and incremental_sync_model.global_substream_cursor
+            )
 
             if is_global_cursor:
                 return GlobalSubstreamCursor(
@@ -1756,7 +1764,12 @@ class ModelToComponentFactory:
 
     def _build_resumable_cursor(
         self,
-        model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel, StateDelegatingRetrieverModel],
+        model: Union[
+            AsyncRetrieverModel,
+            CustomRetrieverModel,
+            SimpleRetrieverModel,
+            StateDelegatingRetrieverModel,
+        ],
         stream_slicer: Optional[PartitionRouter],
     ) -> Optional[StreamSlicer]:
         if hasattr(model, "paginator") and model.paginator and not stream_slicer:
@@ -1778,12 +1791,17 @@ class ModelToComponentFactory:
         if model.retriever.type == "StateDelegatingRetriever" and not model.incremental_sync:
             raise ValueError("StateDelegatingRetriever requires 'incremental_sync' to be enabled.")
 
-        if model.retriever.type == "AsyncRetriever" and model.incremental_sync.type != "DatetimeBasedCursor":
+        if (
+            model.retriever.type == "AsyncRetriever"
+            and model.incremental_sync.type != "DatetimeBasedCursor"
+        ):
             # We are currently in a transition to the Concurrent CDK and AsyncRetriever can only work with the
             # support or unordered slices (for example, when we trigger reports for January and February, the report
             # in February can be completed first). Once we have support for custom concurrent cursor or have a new
             # implementation available in the CDK, we can enable more cursors here.
-            raise ValueError("AsyncRetriever with cursor other than DatetimeBasedCursor is not supported yet.")
+            raise ValueError(
+                "AsyncRetriever with cursor other than DatetimeBasedCursor is not supported yet."
+            )
 
         if model.retriever.type == "AsyncRetriever" and model.retriever.partition_router:
             # Note that this development is also done in parallel to the per partition development which once merged
@@ -2059,9 +2077,7 @@ class ModelToComponentFactory:
         self, model: DynamicSchemaLoaderModel, config: Config, **kwargs: Any
     ) -> DynamicSchemaLoader:
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
-        combined_slicers = self._build_resumable_cursor(
-            model.retriever, stream_slicer
-        )
+        combined_slicers = self._build_resumable_cursor(model.retriever, stream_slicer)
 
         schema_transformations = []
         if model.schema_transformations:
@@ -2916,9 +2932,7 @@ class ModelToComponentFactory:
         self, model: HttpComponentsResolverModel, config: Config
     ) -> Any:
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
-        combined_slicers = self._build_resumable_cursor(
-            model.retriever, stream_slicer
-        )
+        combined_slicers = self._build_resumable_cursor(model.retriever, stream_slicer)
 
         retriever = self._create_component_from_model(
             model=model.retriever,
