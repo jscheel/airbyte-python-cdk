@@ -1683,6 +1683,9 @@ class ModelToComponentFactory:
     def _merge_stream_slicers(
         self, model: DeclarativeStreamModel, config: Config
     ) -> Optional[StreamSlicer]:
+        if model.retriever.type == "StateDelegatingRetriever" and not model.incremental_sync:
+            raise ValueError("StateDelegatingRetriever requires 'incremental_sync' to be enabled.")
+
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
 
         if model.incremental_sync and stream_slicer:
