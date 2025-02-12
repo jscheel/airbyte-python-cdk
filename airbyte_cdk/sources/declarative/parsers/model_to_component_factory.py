@@ -1718,6 +1718,7 @@ class ModelToComponentFactory:
                     config=config or {},
                 )
             return self._create_component_from_model(model=model.incremental_sync, config=config)
+        return None
 
     def _build_resumable_cursor(
         self,
@@ -1748,14 +1749,12 @@ class ModelToComponentFactory:
             # support or unordered slices (for example, when we trigger reports for January and February, the report
             # in February can be completed first). Once we have support for custom concurrent cursor or have a new
             # implementation available in the CDK, we can enable more cursors here.
-            raise ValueError(
-                "AsyncRetriever with cursor other than DatetimeBasedCursor is not supported yet"
-            )
+            raise ValueError("AsyncRetriever with cursor other than DatetimeBasedCursor is not supported yet.")
 
         if model.retriever.type == "AsyncRetriever" and model.retriever.partition_router:
             # Note that this development is also done in parallel to the per partition development which once merged
             # we could support here by calling `create_concurrent_cursor_from_perpartition_cursor`
-            raise ValueError("Per partition state is not supported yet for AsyncRetriever")
+            raise ValueError("Per partition state is not supported yet for AsyncRetriever.")
 
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
 
