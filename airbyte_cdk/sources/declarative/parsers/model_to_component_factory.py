@@ -834,11 +834,9 @@ class ModelToComponentFactory:
 
         return LegacyToPerPartitionStateMigration(
             partition_router,  # type: ignore # was already checked above
-            declarative_stream.incremental_sync,
-            # type: ignore # was already checked. Migration can be applied only to incremental streams.
+            declarative_stream.incremental_sync,  # type: ignore # was already checked. Migration can be applied only to incremental streams.
             config,
-            declarative_stream.parameters,
-            # type: ignore # different type is expected here Mapping[str, Any], got Dict[str, Any]
+            declarative_stream.parameters,  # type: ignore # different type is expected here Mapping[str, Any], got Dict[str, Any]
         )
 
     def create_session_token_authenticator(
@@ -867,8 +865,7 @@ class ModelToComponentFactory:
         )
         if model.request_authentication.type == "Bearer":
             return ModelToComponentFactory.create_bearer_authenticator(
-                BearerAuthenticatorModel(type="BearerAuthenticator", api_token=""),
-                # type: ignore # $parameters has a default value
+                BearerAuthenticatorModel(type="BearerAuthenticator", api_token=""),  # type: ignore # $parameters has a default value
                 config,
                 token_provider=token_provider,
             )
@@ -1148,8 +1145,7 @@ class ModelToComponentFactory:
                     clamping_strategy = DayClampingStrategy()
                     end_date_provider = ClampingEndProvider(
                         DayClampingStrategy(is_ceiling=False),
-                        end_date_provider,
-                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(seconds=1),
                     )
                 case "WEEK":
@@ -1166,16 +1162,14 @@ class ModelToComponentFactory:
                     clamping_strategy = WeekClampingStrategy(weekday)
                     end_date_provider = ClampingEndProvider(
                         WeekClampingStrategy(weekday, is_ceiling=False),
-                        end_date_provider,
-                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(days=1),
                     )
                 case "MONTH":
                     clamping_strategy = MonthClampingStrategy()
                     end_date_provider = ClampingEndProvider(
                         MonthClampingStrategy(is_ceiling=False),
-                        end_date_provider,
-                        # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+                        end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
                         granularity=cursor_granularity or datetime.timedelta(days=1),
                     )
                 case _:
@@ -1192,10 +1186,8 @@ class ModelToComponentFactory:
             connector_state_converter=connector_state_converter,
             cursor_field=cursor_field,
             slice_boundary_fields=slice_boundary_fields,
-            start=start_date,
-            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
-            end_provider=end_date_provider,
-            # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            start=start_date,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
+            end_provider=end_date_provider,  # type: ignore  # Having issues w/ inspection for GapType and CursorValueType as shown in existing tests. Confirmed functionality is working in practice
             lookback_window=lookback_window,
             slice_range=step_length,
             cursor_granularity=cursor_granularity,
@@ -1702,7 +1694,6 @@ class ModelToComponentFactory:
                 and model.partition_router
         ):
             stream_slicer_model = model.partition_router
-
             if isinstance(stream_slicer_model, list):
                 return CartesianProductStreamSlicer(
                     [
@@ -1712,9 +1703,7 @@ class ModelToComponentFactory:
                     parameters={},
                 )
             else:
-                return self._create_component_from_model(model=stream_slicer_model,
-                                                         config=config)  # type: ignore[no-any-return]
-                # Will be created PartitionRouter as stream_slicer_model is model.partition_router
+                return self._create_component_from_model(model=stream_slicer_model, config=config)  # type: ignore[no-any-return] # Will be created PartitionRouter as stream_slicer_model is model.partition_router
         return None
 
     def _build_incremental_cursor(
@@ -1725,8 +1714,7 @@ class ModelToComponentFactory:
     ) -> Optional[StreamSlicer]:
         if model.incremental_sync and stream_slicer:
             if model.retriever.type == "AsyncRetriever":
-                return self.create_concurrent_cursor_from_perpartition_cursor(
-                    # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
+                return self.create_concurrent_cursor_from_perpartition_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
                     state_manager=self._connector_state_manager,
                     model_type=DatetimeBasedCursorModel,
                     component_definition=model.incremental_sync.__dict__,
@@ -1761,8 +1749,7 @@ class ModelToComponentFactory:
             )
         elif model.incremental_sync:
             if model.retriever.type == "AsyncRetriever":
-                return self.create_concurrent_cursor_from_datetime_based_cursor(
-                    # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
+                return self.create_concurrent_cursor_from_datetime_based_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
                     model_type=DatetimeBasedCursorModel,
                     component_definition=model.incremental_sync.__dict__,
                     stream_name=model.name or "",
@@ -1770,7 +1757,7 @@ class ModelToComponentFactory:
                     config=config or {},
                     stream_state_migrations=model.state_migrations,
                 )
-            return self._create_component_from_model(model=model.incremental_sync, config=config)
+            return self._create_component_from_model(model=model.incremental_sync, config=config)  # type: ignore[no-any-return]  # Will be created Cursor as stream_slicer_model is model.incremental_sync
         return None
 
     def _build_resumable_cursor(
@@ -1796,50 +1783,34 @@ class ModelToComponentFactory:
             )
         return None
 
-    def _validate_retriever(self, model: DeclarativeStreamModel) -> None:
-        """Validates the retriever configuration for specific constraints."""
-        retriever_type = model.retriever.type
-        incremental_sync = model.incremental_sync
-
-        if retriever_type == "StateDelegatingRetriever" and not incremental_sync:
+    def _merge_stream_slicers(
+            self, model: DeclarativeStreamModel, config: Config
+    ) -> Optional[StreamSlicer]:
+        if model.retriever.type == "StateDelegatingRetriever" and not model.incremental_sync:
             raise ValueError("StateDelegatingRetriever requires 'incremental_sync' to be enabled.")
 
-        is_datetime_cursor = False
-        is_partition_router = False
+        if model.retriever.type == "AsyncRetriever":
+            is_not_datetime_cursor = model.incremental_sync.type != "DatetimeBasedCursor" if model.incremental_sync else None
+            is_partition_router = bool(model.retriever.partition_router) if model.incremental_sync else None
 
-        if incremental_sync:
-            is_datetime_cursor = incremental_sync.type != "DatetimeBasedCursor"
-            is_partition_router = bool(model.retriever.partition_router)
-
-        if retriever_type == "AsyncRetriever":
-            if is_datetime_cursor:
+            if is_not_datetime_cursor:
                 # We are currently in a transition to the Concurrent CDK and AsyncRetriever can only work with the
                 # support or unordered slices (for example, when we trigger reports for January and February, the report
                 # in February can be completed first). Once we have support for custom concurrent cursor or have a new
                 # implementation available in the CDK, we can enable more cursors here.
-                raise ValueError(
-                    "AsyncRetriever with cursor other than DatetimeBasedCursor is not supported yet."
-                )
+                raise ValueError("AsyncRetriever with cursor other than DatetimeBasedCursor is not supported yet.")
+
             if is_partition_router:
                 # Note that this development is also done in parallel to the per partition development which once merged
-                # we could support here by calling `create_concurrent_cursor_from_perpartition_cursor`
+                # we could support here by calling create_concurrent_cursor_from_perpartition_cursor
                 raise ValueError("Per partition state is not supported yet for AsyncRetriever.")
-
-    def _merge_stream_slicers(
-        self, model: DeclarativeStreamModel, config: Config
-    ) -> Optional[StreamSlicer]:
-        self._validate_retriever(model)
 
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
 
         if model.incremental_sync:
             return self._build_incremental_cursor(model, stream_slicer, config)
 
-        return (
-            stream_slicer
-            if self._disable_resumable_full_refresh
-            else self._build_resumable_cursor(model.retriever, stream_slicer)
-        )
+        return stream_slicer if self._disable_resumable_full_refresh else self._build_resumable_cursor(model.retriever, stream_slicer)
 
     def create_default_error_handler(
             self, model: DefaultErrorHandlerModel, config: Config, **kwargs: Any
@@ -2468,8 +2439,7 @@ class ModelToComponentFactory:
         schema_normalization = (
             TypeTransformer(SCHEMA_TRANSFORMER_TYPE_MAPPING[model.schema_normalization])
             if isinstance(model.schema_normalization, SchemaNormalizationModel)
-            else self._create_component_from_model(model.schema_normalization, config=config)
-        # type: ignore[arg-type] # custom normalization model expected here
+            else self._create_component_from_model(model.schema_normalization, config=config)  # type: ignore[arg-type] # custom normalization model expected here
         )
 
         return RecordSelector(
