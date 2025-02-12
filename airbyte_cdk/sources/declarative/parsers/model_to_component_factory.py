@@ -1670,14 +1670,71 @@ class ModelToComponentFactory:
                 # Will be created PartitionRouter as stream_slicer_model is model.partition_router
         return None
 
-    def _build_resumable_cursor_from_paginator(
+    def _build_incremental_cursor(
+        self,
+        model: DeclarativeStreamModel,
+        stream_slicer: Optional[PartitionRouter],
+        config: Config,
+    ) -> Optional[StreamSlicer]:
+        if model.incremental_sync and stream_slicer:
+            if model.retriever.type == "AsyncRetriever":
+                return self.create_concurrent_cursor_from_perpartition_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
+                    state_manager=self._connector_state_manager,
+                    model_type=DatetimeBasedCursorModel,
+                    component_definition=model.incremental_sync.__dict__,
+                    stream_name=model.name or "",
+                    stream_namespace=None,
+                    config=config or {},
+                    stream_state={},
+                    partition_router=stream_slicer,
+                )
+
+            incremental_sync_model = model.incremental_sync
+            cursor_component = self._create_component_from_model(
+                model=incremental_sync_model, config=config
+            )
+            is_global_cursor = hasattr(incremental_sync_model, "global_substream_cursor") and incremental_sync_model.global_substream_cursor
+
+            if is_global_cursor:
+                return GlobalSubstreamCursor(
+                    stream_cursor=cursor_component, partition_router=stream_slicer
+                )
+            return PerPartitionWithGlobalCursor(
+                cursor_factory=CursorFactory(
+                    lambda: self._create_component_from_model(
+                        model=incremental_sync_model, config=config
+                    ),
+                ),
+                partition_router=stream_slicer,
+                stream_cursor=cursor_component,
+            )
+        elif model.incremental_sync:
+            if model.retriever.type == "AsyncRetriever":
+                return self.create_concurrent_cursor_from_datetime_based_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
+                    model_type=DatetimeBasedCursorModel,
+                    component_definition=model.incremental_sync.__dict__,
+                    stream_name=model.name or "",
+                    stream_namespace=None,
+                    config=config or {},
+                )
+            return self._create_component_from_model(model=model.incremental_sync, config=config)
+
+    def _build_resumable_cursor(
         self,
         model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel, StateDelegatingRetrieverModel],
-        stream_slicer: Optional[StreamSlicer],
+        stream_slicer: Optional[PartitionRouter],
     ) -> Optional[StreamSlicer]:
         if hasattr(model, "paginator") and model.paginator and not stream_slicer:
             # For the regular Full-Refresh streams, we use the high level `ResumableFullRefreshCursor`
             return ResumableFullRefreshCursor(parameters={})
+        elif stream_slicer:
+            # For the Full-Refresh sub-streams, we use the nested `ChildPartitionResumableFullRefreshCursor`
+            return PerPartitionCursor(
+                cursor_factory=CursorFactory(
+                    create_function=partial(ChildPartitionResumableFullRefreshCursor, {})
+                ),
+                partition_router=stream_slicer,
+            )
         return None
 
     def _merge_stream_slicers(
@@ -1696,77 +1753,19 @@ class ModelToComponentFactory:
             )
 
         if model.retriever.type == "AsyncRetriever" and model.retriever.partition_router:
-            # Note that this development is also done in parallel to the per partition development which once merged we could support here by calling `create_concurrent_cursor_from_perpartition_cursor`
+            # Note that this development is also done in parallel to the per partition development which once merged
+            # we could support here by calling `create_concurrent_cursor_from_perpartition_cursor`
             raise ValueError("Per partition state is not supported yet for AsyncRetriever")
 
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
 
-        if model.incremental_sync and stream_slicer:
-            if model.retriever.type == "AsyncRetriever":
-                if stream_slicer:
-                    return self.create_concurrent_cursor_from_perpartition_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
-                        state_manager=self._connector_state_manager,
-                        model_type=DatetimeBasedCursorModel,
-                        component_definition=model.incremental_sync.__dict__,
-                        stream_name=model.name or "",
-                        stream_namespace=None,
-                        config=config or {},
-                        stream_state={},
-                        partition_router=stream_slicer,
-                    )
-                return self.create_concurrent_cursor_from_datetime_based_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
-                    model_type=DatetimeBasedCursorModel,
-                    component_definition=model.incremental_sync.__dict__,
-                    stream_name=model.name or "",
-                    stream_namespace=None,
-                    config=config or {},
-                )
-
-            incremental_sync_model = model.incremental_sync
-            if (
-                hasattr(incremental_sync_model, "global_substream_cursor")
-                and incremental_sync_model.global_substream_cursor
-            ):
-                cursor_component = self._create_component_from_model(
-                    model=incremental_sync_model, config=config
-                )
-                return GlobalSubstreamCursor(
-                    stream_cursor=cursor_component, partition_router=stream_slicer
-                )
-            else:
-                cursor_component = self._create_component_from_model(
-                    model=incremental_sync_model, config=config
-                )
-                return PerPartitionWithGlobalCursor(
-                    cursor_factory=CursorFactory(
-                        lambda: self._create_component_from_model(
-                            model=incremental_sync_model, config=config
-                        ),
-                    ),
-                    partition_router=stream_slicer,
-                    stream_cursor=cursor_component,
-                )
-        elif model.incremental_sync:
-            if model.retriever.type == "AsyncRetriever":
-                return self.create_concurrent_cursor_from_datetime_based_cursor(  # type: ignore # This is a known issue that we are creating and returning a ConcurrentCursor which does not technically implement the (low-code) StreamSlicer. However, (low-code) StreamSlicer and ConcurrentCursor both implement StreamSlicer.stream_slices() which is the primary method needed for checkpointing
-                    model_type=DatetimeBasedCursorModel,
-                    component_definition=model.incremental_sync.__dict__,
-                    stream_name=model.name or "",
-                    stream_namespace=None,
-                    config=config or {},
-                )
-            return self._create_component_from_model(model=model.incremental_sync, config=config)
-        elif self._disable_resumable_full_refresh:
+        if self._disable_resumable_full_refresh:
             return stream_slicer
-        elif stream_slicer:
-            # For the Full-Refresh sub-streams, we use the nested `ChildPartitionResumableFullRefreshCursor`
-            return PerPartitionCursor(
-                cursor_factory=CursorFactory(
-                    create_function=partial(ChildPartitionResumableFullRefreshCursor, {})
-                ),
-                partition_router=stream_slicer,
-            )
-        return self._build_resumable_cursor_from_paginator(model.retriever, stream_slicer)
+
+        if model.incremental_sync:
+            return self._build_incremental_cursor(model, stream_slicer, config)
+
+        return self._build_resumable_cursor(model.retriever, stream_slicer)
 
     def create_default_error_handler(
         self, model: DefaultErrorHandlerModel, config: Config, **kwargs: Any
@@ -2024,7 +2023,7 @@ class ModelToComponentFactory:
         self, model: DynamicSchemaLoaderModel, config: Config, **kwargs: Any
     ) -> DynamicSchemaLoader:
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
-        combined_slicers = self._build_resumable_cursor_from_paginator(
+        combined_slicers = self._build_resumable_cursor(
             model.retriever, stream_slicer
         )
 
@@ -2883,7 +2882,7 @@ class ModelToComponentFactory:
         self, model: HttpComponentsResolverModel, config: Config
     ) -> Any:
         stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
-        combined_slicers = self._build_resumable_cursor_from_paginator(
+        combined_slicers = self._build_resumable_cursor(
             model.retriever, stream_slicer
         )
 
