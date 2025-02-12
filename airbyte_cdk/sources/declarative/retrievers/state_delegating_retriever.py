@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 from typing import (
     Any,
-    MutableMapping,
+    Mapping,
 )
 
 from typing_extensions import deprecated
@@ -55,11 +55,11 @@ class StateDelegatingRetriever:
         )
 
     @property
-    def state(self) -> MutableMapping[str, Any]:
+    def state(self) -> Mapping[str, Any]:
         return self.cursor.get_stream_state() if self.cursor else {}
 
     @state.setter
-    def state(self, value: MutableMapping[str, Any]) -> None:
+    def state(self, value: Mapping[str, Any]) -> None:
         """State setter, accept state serialized by state getter."""
         if self.cursor:
             self.cursor.set_initial_state(value)

@@ -1647,7 +1647,7 @@ class ModelToComponentFactory:
 
     def _build_stream_slicer_from_partition_router(
         self,
-        model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel],
+        model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel, StateDelegatingRetrieverModel],
         config: Config,
     ) -> Optional[PartitionRouter]:
         if (
@@ -1672,7 +1672,7 @@ class ModelToComponentFactory:
 
     def _build_resumable_cursor_from_paginator(
         self,
-        model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel],
+        model: Union[AsyncRetrieverModel, CustomRetrieverModel, SimpleRetrieverModel, StateDelegatingRetrieverModel],
         stream_slicer: Optional[StreamSlicer],
     ) -> Optional[StreamSlicer]:
         if hasattr(model, "paginator") and model.paginator and not stream_slicer:
