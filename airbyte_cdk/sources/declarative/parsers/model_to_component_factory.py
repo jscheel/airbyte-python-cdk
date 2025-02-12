@@ -1738,9 +1738,8 @@ class ModelToComponentFactory:
             )
         return None
 
-    def _merge_stream_slicers(
-        self, model: DeclarativeStreamModel, config: Config
-    ) -> Optional[StreamSlicer]:
+    def _validate_retriever(self, model: DeclarativeStreamModel) -> None:
+        """Validates the retriever configuration for specific constraints."""
         if model.retriever.type == "StateDelegatingRetriever" and not model.incremental_sync:
             raise ValueError("StateDelegatingRetriever requires 'incremental_sync' to be enabled.")
 
@@ -1756,15 +1755,18 @@ class ModelToComponentFactory:
             # we could support here by calling `create_concurrent_cursor_from_perpartition_cursor`
             raise ValueError("Per partition state is not supported yet for AsyncRetriever.")
 
-        stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
+    def _merge_stream_slicers(
+            self, model: DeclarativeStreamModel, config: Config
+    ) -> Optional[StreamSlicer]:
+        self._validate_retriever(model)
 
-        if self._disable_resumable_full_refresh:
-            return stream_slicer
+        stream_slicer = self._build_stream_slicer_from_partition_router(model.retriever, config)
 
         if model.incremental_sync:
             return self._build_incremental_cursor(model, stream_slicer, config)
 
-        return self._build_resumable_cursor(model.retriever, stream_slicer)
+        return stream_slicer if self._disable_resumable_full_refresh else self._build_resumable_cursor(model.retriever,
+                                                                                                       stream_slicer)
 
     def create_default_error_handler(
         self, model: DefaultErrorHandlerModel, config: Config, **kwargs: Any
