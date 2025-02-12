@@ -1826,7 +1826,7 @@ class ModelToComponentFactory:
                 raise ValueError("Per partition state is not supported yet for AsyncRetriever.")
 
     def _merge_stream_slicers(
-            self, model: DeclarativeStreamModel, config: Config
+        self, model: DeclarativeStreamModel, config: Config
     ) -> Optional[StreamSlicer]:
         self._validate_retriever(model)
 
@@ -1835,8 +1835,11 @@ class ModelToComponentFactory:
         if model.incremental_sync:
             return self._build_incremental_cursor(model, stream_slicer, config)
 
-        return stream_slicer if self._disable_resumable_full_refresh else self._build_resumable_cursor(model.retriever,
-                                                                                                       stream_slicer)
+        return (
+            stream_slicer
+            if self._disable_resumable_full_refresh
+            else self._build_resumable_cursor(model.retriever, stream_slicer)
+        )
 
     def create_default_error_handler(
             self, model: DefaultErrorHandlerModel, config: Config, **kwargs: Any
