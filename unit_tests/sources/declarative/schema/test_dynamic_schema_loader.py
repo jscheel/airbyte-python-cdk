@@ -403,3 +403,70 @@ def test_dynamic_schema_loader_with_type_conditions():
 
     assert len(actual_catalog.streams) == 1
     assert actual_catalog.streams[0].json_schema == expected_schema
+
+def test_dynamic_schema_loader_with_default_type():
+    _MANIFEST_WITH_DEFAULT_TYPE = deepcopy(_MANIFEST)
+    _MANIFEST_WITH_DEFAULT_TYPE["definitions"]["party_members_stream"]["schema_loader"]["schema_type_identifier"]["default_type"] = "string"
+
+    expected_schema = {
+        "$schema": "https://json-schema.org/draft-07/schema#",
+        "additionalProperties": True,
+        "type": "object",
+        "properties": {
+            "id": {"type": ["null", "string"]},
+            "salary": {"type": ["null", "string"]},
+            "working_days": {"type": ["null", "array"]},
+            "working_days_total": {"type": ["null", "number"]},
+            "static_field": {"type": ["null", "string"]}
+        },
+    }
+
+    source = ConcurrentDeclarativeSource(
+        source_config=_MANIFEST_WITH_DEFAULT_TYPE, config=_CONFIG, catalog=None, state=None
+    )
+    with HttpMocker() as http_mocker:
+        http_mocker.get(
+            HttpRequest(url="https://api.test.com/party_members"),
+            HttpResponse(
+                body=json.dumps(
+                    [
+                        {
+                            "id": 1,
+                            "salary": 20000,
+                            "working_days": ["Monday", "Tuesday"],
+                            "working_days_total": 9.4
+                        },
+                        {
+                            "id": 2,
+                            "salary": 22000,
+                            "working_days": ["Tuesday", "Wednesday"],
+                            "working_days_total": 20.7,
+                        },
+                    ]
+                )
+            ),
+        )
+        http_mocker.get(
+            HttpRequest(url="https://api.test.com/party_members/schema"),
+            HttpResponse(
+                body=json.dumps(
+                    {
+                        "fields": [
+                            # unknown type, default should be used
+                            {"name": "Id", "type": "UNKNOWN_TYPE"},
+                            # type in types map, but condition is False, default should be used
+                            {"name": "Salary", "type": "customInteger"},
+                            # airbyte type
+                            {"name": "WorkingDays", "type": "array"},
+                            # airbyte type
+                            {"name": "WorkingDaysTotal", "type": "number"},
+                        ]
+                    }
+                )
+            ),
+        )
+
+        actual_catalog = source.discover(logger=source.logger, config=_CONFIG)
+
+    assert len(actual_catalog.streams) == 1
+    assert actual_catalog.streams[0].json_schema == expected_schema
