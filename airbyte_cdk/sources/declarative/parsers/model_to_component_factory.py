@@ -2050,6 +2050,7 @@ class ModelToComponentFactory:
             key_pointer=model_key_pointer,
             type_pointer=model_type_pointer,
             types_mapping=types_mapping,
+            default_type=model.default_type if model.default_type else None,
             parameters=model.parameters or {},
         )
 

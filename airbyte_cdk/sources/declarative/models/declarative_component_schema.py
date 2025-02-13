@@ -812,6 +812,11 @@ class SchemaTypeIdentifier(BaseModel):
         title="Type Path",
     )
     types_mapping: Optional[List[TypesMap]] = None
+    default_type: Optional[str] = Field(
+        None,
+        description="Default to be set if field type wasn't found in the types_mapping.",
+        title="Default Type"
+    )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
 

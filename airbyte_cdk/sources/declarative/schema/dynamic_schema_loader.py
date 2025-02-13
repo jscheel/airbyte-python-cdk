@@ -87,6 +87,7 @@ class SchemaTypeIdentifier:
     parameters: InitVar[Mapping[str, Any]]
     type_pointer: Optional[List[Union[InterpolatedString, str]]] = None
     types_mapping: Optional[List[TypesMap]] = None
+    default_type: Optional[str] = None
     schema_pointer: Optional[List[Union[InterpolatedString, str]]] = None
 
     def __post_init__(self, parameters: Mapping[str, Any]) -> None:
@@ -252,6 +253,8 @@ class DynamicSchemaLoader(SchemaLoader):
 
                 if field_type == types_map.current_type and condition:
                     return types_map.target_type
+        if self.schema_type_identifier.default_type and field_type not in AIRBYTE_DATA_TYPES:
+            return self.schema_type_identifier.default_type
         return field_type
 
     @staticmethod

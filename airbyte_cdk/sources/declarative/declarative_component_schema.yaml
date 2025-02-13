@@ -2047,6 +2047,10 @@ definitions:
         type: array
         items:
           - "$ref": "#/definitions/TypesMap"
+      default_type:
+        title: Default Type
+        description: Default to be set if field type wasn't found in the types_mapping.
+        type: string
       $parameters:
         type: object
         additionalProperties: true
