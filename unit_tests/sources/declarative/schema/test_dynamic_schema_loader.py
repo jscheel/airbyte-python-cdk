@@ -404,9 +404,12 @@ def test_dynamic_schema_loader_with_type_conditions():
     assert len(actual_catalog.streams) == 1
     assert actual_catalog.streams[0].json_schema == expected_schema
 
+
 def test_dynamic_schema_loader_with_default_type():
     _MANIFEST_WITH_DEFAULT_TYPE = deepcopy(_MANIFEST)
-    _MANIFEST_WITH_DEFAULT_TYPE["definitions"]["party_members_stream"]["schema_loader"]["schema_type_identifier"]["default_type"] = "string"
+    _MANIFEST_WITH_DEFAULT_TYPE["definitions"]["party_members_stream"]["schema_loader"][
+        "schema_type_identifier"
+    ]["default_type"] = "string"
 
     expected_schema = {
         "$schema": "https://json-schema.org/draft-07/schema#",
@@ -417,7 +420,7 @@ def test_dynamic_schema_loader_with_default_type():
             "salary": {"type": ["null", "string"]},
             "working_days": {"type": ["null", "array"]},
             "working_days_total": {"type": ["null", "number"]},
-            "static_field": {"type": ["null", "string"]}
+            "static_field": {"type": ["null", "string"]},
         },
     }
 
@@ -434,7 +437,7 @@ def test_dynamic_schema_loader_with_default_type():
                             "id": 1,
                             "salary": 20000,
                             "working_days": ["Monday", "Tuesday"],
-                            "working_days_total": 9.4
+                            "working_days_total": 9.4,
                         },
                         {
                             "id": 2,

@@ -815,7 +815,7 @@ class SchemaTypeIdentifier(BaseModel):
     default_type: Optional[str] = Field(
         None,
         description="Default to be set if field type wasn't found in the types_mapping.",
-        title="Default Type"
+        title="Default Type",
     )
     parameters: Optional[Dict[str, Any]] = Field(None, alias="$parameters")
 
