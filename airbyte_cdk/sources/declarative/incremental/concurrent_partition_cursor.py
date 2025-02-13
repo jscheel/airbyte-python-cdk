@@ -5,6 +5,7 @@
 import copy
 import logging
 import threading
+import time
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import timedelta
@@ -59,7 +60,7 @@ class ConcurrentPerPartitionCursor(Cursor):
     """
 
     DEFAULT_MAX_PARTITIONS_NUMBER = 25_000
-    SWITCH_TO_GLOBAL_LIMIT = 1000
+    SWITCH_TO_GLOBAL_LIMIT = 10_000
     _NO_STATE: Mapping[str, Any] = {}
     _NO_CURSOR_STATE: Mapping[str, Any] = {}
     _GLOBAL_STATE_KEY = "state"
@@ -103,6 +104,8 @@ class ConcurrentPerPartitionCursor(Cursor):
         self._number_of_partitions: int = 0
         self._use_global_cursor: bool = False
         self._partition_serializer = PerPartitionKeySerializer()
+        # Track the last time a state message was emitted
+        self._last_emission_time: float = 0.0
 
         self._set_initial_state(stream_state)
 
@@ -166,9 +169,12 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._global_cursor = self._new_global_cursor
             self._lookback_window = self._timer.finish()
             self._parent_state = self._partition_router.get_stream_state()
-        self._emit_state_message()
+        self._emit_state_message(throttle=False)
 
-    def _emit_state_message(self) -> None:
+    def _emit_state_message(self, throttle: bool = True) -> None:
+        current_time = time.time()
+        if throttle and current_time - self._last_emission_time <= 60:
+            return
         self._connector_state_manager.update_state_for_stream(
             self._stream_name,
             self._stream_namespace,
@@ -178,6 +184,7 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._stream_name, self._stream_namespace
         )
         self._message_repository.emit_message(state_message)
+        self._last_emission_time = current_time
 
     def stream_slices(self) -> Iterable[StreamSlice]:
         if self._timer.is_running():
@@ -242,7 +249,7 @@ class ConcurrentPerPartitionCursor(Cursor):
                             partition_key
                         )  # Remove the oldest partition
                         logger.warning(
-                            f"The maximum number of partitions has been reached. Dropping the oldest finished partition: {oldest_partition}. Over limit: {self._number_of_partitions}."
+                            f"The maximum number of partitions has been reached. Dropping the oldest finished partition: {oldest_partition}. Over limit: {self._number_of_partitions - self.DEFAULT_MAX_PARTITIONS_NUMBER}."
                         )
                         break
                 else:
@@ -251,7 +258,7 @@ class ConcurrentPerPartitionCursor(Cursor):
                         1
                     ]  # Remove the oldest partition
                     logger.warning(
-                        f"The maximum number of partitions has been reached. Dropping the oldest partition: {oldest_partition}. Over limit: {self._number_of_partitions}."
+                        f"The maximum number of partitions has been reached. Dropping the oldest partition: {oldest_partition}. Over limit: {self._number_of_partitions - self.DEFAULT_MAX_PARTITIONS_NUMBER}."
                     )
 
     def _set_initial_state(self, stream_state: StreamState) -> None:
@@ -372,7 +379,7 @@ class ConcurrentPerPartitionCursor(Cursor):
                 self._to_partition_key(record.associated_slice.partition)
             ].observe(record)
 
-    def _update_global_cursor(self, value: Mapping[str, Any]) -> None:
+    def _update_global_cursor(self, value: Any) -> None:
         if (
             self._new_global_cursor is None
             or self._new_global_cursor[self.cursor_field.cursor_field_key] < value
