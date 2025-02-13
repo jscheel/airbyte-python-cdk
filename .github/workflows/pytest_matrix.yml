@@ -31,6 +31,7 @@ jobs:
             "3.10",
             "3.11",
             # "3.12",  # `requests-cache` blocker: https://github.com/airbytehq/airbyte-python-cdk/issues/299
+            "3.13",
           ]
         os: [
             Ubuntu,
@@ -38,7 +39,7 @@ jobs:
           ]
       fail-fast: false
 
-    runs-on: "${{ matrix.os }}-latest"
+    runs-on: "${{ matrix.os }}-22.04"
     env:
       # Enforce UTF-8 encoding so Windows runners don't fail inside the connector code.
       # TODO: See if we can fully enforce this within PyAirbyte itself.
