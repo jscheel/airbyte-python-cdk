@@ -73,3 +73,7 @@ class PrintBuffer:
     ) -> None:
         self.flush()
         sys.stdout, sys.stderr = self.old_stdout, self.old_stderr
+
+    def flush_logger(self) -> None:
+        """Explicit flush that can be triggered by logger to synchronize with PrintBuffer."""
+        self.flush()
