@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 import datetime
 import importlib
 import inspect
@@ -2503,6 +2504,7 @@ class ModelToComponentFactory:
         request_options_provider: Optional[RequestOptionsProvider] = None,
         stop_condition_on_cursor: bool = False,
         client_side_incremental_sync: Optional[Dict[str, Any]] = None,
+        cursor: Optional[DeclarativeCursor] = None,
         transformations: List[RecordTransformation],
     ) -> SimpleRetriever:
         decoder = (
@@ -2606,13 +2608,19 @@ class ModelToComponentFactory:
         if not isinstance(stream_slicer, DeclarativeCursor):
             raise ValueError("StateDelegatingRetriever requires a DeclarativeCursor")
 
+        full_data_request_options_provider = copy.deepcopy(request_options_provider)
+
+        if model.ignore_first_request_options_provider:
+            stream_slicer._step = datetime.timedelta.max
+            full_data_request_options_provider = None
+
         full_data_retriever = self._create_component_from_model(
             model=model.full_data_retriever,
             config=config,
             name=name,
             primary_key=primary_key,
             stream_slicer=stream_slicer,
-            request_options_provider=request_options_provider,
+            request_options_provider=full_data_request_options_provider,
             stop_condition_on_cursor=stop_condition_on_cursor,
             client_side_incremental_sync=client_side_incremental_sync,
             transformations=transformations,

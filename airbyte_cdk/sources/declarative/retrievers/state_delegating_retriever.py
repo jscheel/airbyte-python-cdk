@@ -2,7 +2,7 @@
 # Copyright (c) 2025 Airbyte, Inc., all rights reserved.
 #
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import (
     Any,
     Mapping,
@@ -24,6 +24,7 @@ class StateDelegatingRetriever:
     full_data_retriever: Retriever
     incremental_data_retriever: Retriever
     cursor: DeclarativeCursor
+    _started_with_state: bool = field(init=False, repr=False, default=False)
 
     def __getattr__(self, name: str) -> Any:
         # Avoid delegation for these internal names.
@@ -40,7 +41,7 @@ class StateDelegatingRetriever:
 
     def __setattr__(self, name: str, value: Any) -> None:
         # For the internal attributes, set them directly on self.
-        if name in {"full_data_retriever", "incremental_data_retriever", "cursor", "state"}:
+        if name in {"full_data_retriever", "incremental_data_retriever", "cursor", "state", "_started_with_state"}:
             super().__setattr__(name, value)
         else:
             # Delegate setting attributes to the underlying retriever.
@@ -50,7 +51,7 @@ class StateDelegatingRetriever:
     def retriever(self) -> Retriever:
         return (
             self.incremental_data_retriever
-            if self.cursor.get_stream_state()
+            if self._started_with_state
             else self.full_data_retriever
         )
 
