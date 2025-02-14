@@ -41,7 +41,13 @@ class StateDelegatingRetriever:
 
     def __setattr__(self, name: str, value: Any) -> None:
         # For the internal attributes, set them directly on self.
-        if name in {"full_data_retriever", "incremental_data_retriever", "cursor", "state", "_started_with_state"}:
+        if name in {
+            "full_data_retriever",
+            "incremental_data_retriever",
+            "cursor",
+            "state",
+            "_started_with_state",
+        }:
             super().__setattr__(name, value)
         else:
             # Delegate setting attributes to the underlying retriever.
