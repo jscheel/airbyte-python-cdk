@@ -5,12 +5,6 @@ from dataclasses import asdict
 from pathlib import Path
 
 import pytest
-from airbyte_connector_tester.connector_tests import ConnectorTestSuiteBase
-from airbyte_connector_tester.instances import (
-    AcceptanceTestScenario,
-    get_acceptance_tests,
-)
-from airbyte_connector_tester.job_runner import run_test_job
 
 from airbyte_cdk.models import (
     AirbyteStream,
@@ -18,6 +12,9 @@ from airbyte_cdk.models import (
     ConfiguredAirbyteStream,
     DestinationSyncMode,
     SyncMode,
+)
+from airbyte_cdk.test.declarative.models import (
+    AcceptanceTestScenario,
 )
 
 

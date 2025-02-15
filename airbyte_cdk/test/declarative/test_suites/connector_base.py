@@ -9,7 +9,6 @@ from typing import Any, Literal
 
 import pytest
 import yaml
-from airbyte_connector_tester.job_runner import run_test_job
 from pydantic import BaseModel
 
 from airbyte_cdk import Connector
@@ -21,8 +20,28 @@ from airbyte_cdk.test import entrypoint_wrapper
 from airbyte_cdk.test.declarative.models import (
     AcceptanceTestScenario,
 )
+from airbyte_cdk.test.declarative.utils.job_runner import run_test_job
 
 ACCEPTANCE_TEST_CONFIG_PATH = Path("acceptance-test-config.yml")
+
+
+def _get_acceptance_tests(
+    category: str,
+    accept_test_config_path: Path = ACCEPTANCE_TEST_CONFIG_PATH,
+) -> list[AcceptanceTestScenario]:
+    all_tests_config = yaml.safe_load(accept_test_config_path.read_text())
+    if "acceptance_tests" not in all_tests_config:
+        raise ValueError(f"Acceptance tests config not found in {accept_test_config_path}")
+    if category not in all_tests_config["acceptance_tests"]:
+        return []
+    if "tests" not in all_tests_config["acceptance_tests"][category]:
+        raise ValueError(f"No tests found for category {category}")
+
+    return [
+        AcceptanceTestScenario.model_validate(test)
+        for test in all_tests_config["acceptance_tests"][category]["tests"]
+        if "iam_role" not in test["config_path"]
+    ]
 
 
 class ConnectorTestSuiteBase(abc.ABC):
@@ -49,27 +68,6 @@ class ConnectorTestSuiteBase(abc.ABC):
         """
         return self.connector_factory()
 
-    # Internal Methods - We don't expect subclasses to override these
-
-    @classmethod
-    def _get_acceptance_tests(
-        category: str,
-        accept_test_config_path: Path = ACCEPTANCE_TEST_CONFIG_PATH,
-    ) -> list[AcceptanceTestScenario]:
-        all_tests_config = yaml.safe_load(accept_test_config_path.read_text())
-        if "acceptance_tests" not in all_tests_config:
-            raise ValueError(f"Acceptance tests config not found in {accept_test_config_path}")
-        if category not in all_tests_config["acceptance_tests"]:
-            return []
-        if "tests" not in all_tests_config["acceptance_tests"][category]:
-            raise ValueError(f"No tests found for category {category}")
-
-        return [
-            AcceptanceTestScenario.model_validate(test)
-            for test in all_tests_config["acceptance_tests"][category]["tests"]
-            if "iam_role" not in test["config_path"]
-        ]
-
     # Test Definitions
 
     @pytest.mark.parametrize(
@@ -89,7 +87,7 @@ class ConnectorTestSuiteBase(abc.ABC):
 
     @pytest.mark.parametrize(
         "instance",
-        self._get_acceptance_tests("connection"),
+        _get_acceptance_tests("connection"),
         ids=lambda instance: instance.instance_name,
     )
     def test_check(

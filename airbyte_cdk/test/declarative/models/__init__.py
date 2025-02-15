@@ -1,4 +1,4 @@
-from scenario import (
+from airbyte_cdk.test.declarative.models.scenario import (
     AcceptanceTestScenario,
 )
 

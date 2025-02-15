@@ -4,10 +4,12 @@ from pathlib import Path
 from typing import Callable, Literal
 
 import orjson
-from airbyte_connector_tester.instances import AcceptanceTestScenario
 
 from airbyte_cdk import Connector
 from airbyte_cdk.test import entrypoint_wrapper
+from airbyte_cdk.test.declarative.models import (
+    AcceptanceTestScenario,
+)
 
 
 def run_test_job(
