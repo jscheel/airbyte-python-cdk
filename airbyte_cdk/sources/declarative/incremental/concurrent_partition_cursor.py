@@ -150,20 +150,19 @@ class ConcurrentPerPartitionCursor(Cursor):
 
         partition_key = self._to_partition_key(stream_slice.partition)
         with self._lock:
+            self._semaphore_per_partition[partition_key].acquire()
             if not self._use_global_cursor:
                 self._cursor_per_partition[partition_key].close_partition(partition=partition)
                 cursor = self._cursor_per_partition[partition_key]
                 if (
-                        partition_key in self._finished_partitions
-                        and self._semaphore_per_partition[partition_key]._value == 0
+                    partition_key in self._finished_partitions
+                    and self._semaphore_per_partition[partition_key]._value == 0
                 ):
                     self._update_global_cursor(cursor.state[self.cursor_field.cursor_field_key])
 
             self._check_and_update_parent_state()
 
             self._emit_state_message()
-
-            self._semaphore_per_partition[partition_key].acquire()
 
     def _check_and_update_parent_state(self) -> None:
         """
