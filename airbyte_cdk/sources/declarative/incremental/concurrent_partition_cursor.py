@@ -171,10 +171,21 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._parent_state = self._partition_router.get_stream_state()
         self._emit_state_message(throttle=False)
 
-    def _emit_state_message(self, throttle: bool = True) -> None:
+    def _throttle_state_message(self) -> Optional[float]:
+        """
+        Throttles the state message emission to once every 60 seconds.
+        """
         current_time = time.time()
-        if throttle and current_time - self._last_emission_time <= 60:
-            return
+        if current_time - self._last_emission_time <= 60:
+            return None
+        return current_time
+
+    def _emit_state_message(self, throttle: bool = True) -> None:
+        if throttle:
+            current_time = self._throttle_state_message()
+            if current_time is None:
+                return
+            self._last_emission_time = current_time
         self._connector_state_manager.update_state_for_stream(
             self._stream_name,
             self._stream_namespace,
@@ -184,7 +195,6 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._stream_name, self._stream_namespace
         )
         self._message_repository.emit_message(state_message)
-        self._last_emission_time = current_time
 
     def stream_slices(self) -> Iterable[StreamSlice]:
         if self._timer.is_running():
@@ -358,6 +368,7 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._new_global_cursor = deepcopy(fixed_global_state)
 
     def observe(self, record: Record) -> None:
+        # ToDo: check number of partitions
         if not self._use_global_cursor and self.limit_reached():
             logger.info(
                 f"Exceeded the 'SWITCH_TO_GLOBAL_LIMIT' of {self.SWITCH_TO_GLOBAL_LIMIT}. "
