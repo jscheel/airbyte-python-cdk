@@ -95,6 +95,10 @@ class ConcurrentPerPartitionCursor(Cursor):
         # the oldest partitions can be efficiently removed, maintaining the most recent partitions.
         self._cursor_per_partition: OrderedDict[str, ConcurrentCursor] = OrderedDict()
         self._semaphore_per_partition: OrderedDict[str, threading.Semaphore] = OrderedDict()
+
+        # Parent-state tracking: store each partition’s parent state in creation order
+        self._partition_parent_state_map: OrderedDict[str, Mapping[str, Any]] = OrderedDict()
+
         self._finished_partitions: set[str] = set()
         self._lock = threading.Lock()
         self._timer = Timer()
@@ -154,9 +158,31 @@ class ConcurrentPerPartitionCursor(Cursor):
                         and self._semaphore_per_partition[partition_key]._value == 0
                 ):
                     self._update_global_cursor(cursor.state[self.cursor_field.cursor_field_key])
-                self._emit_state_message()
+
+            self._check_and_update_parent_state()
+
+            self._emit_state_message()
 
             self._semaphore_per_partition[partition_key].acquire()
+
+    def _check_and_update_parent_state(self) -> None:
+        """
+        If all slices for the earliest partitions are closed, pop them from the left
+        of _partition_parent_state_map and update _parent_state to the most recent popped.
+        """
+        last_closed_state = None
+        # We iterate in creation order (left to right) in the OrderedDict
+        for p_key in list(self._partition_parent_state_map.keys()):
+            # If this partition is not fully closed, stop
+            if p_key not in self._finished_partitions or self._semaphore_per_partition[p_key]._value != 0:
+                break
+            # Otherwise, we pop from the left
+            _, closed_parent_state = self._partition_parent_state_map.popitem(last=False)
+            last_closed_state = closed_parent_state
+
+        # If we popped at least one partition, update the parent_state to that partition's parent state
+        if last_closed_state is not None:
+            self._parent_state = last_closed_state
 
     def ensure_at_least_one_state_emitted(self) -> None:
         """
@@ -202,12 +228,16 @@ class ConcurrentPerPartitionCursor(Cursor):
 
         slices = self._partition_router.stream_slices()
         self._timer.start()
-        for partition in slices:
-            yield from self._generate_slices_from_partition(partition)
+        for partition, last, parent_state in iterate_with_last_flag_and_state(
+                slices, self._partition_router.get_stream_state
+        ):
+            yield from self._generate_slices_from_partition(partition, parent_state)
 
-    def _generate_slices_from_partition(self, partition: StreamSlice) -> Iterable[StreamSlice]:
+    def _generate_slices_from_partition(self, partition: StreamSlice, parent_state: Mapping[str, Any]) -> Iterable[StreamSlice]:
         # Ensure the maximum number of partitions is not exceeded
         self._ensure_partition_limit()
+
+        partition_key = self._to_partition_key(partition.partition)
 
         cursor = self._cursor_per_partition.get(self._to_partition_key(partition.partition))
         if not cursor:
@@ -216,18 +246,21 @@ class ConcurrentPerPartitionCursor(Cursor):
                 self._lookback_window if self._global_cursor else 0,
             )
             with self._lock:
-                self._cursor_per_partition[self._to_partition_key(partition.partition)] = cursor
-            self._semaphore_per_partition[self._to_partition_key(partition.partition)] = (
+                self._cursor_per_partition[partition_key] = cursor
+            self._semaphore_per_partition[partition_key] = (
                 threading.Semaphore(0)
             )
+
+        with self._lock:
+            self._partition_parent_state_map[partition_key] = deepcopy(parent_state)
 
         for cursor_slice, is_last_slice, _ in iterate_with_last_flag_and_state(
             cursor.stream_slices(),
             lambda: None,
         ):
-            self._semaphore_per_partition[self._to_partition_key(partition.partition)].release()
+            self._semaphore_per_partition[partition_key].release()
             if is_last_slice:
-                self._finished_partitions.add(self._to_partition_key(partition.partition))
+                self._finished_partitions.add(partition_key)
             yield StreamSlice(
                 partition=partition, cursor_slice=cursor_slice, extra_fields=partition.extra_fields
             )
