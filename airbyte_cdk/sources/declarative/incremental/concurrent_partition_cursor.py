@@ -150,8 +150,8 @@ class ConcurrentPerPartitionCursor(Cursor):
                 self._cursor_per_partition[partition_key].close_partition(partition=partition)
                 cursor = self._cursor_per_partition[partition_key]
                 if (
-                        partition_key in self._finished_partitions
-                        and self._semaphore_per_partition[partition_key]._value == 0
+                    partition_key in self._finished_partitions
+                    and self._semaphore_per_partition[partition_key]._value == 0
                 ):
                     self._update_global_cursor(cursor.state[self.cursor_field.cursor_field_key])
                 self._emit_state_message()
