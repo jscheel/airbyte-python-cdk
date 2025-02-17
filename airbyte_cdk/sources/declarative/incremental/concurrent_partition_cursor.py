@@ -59,8 +59,8 @@ class ConcurrentPerPartitionCursor(Cursor):
     CurrentPerPartitionCursor expects the state of the ConcurrentCursor to follow the format {cursor_field: cursor_value}.
     """
 
-    DEFAULT_MAX_PARTITIONS_NUMBER = 25_000
-    SWITCH_TO_GLOBAL_LIMIT = 10_000
+    DEFAULT_MAX_PARTITIONS_NUMBER = 200
+    SWITCH_TO_GLOBAL_LIMIT = 100
     _NO_STATE: Mapping[str, Any] = {}
     _NO_CURSOR_STATE: Mapping[str, Any] = {}
     _GLOBAL_STATE_KEY = "state"
@@ -145,18 +145,18 @@ class ConcurrentPerPartitionCursor(Cursor):
             raise ValueError("stream_slice cannot be None")
 
         partition_key = self._to_partition_key(stream_slice.partition)
-        if not self._use_global_cursor:
-            self._cursor_per_partition[partition_key].close_partition(partition=partition)
         with self._lock:
-            self._semaphore_per_partition[partition_key].acquire()
-            cursor = self._cursor_per_partition[partition_key]
-            if (
-                partition_key in self._finished_partitions
-                and self._semaphore_per_partition[partition_key]._value == 0
-            ):
-                self._update_global_cursor(cursor.state[self.cursor_field.cursor_field_key])
             if not self._use_global_cursor:
+                self._cursor_per_partition[partition_key].close_partition(partition=partition)
+                cursor = self._cursor_per_partition[partition_key]
+                if (
+                        partition_key in self._finished_partitions
+                        and self._semaphore_per_partition[partition_key]._value == 0
+                ):
+                    self._update_global_cursor(cursor.state[self.cursor_field.cursor_field_key])
                 self._emit_state_message()
+
+            self._semaphore_per_partition[partition_key].acquire()
 
     def ensure_at_least_one_state_emitted(self) -> None:
         """
@@ -246,6 +246,13 @@ class ConcurrentPerPartitionCursor(Cursor):
         - Logs a warning each time a partition is removed, indicating whether it was finished
           or removed due to being the oldest.
         """
+        if not self._use_global_cursor and self.limit_reached():
+            logger.info(
+                f"Exceeded the 'SWITCH_TO_GLOBAL_LIMIT' of {self.SWITCH_TO_GLOBAL_LIMIT}. "
+                f"Switching to global cursor for {self._stream_name}."
+            )
+            self._use_global_cursor = True
+
         with self._lock:
             self._number_of_partitions += 1
             while len(self._cursor_per_partition) > self.DEFAULT_MAX_PARTITIONS_NUMBER - 1:
@@ -368,14 +375,6 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._new_global_cursor = deepcopy(fixed_global_state)
 
     def observe(self, record: Record) -> None:
-        # ToDo: check number of partitions
-        if not self._use_global_cursor and self.limit_reached():
-            logger.info(
-                f"Exceeded the 'SWITCH_TO_GLOBAL_LIMIT' of {self.SWITCH_TO_GLOBAL_LIMIT}. "
-                f"Switching to global cursor for {self._stream_name}."
-            )
-            self._use_global_cursor = True
-
         if not record.associated_slice:
             raise ValueError(
                 "Invalid state as stream slices that are emitted should refer to an existing cursor"
