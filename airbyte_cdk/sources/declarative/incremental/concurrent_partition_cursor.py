@@ -59,8 +59,8 @@ class ConcurrentPerPartitionCursor(Cursor):
     CurrentPerPartitionCursor expects the state of the ConcurrentCursor to follow the format {cursor_field: cursor_value}.
     """
 
-    DEFAULT_MAX_PARTITIONS_NUMBER = 200
-    SWITCH_TO_GLOBAL_LIMIT = 100
+    DEFAULT_MAX_PARTITIONS_NUMBER = 25_000
+    SWITCH_TO_GLOBAL_LIMIT = 10_000
     _NO_STATE: Mapping[str, Any] = {}
     _NO_CURSOR_STATE: Mapping[str, Any] = {}
     _GLOBAL_STATE_KEY = "state"
