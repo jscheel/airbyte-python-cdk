@@ -245,6 +245,7 @@ class ConcurrentPerPartitionCursor(Cursor):
                 self._lookback_window if self._global_cursor else 0,
             )
             with self._lock:
+                self._number_of_partitions += 1
                 self._cursor_per_partition[partition_key] = cursor
             self._semaphore_per_partition[partition_key] = (
                 threading.Semaphore(0)
@@ -367,6 +368,7 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._lookback_window = int(stream_state.get("lookback_window", 0))
 
             for state in stream_state.get(self._PERPARTITION_STATE_KEY, []):
+                self._number_of_partitions += 1
                 self._cursor_per_partition[self._to_partition_key(state["partition"])] = (
                     self._create_cursor(state["cursor"])
                 )
