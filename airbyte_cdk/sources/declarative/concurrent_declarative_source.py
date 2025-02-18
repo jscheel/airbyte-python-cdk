@@ -402,9 +402,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             and bool(incremental_sync_component_definition)
             and (
                 incremental_sync_component_definition.get("type", "")
-                == DatetimeBasedCursorModel.__name__
-                or incremental_sync_component_definition.get("type", "")
-                == IncrementingCountCursorModel.__name__
+                in (DatetimeBasedCursorModel.__name__, IncrementingCountCursorModel.__name__)
             )
             and self._stream_supports_concurrent_partition_processing(
                 declarative_stream=declarative_stream
@@ -412,9 +410,11 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             and hasattr(declarative_stream.retriever, "stream_slicer")
             and (
                 isinstance(declarative_stream.retriever.stream_slicer, DatetimeBasedCursor)
-                or isinstance(
-                    declarative_stream.retriever.stream_slicer, IncrementingCountCursorModel
-                )
+                # IncrementingCountCursorModel is hardcoded to be of type DatetimeBasedCursor
+                # add isntance check here if we want to have a IncrementingCountCursor
+                # or isinstance(
+                #     declarative_stream.retriever.stream_slicer, IncrementingCountCursor
+                # )
                 or isinstance(declarative_stream.retriever.stream_slicer, AsyncJobPartitionRouter)
             )
         )
