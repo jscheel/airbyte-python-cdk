@@ -2027,6 +2027,8 @@ def test_incremental_parent_state_no_records(
                                 "cursor": {"updated_at": PARENT_COMMENT_CURSOR_PARTITION_1},
                             }
                         ],
+                        "state": {},
+                        "use_global_cursor": False,
                         "parent_state": {"posts": {"updated_at": PARENT_POSTS_CURSOR}},
                     }
                 },

@@ -166,20 +166,36 @@ class ConcurrentPerPartitionCursor(Cursor):
 
     def _check_and_update_parent_state(self) -> None:
         """
-        If all slices for the earliest partitions are closed, pop them from the left
-        of _partition_parent_state_map and update _parent_state to the most recent popped.
+        Pop the leftmost partition state from _partition_parent_state_map only if
+        *all partitions* up to (and including) that partition key in _semaphore_per_partition
+        are fully finished (i.e. in _finished_partitions and semaphore._value == 0).
         """
         last_closed_state = None
-        # We iterate in creation order (left to right) in the OrderedDict
-        for p_key in list(self._partition_parent_state_map.keys()):
-            # If this partition is not fully closed, stop
-            if p_key not in self._finished_partitions or self._semaphore_per_partition[p_key]._value != 0:
+
+        while self._partition_parent_state_map:
+            # Look at the earliest partition key in creation order
+            earliest_key = next(iter(self._partition_parent_state_map))
+
+            # Verify ALL partitions from the left up to earliest_key are finished
+            all_left_finished = True
+            for p_key, sem in self._semaphore_per_partition.items():
+                # If any earlier partition is still not finished, we must stop
+                if p_key not in self._finished_partitions or sem._value != 0:
+                    all_left_finished = False
+                    break
+                # Once we've reached earliest_key in the semaphore order, we can stop checking
+                if p_key == earliest_key:
+                    break
+
+            # If the partitions up to earliest_key are not all finished, break the while-loop
+            if not all_left_finished:
                 break
-            # Otherwise, we pop from the left
+
+            # Otherwise, pop the leftmost entry from parent-state map
             _, closed_parent_state = self._partition_parent_state_map.popitem(last=False)
             last_closed_state = closed_parent_state
 
-        # If we popped at least one partition, update the parent_state to that partition's parent state
+        # Update _parent_state if we actually popped at least one partition
         if last_closed_state is not None:
             self._parent_state = last_closed_state
 
@@ -228,11 +244,13 @@ class ConcurrentPerPartitionCursor(Cursor):
         slices = self._partition_router.stream_slices()
         self._timer.start()
         for partition, last, parent_state in iterate_with_last_flag_and_state(
-                slices, self._partition_router.get_stream_state
+            slices, self._partition_router.get_stream_state
         ):
             yield from self._generate_slices_from_partition(partition, parent_state)
 
-    def _generate_slices_from_partition(self, partition: StreamSlice, parent_state: Mapping[str, Any]) -> Iterable[StreamSlice]:
+    def _generate_slices_from_partition(
+        self, partition: StreamSlice, parent_state: Mapping[str, Any]
+    ) -> Iterable[StreamSlice]:
         # Ensure the maximum number of partitions is not exceeded
         self._ensure_partition_limit()
 
@@ -247,12 +265,17 @@ class ConcurrentPerPartitionCursor(Cursor):
             with self._lock:
                 self._number_of_partitions += 1
                 self._cursor_per_partition[partition_key] = cursor
-            self._semaphore_per_partition[partition_key] = (
-                threading.Semaphore(0)
-            )
+        self._semaphore_per_partition[partition_key] = threading.Semaphore(0)
 
         with self._lock:
-            self._partition_parent_state_map[partition_key] = deepcopy(parent_state)
+            if (
+                len(self._partition_parent_state_map) == 0
+                or self._partition_parent_state_map[
+                    next(reversed(self._partition_parent_state_map))
+                ]
+                != parent_state
+            ):
+                self._partition_parent_state_map[partition_key] = deepcopy(parent_state)
 
         for cursor_slice, is_last_slice, _ in iterate_with_last_flag_and_state(
             cursor.stream_slices(),
@@ -287,7 +310,6 @@ class ConcurrentPerPartitionCursor(Cursor):
             self._use_global_cursor = True
 
         with self._lock:
-            self._number_of_partitions += 1
             while len(self._cursor_per_partition) > self.DEFAULT_MAX_PARTITIONS_NUMBER - 1:
                 # Try removing finished partitions first
                 for partition_key in list(self._cursor_per_partition.keys()):
@@ -371,9 +393,6 @@ class ConcurrentPerPartitionCursor(Cursor):
                 self._number_of_partitions += 1
                 self._cursor_per_partition[self._to_partition_key(state["partition"])] = (
                     self._create_cursor(state["cursor"])
-                )
-                self._semaphore_per_partition[self._to_partition_key(state["partition"])] = (
-                    threading.Semaphore(0)
                 )
 
             # set default state for missing partitions if it is per partition with fallback to global
