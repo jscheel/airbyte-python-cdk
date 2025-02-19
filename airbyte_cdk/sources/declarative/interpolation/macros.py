@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023 Airbyte, Inc., all rights reserved.
+# Copyright (c) 2025 Airbyte, Inc., all rights reserved.
 #
 
 import builtins
@@ -63,10 +63,10 @@ def timestamp(dt: Union[float, str]) -> Union[int, float]:
     if isinstance(dt, (int, float)):
         return int(dt)
     else:
-        return _str_to_datetime(dt).astimezone(pytz.utc).timestamp()
+        return str_to_datetime(dt).astimezone(pytz.utc).timestamp()
 
 
-def _str_to_datetime(s: str) -> datetime.datetime:
+def str_to_datetime(s: str) -> datetime.datetime:
     parsed_date = parser.isoparse(s)
     if not parsed_date.tzinfo:
         # Assume UTC if the input does not contain a timezone
@@ -155,7 +155,7 @@ def format_datetime(
     if isinstance(dt, datetime.datetime):
         return dt.strftime(format)
     dt_datetime = (
-        datetime.datetime.strptime(dt, input_format) if input_format else _str_to_datetime(dt)
+        datetime.datetime.strptime(dt, input_format) if input_format else str_to_datetime(dt)
     )
     if format == "%s":
         return str(int(dt_datetime.timestamp()))
@@ -172,5 +172,6 @@ _macros_list = [
     duration,
     format_datetime,
     today_with_timezone,
+    str_to_datetime,
 ]
 macros = {f.__name__: f for f in _macros_list}
