@@ -46,13 +46,13 @@ from airbyte_cdk.sources.declarative.types import ConnectionDefinition
 from airbyte_cdk.sources.source import TState
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.concurrent.abstract_stream import AbstractStream
+from airbyte_cdk.sources.streams.concurrent.abstract_stream_facade import AbstractStreamFacade
 from airbyte_cdk.sources.streams.concurrent.availability_strategy import (
     AlwaysAvailableAvailabilityStrategy,
 )
 from airbyte_cdk.sources.streams.concurrent.cursor import ConcurrentCursor, FinalStateCursor
 from airbyte_cdk.sources.streams.concurrent.default_stream import DefaultStream
 from airbyte_cdk.sources.streams.concurrent.helpers import get_primary_key_from_stream
-from airbyte_cdk.sources.streams.concurrent.abstract_stream_facade import AbstractStreamFacade
 
 
 class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
@@ -381,7 +381,10 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             # TODO: Remove this. This check is necessary to safely migrate Stripe during the transition state.
             # Condition below needs to ensure that concurrent support is not lost for sources that already support
             # it before migration, but now are only partially migrated to declarative implementation (e.g., Stripe).
-            elif isinstance(declarative_stream, AbstractStreamFacade) and self.is_partially_declarative:
+            elif (
+                isinstance(declarative_stream, AbstractStreamFacade)
+                and self.is_partially_declarative
+            ):
                 concurrent_streams.append(declarative_stream.get_underlying_stream())
             else:
                 synchronous_streams.append(declarative_stream)
