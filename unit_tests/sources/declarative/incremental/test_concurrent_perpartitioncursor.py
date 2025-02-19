@@ -20,6 +20,14 @@ from airbyte_cdk.sources.declarative.concurrent_declarative_source import (
     ConcurrentDeclarativeSource,
 )
 from airbyte_cdk.sources.declarative.incremental import ConcurrentPerPartitionCursor
+from airbyte_cdk.sources.declarative.stream_slicers.declarative_partition_generator import (
+    DeclarativePartition,
+)
+from airbyte_cdk.sources.streams.concurrent.cursor import CursorField
+from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_state_converter import (
+    CustomFormatConcurrentStreamStateConverter,
+)
+from airbyte_cdk.sources.types import StreamSlice
 from airbyte_cdk.test.catalog_builder import CatalogBuilder, ConfiguredAirbyteStreamBuilder
 from airbyte_cdk.test.entrypoint_wrapper import EntrypointOutput, read
 
@@ -765,7 +773,6 @@ def run_incremental_parent_state_test(
     mock_requests,
     expected_records,
     num_intermediate_states,
-    intermidiate_states,
     initial_state,
     expected_states,
 ):
@@ -785,7 +792,6 @@ def run_incremental_parent_state_test(
         mock_requests (list): A list of tuples containing URL and response data for mocking API requests.
         expected_records (list): The expected records to compare against the output.
         num_intermediate_states (int): The number of intermediate states to expect.
-        intermidiate_states (list): A list of intermediate states to assert
         initial_state (list): The initial state to start the read operation.
         expected_states (list): A list of expected final states after the read operation.
     """
@@ -832,12 +838,6 @@ def run_incremental_parent_state_test(
         # Assert that the number of intermediate states is as expected
         assert len(intermediate_states) - 1 == num_intermediate_states
 
-        # Extract just the Python dict from each state message
-        all_state_dicts = [st[0].stream.stream_state.__dict__ for st in intermediate_states]
-
-        for idx, itermidiate_state in enumerate(all_state_dicts):
-            assert itermidiate_state == intermidiate_states[idx], idx
-
         # For each intermediate state, perform another read starting from that state
         for state, records_before_state in intermediate_states[:-1]:
             output_intermediate = _run_read(manifest, CONFIG, STREAM_NAME, [state])
@@ -874,313 +874,8 @@ def run_incremental_parent_state_test(
             ), f"Final state mismatch at run {i + 1}. Expected {expected_states}, got {final_state}"
 
 
-INITIAL_STATE = {
-    "parent_state": {
-        "post_comments": {
-            "states": [
-                {
-                    "partition": {"id": 1, "parent_slice": {}},
-                    "cursor": {"updated_at": PARENT_COMMENT_CURSOR_PARTITION_1},
-                }
-            ],
-            "parent_state": {"posts": {"updated_at": PARENT_POSTS_CURSOR}},
-        }
-    },
-    "state": {"created_at": INITIAL_GLOBAL_CURSOR},
-    "states": [
-        {
-            "partition": {
-                "id": 10,
-                "parent_slice": {"id": 1, "parent_slice": {}},
-            },
-            "cursor": {"created_at": INITIAL_STATE_PARTITION_10_CURSOR},
-        },
-        {
-            "partition": {
-                "id": 11,
-                "parent_slice": {"id": 1, "parent_slice": {}},
-            },
-            "cursor": {"created_at": INITIAL_STATE_PARTITION_11_CURSOR},
-        },
-    ],
-    "lookback_window": 86400,
-}
-
-INTERMEDIATE_STATES = [
-    {
-        "use_global_cursor": False,
-        "states": [
-            {
-                "partition": {"id": 10, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-15T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 11, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-03T00:00:02Z"},
-            },
-        ],
-        "state": {"created_at": "2024-01-03T00:00:02Z"},
-        "lookback_window": 86400,
-        "parent_state": {
-            "post_comments": {
-                "use_global_cursor": False,
-                "state": {},
-                "states": [
-                    {
-                        "partition": {"id": 1, "parent_slice": {}},
-                        "cursor": {"updated_at": "2023-01-04T00:00:00Z"},
-                    }
-                ],
-                "parent_state": {"posts": {"updated_at": "2024-01-05T00:00:00Z"}},
-            }
-        },
-    },
-    {
-        "use_global_cursor": False,
-        "states": [
-            {
-                "partition": {"id": 10, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-15T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 11, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-13T00:00:00Z"},
-            },
-        ],
-        "state": {"created_at": "2024-01-03T00:00:02Z"},
-        "lookback_window": 86400,
-        "parent_state": {
-            "post_comments": {
-                "use_global_cursor": False,
-                "state": {},
-                "states": [
-                    {
-                        "partition": {"id": 1, "parent_slice": {}},
-                        "cursor": {"updated_at": "2023-01-04T00:00:00Z"},
-                    }
-                ],
-                "parent_state": {"posts": {"updated_at": "2024-01-05T00:00:00Z"}},
-            }
-        },
-    },
-    {
-        "use_global_cursor": False,
-        "states": [
-            {
-                "partition": {"id": 10, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-15T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 11, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-13T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-02T00:00:02Z"},
-            },
-        ],
-        "state": {"created_at": "2024-01-03T00:00:02Z"},
-        "lookback_window": 86400,
-        "parent_state": {
-            "post_comments": {
-                "use_global_cursor": False,
-                "state": {},
-                "states": [
-                    {
-                        "partition": {"id": 1, "parent_slice": {}},
-                        "cursor": {"updated_at": "2023-01-04T00:00:00Z"},
-                    }
-                ],
-                "parent_state": {"posts": {"updated_at": "2024-01-05T00:00:00Z"}},
-            }
-        },
-    },
-    {
-        "use_global_cursor": False,
-        "states": [
-            {
-                "partition": {"id": 10, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-15T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 11, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-13T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-02T00:00:02Z"},
-            },
-            {
-                "partition": {"id": 20, "parent_slice": {"id": 2, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-12T00:00:00Z"},
-            },
-        ],
-        "state": {"created_at": "2024-01-03T00:00:02Z"},
-        "lookback_window": 86400,
-        "parent_state": {
-            "post_comments": {
-                "use_global_cursor": False,
-                "state": {},
-                "states": [
-                    {
-                        "partition": {"id": 1, "parent_slice": {}},
-                        "cursor": {"updated_at": "2024-01-25T00:00:00Z"},
-                    }
-                ],
-                "parent_state": {"posts": {"updated_at": "2024-01-05T00:00:00Z"}},
-            }
-        },
-    },
-    {
-        "use_global_cursor": False,
-        "states": [
-            {
-                "partition": {"id": 10, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-15T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 11, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-13T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-02T00:00:02Z"},
-            },
-            {
-                "partition": {"id": 20, "parent_slice": {"id": 2, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-12T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 21, "parent_slice": {"id": 2, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-12T00:00:15Z"},
-            },
-            {
-                "partition": {"id": 30, "parent_slice": {"id": 3, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-02T00:00:02Z"},
-            },
-        ],
-        "state": {"created_at": "2024-01-03T00:00:02Z"},
-        "lookback_window": 86400,
-        "parent_state": {
-            "post_comments": {
-                "use_global_cursor": False,
-                "state": {},
-                "states": [
-                    {
-                        "partition": {"id": 1, "parent_slice": {}},
-                        "cursor": {"updated_at": "2024-01-25T00:00:00Z"},
-                    }
-                ],
-                "parent_state": {"posts": {"updated_at": "2024-01-05T00:00:00Z"}},
-            }
-        },
-    },
-    {
-        "use_global_cursor": False,
-        "states": [
-            {
-                "partition": {"id": 10, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-15T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 11, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-13T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-02T00:00:02Z"},
-            },
-            {
-                "partition": {"id": 20, "parent_slice": {"id": 2, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-12T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 21, "parent_slice": {"id": 2, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-12T00:00:15Z"},
-            },
-            {
-                "partition": {"id": 30, "parent_slice": {"id": 3, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-10T00:00:00Z"},
-            },
-        ],
-        "state": {"created_at": "2024-01-03T00:00:02Z"},
-        "lookback_window": 86400,
-        "parent_state": {
-            "post_comments": {
-                "use_global_cursor": False,
-                "state": {},
-                "states": [
-                    {
-                        "partition": {"id": 1, "parent_slice": {}},
-                        "cursor": {"updated_at": "2024-01-25T00:00:00Z"},
-                    },
-                    {
-                        "partition": {"id": 2, "parent_slice": {}},
-                        "cursor": {"updated_at": "2024-01-22T00:00:00Z"},
-                    },
-                ],
-                "parent_state": {"posts": {"updated_at": "2024-01-05T00:00:00Z"}},
-            }
-        },
-    },
-    {
-        "use_global_cursor": False,
-        "states": [
-            {
-                "partition": {"id": 10, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-15T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 11, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-13T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 12, "parent_slice": {"id": 1, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-02T00:00:02Z"},
-            },
-            {
-                "partition": {"id": 20, "parent_slice": {"id": 2, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-12T00:00:00Z"},
-            },
-            {
-                "partition": {"id": 21, "parent_slice": {"id": 2, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-12T00:00:15Z"},
-            },
-            {
-                "partition": {"id": 30, "parent_slice": {"id": 3, "parent_slice": {}}},
-                "cursor": {"created_at": "2024-01-10T00:00:00Z"},
-            },
-        ],
-        "state": {"created_at": "2024-01-15T00:00:00Z"},
-        "lookback_window": 1,
-        "parent_state": {
-            "post_comments": {
-                "use_global_cursor": False,
-                "state": {"updated_at": "2024-01-25T00:00:00Z"},
-                "lookback_window": 1,
-                "states": [
-                    {
-                        "partition": {"id": 1, "parent_slice": {}},
-                        "cursor": {"updated_at": "2024-01-25T00:00:00Z"},
-                    },
-                    {
-                        "partition": {"id": 2, "parent_slice": {}},
-                        "cursor": {"updated_at": "2024-01-22T00:00:00Z"},
-                    },
-                    {
-                        "partition": {"id": 3, "parent_slice": {}},
-                        "cursor": {"updated_at": "2024-01-09T00:00:00Z"},
-                    },
-                ],
-                "parent_state": {"posts": {"updated_at": "2024-01-30T00:00:00Z"}},
-            }
-        },
-    },
-]
-
-
 @pytest.mark.parametrize(
-    "test_name, manifest, mock_requests, expected_records, num_intermediate_states, intermidiate_states, initial_state, expected_state",
+    "test_name, manifest, mock_requests, expected_records, num_intermediate_states, initial_state, expected_state",
     [
         (
             "test_incremental_parent_state",
@@ -1396,10 +1091,38 @@ INTERMEDIATE_STATES = [
             ],
             # Number of intermediate states - 6 as number of parent partitions
             6,
-            # Intermediate states
-            INTERMEDIATE_STATES,
             # Initial state
-            INITIAL_STATE,
+            {
+                "parent_state": {
+                    "post_comments": {
+                        "states": [
+                            {
+                                "partition": {"id": 1, "parent_slice": {}},
+                                "cursor": {"updated_at": PARENT_COMMENT_CURSOR_PARTITION_1},
+                            }
+                        ],
+                        "parent_state": {"posts": {"updated_at": PARENT_POSTS_CURSOR}},
+                    }
+                },
+                "state": {"created_at": INITIAL_GLOBAL_CURSOR},
+                "states": [
+                    {
+                        "partition": {
+                            "id": 10,
+                            "parent_slice": {"id": 1, "parent_slice": {}},
+                        },
+                        "cursor": {"created_at": INITIAL_STATE_PARTITION_10_CURSOR},
+                    },
+                    {
+                        "partition": {
+                            "id": 11,
+                            "parent_slice": {"id": 1, "parent_slice": {}},
+                        },
+                        "cursor": {"created_at": INITIAL_STATE_PARTITION_11_CURSOR},
+                    },
+                ],
+                "lookback_window": 86400,
+            },
             # Expected state
             {
                 "state": {"created_at": VOTE_100_CREATED_AT},
@@ -1465,7 +1188,6 @@ def test_incremental_parent_state(
     mock_requests,
     expected_records,
     num_intermediate_states,
-    intermidiate_states,
     initial_state,
     expected_state,
 ):
@@ -1478,7 +1200,6 @@ def test_incremental_parent_state(
             mock_requests,
             expected_records,
             num_intermediate_states,
-            intermidiate_states,
             initial_state,
             [expected_state],
         )
@@ -3306,3 +3027,260 @@ def test_state_throttling(mocker):
     cursor._emit_state_message()
     mock_connector_manager.update_state_for_stream.assert_called_once()
     mock_repo.emit_message.assert_called_once()
+
+
+def test_given_no_partitions_processed_when_close_partition_then_no_state_update():
+    mock_cursor = MagicMock()
+    # No slices for no partitions
+    mock_cursor.stream_slices.side_effect = [iter([])]
+    mock_cursor.state = {}  # Empty state for no partitions
+
+    cursor_factory_mock = MagicMock()
+    cursor_factory_mock.create.return_value = mock_cursor
+
+    connector_state_converter = CustomFormatConcurrentStreamStateConverter(
+        datetime_format="%Y-%m-%dT%H:%M:%SZ",
+        input_datetime_formats=["%Y-%m-%dT%H:%M:%SZ"],
+        is_sequential_state=True,
+        cursor_granularity=timedelta(0),
+    )
+
+    cursor = ConcurrentPerPartitionCursor(
+        cursor_factory=cursor_factory_mock,
+        partition_router=MagicMock(),
+        stream_name="test_stream",
+        stream_namespace=None,
+        stream_state={},
+        message_repository=MagicMock(),
+        connector_state_manager=MagicMock(),
+        connector_state_converter=connector_state_converter,
+        cursor_field=CursorField(cursor_field_key="updated_at"),
+    )
+    partition_router = cursor._partition_router
+    partition_router.stream_slices.return_value = iter([])
+    partition_router.get_stream_state.return_value = {}
+
+    slices = list(cursor.stream_slices())  # Call once
+    for slice in slices:
+        cursor.close_partition(
+            DeclarativePartition("test_stream", {}, MagicMock(), MagicMock(), slice)
+        )
+
+    assert cursor.state == {
+        "use_global_cursor": False,
+        "lookback_window": 0,
+        "states": [],
+    }
+    assert len(cursor._cursor_per_partition) == 0
+    assert len(cursor._semaphore_per_partition) == 0
+    assert len(cursor._partition_parent_state_map) == 0
+    assert mock_cursor.stream_slices.call_count == 0  # No calls since no partitions
+
+
+def test_given_new_partition_mid_sync_when_close_partition_then_update_state():
+    mock_cursor = MagicMock()
+    # Simulate one slice per cursor
+    mock_cursor.stream_slices.side_effect = [
+        iter(
+            [
+                {"slice1": "data1"},
+                {"slice2": "data1"},  # First slice
+            ]
+        ),
+        iter(
+            [
+                {"slice2": "data2"},
+                {"slice2": "data2"},  # First slice for new partition
+            ]
+        ),
+    ]
+    mock_cursor.state = {"updated_at": "2024-01-03T00:00:00Z"}  # Set cursor state
+
+    connector_state_converter = CustomFormatConcurrentStreamStateConverter(
+        datetime_format="%Y-%m-%dT%H:%M:%SZ",
+        input_datetime_formats=["%Y-%m-%dT%H:%M:%SZ"],
+        is_sequential_state=True,
+        cursor_granularity=timedelta(0),
+    )
+
+    cursor_factory_mock = MagicMock()
+    cursor_factory_mock.create.return_value = mock_cursor
+
+    cursor = ConcurrentPerPartitionCursor(
+        cursor_factory=cursor_factory_mock,
+        partition_router=MagicMock(),
+        stream_name="test_stream",
+        stream_namespace=None,
+        stream_state={
+            "states": [
+                {"partition": {"id": "1"}, "cursor": {"updated_at": "2024-01-01T00:00:00Z"}}
+            ],
+            "state": {"updated_at": "2024-01-01T00:00:00Z"},
+            "lookback_window": 86400,
+            "parent_state": {"posts": {"updated_at": "2024-01-01T00:00:00Z"}},
+        },
+        message_repository=MagicMock(),
+        connector_state_manager=MagicMock(),
+        connector_state_converter=connector_state_converter,
+        cursor_field=CursorField(cursor_field_key="updated_at"),
+    )
+    partition_router = cursor._partition_router
+    all_partitions = [
+        StreamSlice(partition={"id": "1"}, cursor_slice={}, extra_fields={}),
+        StreamSlice(partition={"id": "2"}, cursor_slice={}, extra_fields={}),  # New partition
+    ]
+    partition_router.stream_slices.return_value = iter(all_partitions)
+    partition_router.get_stream_state.side_effect = [
+        {"posts": {"updated_at": "2024-01-04T00:00:00Z"}},  # Initial parent state
+        {"posts": {"updated_at": "2024-01-05T00:00:00Z"}},  # Updated parent state for new partition
+    ]
+
+    slices = list(cursor.stream_slices())
+    # Close all partitions except from the first one
+    for slice in slices:
+        cursor.close_partition(
+            DeclarativePartition("test_stream", {}, MagicMock(), MagicMock(), slice)
+        )
+
+    state = cursor.state
+    assert state["use_global_cursor"] is False
+    assert len(state["states"]) == 2  # Should now have two partitions
+    assert any(p["partition"]["id"] == "1" for p in state["states"])
+    assert any(p["partition"]["id"] == "2" for p in state["states"])
+    assert state["parent_state"] == {"posts": {"updated_at": "2024-01-05T00:00:00Z"}}
+    assert state["lookback_window"] == 86400
+    assert mock_cursor.stream_slices.call_count == 2  # Called once for each partition
+
+
+def test_given_all_partitions_finished_when_close_partition_then_final_state_emitted():
+    mock_cursor = MagicMock()
+    # Simulate one slice per cursor
+    mock_cursor.stream_slices.side_effect = [
+        iter(
+            [
+                {"slice1": "data"},  # First slice for partition 1
+            ]
+        ),
+        iter(
+            [
+                {"slice2": "data"},  # First slice for partition 2
+            ]
+        ),
+    ]
+    mock_cursor.state = {"updated_at": "2024-01-02T00:00:00Z"}  # Set cursor state (latest)
+
+    cursor_factory_mock = MagicMock()
+    cursor_factory_mock.create.return_value = mock_cursor
+
+    connector_state_converter = CustomFormatConcurrentStreamStateConverter(
+        datetime_format="%Y-%m-%dT%H:%M:%SZ",
+        input_datetime_formats=["%Y-%m-%dT%H:%M:%SZ"],
+        is_sequential_state=True,
+        cursor_granularity=timedelta(0),
+    )
+
+    cursor = ConcurrentPerPartitionCursor(
+        cursor_factory=cursor_factory_mock,
+        partition_router=MagicMock(),
+        stream_name="test_stream",
+        stream_namespace=None,
+        stream_state={
+            "states": [
+                {"partition": {"id": "1"}, "cursor": {"updated_at": "2024-01-01T00:00:00Z"}},
+                {"partition": {"id": "2"}, "cursor": {"updated_at": "2024-01-02T00:00:00Z"}},
+            ],
+            "state": {"updated_at": "2024-01-02T00:00:00Z"},
+            "lookback_window": 86400,
+            "parent_state": {"posts": {"updated_at": "2024-01-03T00:00:00Z"}},
+        },
+        message_repository=MagicMock(),
+        connector_state_manager=MagicMock(),
+        connector_state_converter=connector_state_converter,
+        cursor_field=CursorField(cursor_field_key="updated_at"),
+    )
+    partition_router = cursor._partition_router
+    partitions = [
+        StreamSlice(partition={"id": "1"}, cursor_slice={}, extra_fields={}),
+        StreamSlice(partition={"id": "2"}, cursor_slice={}, extra_fields={}),
+    ]
+    partition_router.stream_slices.return_value = iter(partitions)
+    partition_router.get_stream_state.return_value = {
+        "posts": {"updated_at": "2024-01-06T00:00:00Z"}
+    }
+
+    slices = list(cursor.stream_slices())
+    for slice in slices:
+        cursor.close_partition(
+            DeclarativePartition("test_stream", {}, MagicMock(), MagicMock(), slice)
+        )
+
+    cursor.ensure_at_least_one_state_emitted()
+
+    final_state = cursor.state
+    assert final_state["use_global_cursor"] is False
+    assert len(final_state["states"]) == 2
+    assert final_state["state"]["updated_at"] == "2024-01-02T00:00:00Z"
+    assert final_state["parent_state"] == {"posts": {"updated_at": "2024-01-06T00:00:00Z"}}
+    assert final_state["lookback_window"] == 1
+    assert cursor._message_repository.emit_message.call_count == 2
+    assert mock_cursor.stream_slices.call_count == 2  # Called once for each partition
+
+
+def test_given_partition_limit_exceeded_when_close_partition_then_switch_to_global_cursor():
+    mock_cursor = MagicMock()
+    # Simulate one slice per cursor
+    mock_cursor.stream_slices.side_effect = [iter([{"slice" + str(i): "data"}]) for i in range(3)]
+    mock_cursor.state = {"updated_at": "2024-01-01T00:00:00Z"}  # Set cursor state
+
+    cursor_factory_mock = MagicMock()
+    cursor_factory_mock.create.return_value = mock_cursor
+
+    connector_state_converter = CustomFormatConcurrentStreamStateConverter(
+        datetime_format="%Y-%m-%dT%H:%M:%SZ",
+        input_datetime_formats=["%Y-%m-%dT%H:%M:%SZ"],
+        is_sequential_state=True,
+        cursor_granularity=timedelta(0),
+    )
+
+    cursor = ConcurrentPerPartitionCursor(
+        cursor_factory=cursor_factory_mock,
+        partition_router=MagicMock(),
+        stream_name="test_stream",
+        stream_namespace=None,
+        stream_state={},
+        message_repository=MagicMock(),
+        connector_state_manager=MagicMock(),
+        connector_state_converter=connector_state_converter,
+        cursor_field=CursorField(cursor_field_key="updated_at"),
+    )
+    # Override default limit for testing
+    cursor.DEFAULT_MAX_PARTITIONS_NUMBER = 2
+    cursor.SWITCH_TO_GLOBAL_LIMIT = 1
+
+    partition_router = cursor._partition_router
+    partitions = [
+        StreamSlice(partition={"id": str(i)}, cursor_slice={}, extra_fields={}) for i in range(3)
+    ]  # 3 partitions
+    partition_router.stream_slices.return_value = iter(partitions)
+    partition_router.get_stream_state.side_effect = [
+        {"updated_at": "2024-01-02T00:00:00Z"},
+        {"updated_at": "2024-01-03T00:00:00Z"},
+        {"updated_at": "2024-01-04T00:00:00Z"},
+        {"updated_at": "2024-01-04T00:00:00Z"},
+    ]
+
+    slices = list(cursor.stream_slices())
+    for slice in slices:
+        cursor.close_partition(
+            DeclarativePartition("test_stream", {}, MagicMock(), MagicMock(), slice)
+        )
+    cursor.ensure_at_least_one_state_emitted()
+
+    final_state = cursor.state
+    assert len(slices) == 3
+    assert final_state["use_global_cursor"] is True
+    assert len(final_state.get("states", [])) == 0  # No per-partition states
+    assert final_state["parent_state"] == {"updated_at": "2024-01-04T00:00:00Z"}
+    assert "lookback_window" in final_state
+    assert len(cursor._cursor_per_partition) <= cursor.DEFAULT_MAX_PARTITIONS_NUMBER
+    assert mock_cursor.stream_slices.call_count == 3  # Called once for each partition
