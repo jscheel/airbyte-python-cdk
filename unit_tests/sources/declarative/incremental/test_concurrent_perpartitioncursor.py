@@ -3,6 +3,7 @@ import copy
 from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, MutableMapping, Optional, Union
+from unittest.mock import MagicMock, patch
 from urllib.parse import unquote
 
 import pytest
@@ -18,6 +19,7 @@ from airbyte_cdk.models import (
 from airbyte_cdk.sources.declarative.concurrent_declarative_source import (
     ConcurrentDeclarativeSource,
 )
+from airbyte_cdk.sources.declarative.incremental import ConcurrentPerPartitionCursor
 from airbyte_cdk.test.catalog_builder import CatalogBuilder, ConfiguredAirbyteStreamBuilder
 from airbyte_cdk.test.entrypoint_wrapper import EntrypointOutput, read
 
@@ -143,7 +145,7 @@ SUBSTREAM_MANIFEST: MutableMapping[str, Any] = {
                     "type": "RecordSelector",
                     "extractor": {"type": "DpathExtractor", "field_path": ["comments"]},
                     "record_filter": {
-                        "condition": "{{ record['updated_at'] >= stream_state.get('updated_at', config.get('start_date')) }}"
+                        "condition": "{{ record['updated_at'] >= stream_interval.extra_fields.get('updated_at', config.get('start_date')) }}"
                     },
                 },
                 "paginator": "#/definitions/retriever/paginator",
@@ -1181,14 +1183,18 @@ def test_incremental_parent_state(
     initial_state,
     expected_state,
 ):
-    run_incremental_parent_state_test(
-        manifest,
-        mock_requests,
-        expected_records,
-        num_intermediate_states,
-        initial_state,
-        [expected_state],
-    )
+    # Patch `_throttle_state_message` so it always returns a float (indicating "no throttle")
+    with patch.object(
+        ConcurrentPerPartitionCursor, "_throttle_state_message", return_value=9999999.0
+    ):
+        run_incremental_parent_state_test(
+            manifest,
+            mock_requests,
+            expected_records,
+            num_intermediate_states,
+            initial_state,
+            [expected_state],
+        )
 
 
 STATE_MIGRATION_EXPECTED_STATE = {
@@ -1450,8 +1456,19 @@ STATE_MIGRATION_GLOBAL_EXPECTED_STATE["use_global_cursor"] = True
             },
             STATE_MIGRATION_GLOBAL_EXPECTED_STATE,
         ),
+        (
+            {
+                "state": {"created_at": PARTITION_SYNC_START_TIME},
+            },
+            STATE_MIGRATION_EXPECTED_STATE,
+        ),
     ],
-    ids=["legacy_python_format", "low_code_per_partition_state", "low_code_global_format"],
+    ids=[
+        "legacy_python_format",
+        "low_code_per_partition_state",
+        "low_code_global_format",
+        "global_state_no_parent",
+    ],
 )
 def test_incremental_parent_state_migration(
     test_name, manifest, mock_requests, expected_records, initial_state, expected_state
@@ -2532,7 +2549,7 @@ SUBSTREAM_REQUEST_OPTIONS_MANIFEST: MutableMapping[str, Any] = {
                     "type": "RecordSelector",
                     "extractor": {"type": "DpathExtractor", "field_path": ["comments"]},
                     "record_filter": {
-                        "condition": "{{ record['updated_at'] >= stream_state.get('updated_at', config.get('start_date')) }}"
+                        "condition": "{{ record['updated_at'] >= stream_interval['extra_fields'].get('updated_at', config.get('start_date')) }}"
                     },
                 },
                 "paginator": "#/definitions/retriever/paginator",
@@ -2956,3 +2973,47 @@ def test_incremental_substream_request_options_provider(
         expected_records,
         expected_state,
     )
+
+
+def test_state_throttling(mocker):
+    """
+    Verifies that _emit_state_message does not emit a new state if less than 60s
+    have passed since last emission, and does emit once 60s or more have passed.
+    """
+    cursor = ConcurrentPerPartitionCursor(
+        cursor_factory=MagicMock(),
+        partition_router=MagicMock(),
+        stream_name="test_stream",
+        stream_namespace=None,
+        stream_state={},
+        message_repository=MagicMock(),
+        connector_state_manager=MagicMock(),
+        connector_state_converter=MagicMock(),
+        cursor_field=MagicMock(),
+    )
+
+    mock_connector_manager = cursor._connector_state_manager
+    mock_repo = cursor._message_repository
+
+    # Set the last emission time to "0" so we can control offset from that
+    cursor._last_emission_time = 0
+
+    mock_time = mocker.patch("time.time")
+
+    # First attempt: only 10 seconds passed => NO emission
+    mock_time.return_value = 10
+    cursor._emit_state_message()
+    mock_connector_manager.update_state_for_stream.assert_not_called()
+    mock_repo.emit_message.assert_not_called()
+
+    # Second attempt: 30 seconds passed => still NO emission
+    mock_time.return_value = 30
+    cursor._emit_state_message()
+    mock_connector_manager.update_state_for_stream.assert_not_called()
+    mock_repo.emit_message.assert_not_called()
+
+    # Advance time: 70 seconds => exceed 60s => MUST emit
+    mock_time.return_value = 70
+    cursor._emit_state_message()
+    mock_connector_manager.update_state_for_stream.assert_called_once()
+    mock_repo.emit_message.assert_called_once()
