@@ -202,10 +202,6 @@ class HttpRequester(Requester):
 
         is_body_json = requester_method.__name__ == "get_request_body_json"
 
-        self.logger.info(f"Requester method: {requester_method}")
-        self.logger.info(f"Auth options method: {auth_options_method}")
-        self.logger.info(f"Extra options: {extra_options}")
-
         return combine_mappings(
             [
                 requester_method(

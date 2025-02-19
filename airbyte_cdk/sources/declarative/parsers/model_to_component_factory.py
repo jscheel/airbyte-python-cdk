@@ -607,6 +607,7 @@ class ModelToComponentFactory:
             StreamConfigModel: self.create_stream_config,
             ComponentMappingDefinitionModel: self.create_components_mapping_definition,
             ZipfileDecoderModel: self.create_zipfile_decoder,
+            CsvParserModel: self.create_csv_parser,
         }
 
         # Needed for the case where we need to perform a second parse on the fields of a custom component
@@ -649,6 +650,7 @@ class ModelToComponentFactory:
 
     def _create_component_from_model(self, model: BaseModel, config: Config, **kwargs: Any) -> Any:
         if model.__class__ not in self.PYDANTIC_MODEL_TO_CONSTRUCTOR:
+            print(f"Could not find constructor for {model.__class__}")
             raise ValueError(
                 f"{model.__class__} with attributes {model} is not a valid component type"
             )
