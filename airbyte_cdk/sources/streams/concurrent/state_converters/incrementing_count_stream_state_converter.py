@@ -20,7 +20,7 @@ class IncrementingCountStreamStateConverter(AbstractStreamStateConverter):
 
     @classmethod
     def get_end_provider(cls) -> Callable[[], float]:
-        return lambda: float("inf")  # i sort of hate that this is a float, shakes fist at python
+        return lambda: float("inf")
 
     def convert_from_sequential_state(
         self,
@@ -61,7 +61,7 @@ class IncrementingCountStreamStateConverter(AbstractStreamStateConverter):
             "legacy": stream_state,
         }
 
-    def parse_value(self, value: int) -> int:  # should we use a string which is "higher fidelity
+    def parse_value(self, value: int) -> int:
         return value
 
     @property
