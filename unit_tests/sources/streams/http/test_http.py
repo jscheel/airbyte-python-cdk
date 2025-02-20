@@ -344,9 +344,20 @@ def test_dns_resolution_error_retry():
     """Test that DNS resolution errors are retried"""
     stream = StubHttpStreamWithErrorHandler()
     error_handler = stream.get_error_handler()
-    resolution = error_handler.interpret_response(InvalidURL())
+    request = requests.PreparedRequest()
+    request.url = "https://example.com"
+    dns_error = DNSResolutionError(url="https://example.com", request=request, response=Exception("DNS lookup failed"))
+    resolution = error_handler.interpret_response(dns_error)
     assert resolution.response_action == ResponseAction.RETRY
     assert resolution.failure_type == FailureType.transient_error
+
+def test_invalid_url_fails():
+    """Test that invalid URLs fail immediately"""
+    stream = StubHttpStreamWithErrorHandler()
+    error_handler = stream.get_error_handler()
+    resolution = error_handler.interpret_response(InvalidURL())
+    assert resolution.response_action == ResponseAction.FAIL
+    assert resolution.failure_type == FailureType.config_error
 
 
 class PostHttpStream(StubBasicReadHttpStream):
