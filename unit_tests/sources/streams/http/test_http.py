@@ -41,9 +41,6 @@ class StubBasicReadHttpStream(HttpStream):
         self.resp_counter = 1
         self._deduplicate_query_params = deduplicate_query_params
 
-    def get_error_handler(self) -> Optional[ErrorHandler]:
-        return HttpStatusErrorHandler(logging.getLogger())
-
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         return None
 
@@ -335,9 +332,13 @@ def test_raise_on_http_errors(mocker, error):
     assert send_mock.call_count == stream.max_retries + 1
 
 
+class StubHttpStreamWithErrorHandler(StubBasicReadHttpStream):
+    def get_error_handler(self) -> Optional[ErrorHandler]:
+        return HttpStatusErrorHandler(logging.getLogger())
+
 def test_dns_resolution_error_retry():
     """Test that DNS resolution errors are retried"""
-    stream = StubBasicReadHttpStream()
+    stream = StubHttpStreamWithErrorHandler()
     error_handler = stream.get_error_handler()
     resolution = error_handler.interpret_response(InvalidURL())
     assert resolution.response_action == ResponseAction.RETRY
