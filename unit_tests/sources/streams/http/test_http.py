@@ -27,6 +27,7 @@ from airbyte_cdk.sources.streams.http.error_handlers.response_models import (
 )
 from airbyte_cdk.sources.streams.http.exceptions import (
     DefaultBackoffException,
+    DNSResolutionError,
     RequestBodyException,
     UserDefinedBackoffException,
 )
