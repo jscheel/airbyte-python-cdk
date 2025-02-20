@@ -334,11 +334,11 @@ def test_raise_on_http_errors(mocker, error):
 def test_dns_resolution_error_retry():
     """Test that DNS resolution errors are retried"""
     stream = StubBasicReadHttpStream()
-    error_handler = stream.get_error_handler()
-    resolution = error_handler.interpret_response(requests.exceptions.InvalidURL())
-
-    assert resolution.response_action == ResponseAction.RETRY
-    assert resolution.failure_type == FailureType.transient_error
+    with pytest.raises(InvalidURL) as exc:
+        # Test that InvalidURL is treated as transient error
+        stream._send_request(requests.PreparedRequest(), {})
+    assert exc.value.response_action == ResponseAction.RETRY
+    assert exc.value.failure_type == FailureType.transient_error
 
 
 class PostHttpStream(StubBasicReadHttpStream):
