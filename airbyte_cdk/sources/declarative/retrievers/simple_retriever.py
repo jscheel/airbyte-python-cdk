@@ -128,9 +128,11 @@ class SimpleRetriever(Retriever):
         Returned merged mapping otherwise
         """
         # FIXME we should eventually remove the usage of stream_state as part of the interpolation
+
+        is_body_json = paginator_method.__name__ == "get_request_body_json"
+
         mappings = [
             paginator_method(
-                stream_state=stream_state,
                 stream_slice=stream_slice,
                 next_page_token=next_page_token,
             ),
@@ -138,12 +140,11 @@ class SimpleRetriever(Retriever):
         if not next_page_token or not self.ignore_stream_slicer_parameters_on_paginated_requests:
             mappings.append(
                 stream_slicer_method(
-                    stream_state=stream_state,
                     stream_slice=stream_slice,
                     next_page_token=next_page_token,
                 )
             )
-        return combine_mappings(mappings)
+        return combine_mappings(mappings, allow_same_value_merge=is_body_json)
 
     def _request_headers(
         self,

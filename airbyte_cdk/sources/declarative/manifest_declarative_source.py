@@ -137,6 +137,10 @@ class ManifestDeclarativeSource(DeclarativeSource):
             self._source_config, config
         )
 
+        api_budget_model = self._source_config.get("api_budget")
+        if api_budget_model:
+            self._constructor.set_api_budget(api_budget_model, config)
+
         source_streams = [
             self._constructor.create_component(
                 DeclarativeStreamModel,
@@ -364,6 +368,11 @@ class ManifestDeclarativeSource(DeclarativeSource):
 
                 # Ensure that each stream is created with a unique name
                 name = dynamic_stream.get("name")
+
+                if not isinstance(name, str):
+                    raise ValueError(
+                        f"Expected stream name {name} to be a string, got {type(name)}."
+                    )
 
                 if name in seen_dynamic_streams:
                     error_message = f"Dynamic streams list contains a duplicate name: {name}. Please contact Airbyte Support."

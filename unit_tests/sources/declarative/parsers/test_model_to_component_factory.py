@@ -142,6 +142,7 @@ from airbyte_cdk.sources.declarative.spec import Spec
 from airbyte_cdk.sources.declarative.transformations import AddFields, RemoveFields
 from airbyte_cdk.sources.declarative.transformations.add_fields import AddedFieldDefinition
 from airbyte_cdk.sources.declarative.yaml_declarative_source import YamlDeclarativeSource
+from airbyte_cdk.sources.streams.call_rate import MovingWindowCallRatePolicy
 from airbyte_cdk.sources.streams.concurrent.clamping import (
     ClampingEndProvider,
     DayClampingStrategy,
@@ -609,8 +610,8 @@ def test_list_based_stream_slicer_with_values_defined_in_config():
       cursor_field: repository
       request_option:
         type: RequestOption
-        inject_into: header
-        field_name: repository
+        inject_into: body_json
+        field_path: ["repository", "id"]
     """
     parsed_manifest = YamlDeclarativeSource._parse(content)
     resolved_manifest = resolver.preprocess_manifest(parsed_manifest)
@@ -626,8 +627,10 @@ def test_list_based_stream_slicer_with_values_defined_in_config():
 
     assert isinstance(partition_router, ListPartitionRouter)
     assert partition_router.values == ["airbyte", "airbyte-cloud"]
-    assert partition_router.request_option.inject_into == RequestOptionType.header
-    assert partition_router.request_option.field_name.eval(config=input_config) == "repository"
+    assert partition_router.request_option.inject_into == RequestOptionType.body_json
+    for field in partition_router.request_option.field_path:
+        assert isinstance(field, InterpolatedString)
+    assert len(partition_router.request_option.field_path) == 2
 
 
 def test_create_substream_partition_router():
@@ -730,7 +733,7 @@ def test_datetime_based_cursor():
         end_time_option:
           type: RequestOption
           inject_into: body_json
-          field_name: "before_{{ parameters['cursor_field'] }}"
+          field_path: ["before_{{ parameters['cursor_field'] }}"]
         partition_field_start: star
         partition_field_end: en
     """
@@ -759,7 +762,9 @@ def test_datetime_based_cursor():
         == "since_updated_at"
     )
     assert stream_slicer.end_time_option.inject_into == RequestOptionType.body_json
-    assert stream_slicer.end_time_option.field_name.eval({}) == "before_created_at"
+    assert [field.eval({}) for field in stream_slicer.end_time_option.field_path] == [
+        "before_created_at"
+    ]
     assert stream_slicer._partition_field_start.eval({}) == "star"
     assert stream_slicer._partition_field_end.eval({}) == "en"
 
@@ -920,8 +925,8 @@ metadata_paginator:
     type: DefaultPaginator
     page_size_option:
       type: RequestOption
-      inject_into: request_parameter
-      field_name: page_size
+      inject_into: body_json
+      field_path: ["variables", "page_size"]
     page_token_option:
       type: RequestPath
     pagination_strategy:
@@ -1019,11 +1024,10 @@ spec:
 
     assert isinstance(stream.retriever.paginator, DefaultPaginator)
     assert isinstance(stream.retriever.paginator.decoder, PaginationDecoderDecorator)
-    assert stream.retriever.paginator.page_size_option.field_name.eval(input_config) == "page_size"
-    assert (
-        stream.retriever.paginator.page_size_option.inject_into
-        == RequestOptionType.request_parameter
-    )
+    for string in stream.retriever.paginator.page_size_option.field_path:
+        assert isinstance(string, InterpolatedString)
+    assert len(stream.retriever.paginator.page_size_option.field_path) == 2
+    assert stream.retriever.paginator.page_size_option.inject_into == RequestOptionType.body_json
     assert isinstance(stream.retriever.paginator.page_token_option, RequestPath)
     assert stream.retriever.paginator.url_base.string == "https://api.sendgrid.com/v3/"
     assert stream.retriever.paginator.url_base.default == "https://api.sendgrid.com/v3/"
@@ -1190,6 +1194,8 @@ list_stream:
         stream.retriever.record_selector.record_filter, ClientSideIncrementalRecordFilterDecorator
     )
 
+    assert stream.retriever.record_selector.transform_before_filtering == True
+
 
 def test_client_side_incremental_with_partition_router():
     content = """
@@ -1270,6 +1276,7 @@ list_stream:
     assert isinstance(
         stream.retriever.record_selector.record_filter, ClientSideIncrementalRecordFilterDecorator
     )
+    assert stream.retriever.record_selector.transform_before_filtering == True
     assert isinstance(
         stream.retriever.record_selector.record_filter._cursor,
         PerPartitionWithGlobalCursor,
@@ -2525,7 +2532,6 @@ def test_merge_incremental_and_partition_router(incremental, partition_router, e
 
     assert isinstance(stream, DeclarativeStream)
     assert isinstance(stream.retriever, SimpleRetriever)
-    print(stream.retriever.stream_slicer)
     assert isinstance(stream.retriever.stream_slicer, expected_type)
 
     if incremental and partition_router:
@@ -3279,6 +3285,126 @@ def test_create_concurrent_cursor_from_datetime_based_cursor(
         assert getattr(concurrent_cursor, assertion_field) == expected_value
 
 
+def test_create_concurrent_cursor_from_datetime_based_cursor_runs_state_migrations():
+    class DummyStateMigration:
+        def should_migrate(self, stream_state: Mapping[str, Any]) -> bool:
+            return True
+
+        def migrate(self, stream_state: Mapping[str, Any]) -> Mapping[str, Any]:
+            updated_at = stream_state["updated_at"]
+            return {
+                "states": [
+                    {
+                        "partition": {"type": "type_1"},
+                        "cursor": {"updated_at": updated_at},
+                    },
+                    {
+                        "partition": {"type": "type_2"},
+                        "cursor": {"updated_at": updated_at},
+                    },
+                ]
+            }
+
+    stream_name = "test"
+    config = {
+        "start_time": "2024-08-01T00:00:00.000000Z",
+        "end_time": "2024-09-01T00:00:00.000000Z",
+    }
+    stream_state = {"updated_at": "2025-01-01T00:00:00.000000Z"}
+    connector_builder_factory = ModelToComponentFactory(emit_connector_builder_messages=True)
+    connector_state_manager = ConnectorStateManager()
+    cursor_component_definition = {
+        "type": "DatetimeBasedCursor",
+        "cursor_field": "updated_at",
+        "datetime_format": "%Y-%m-%dT%H:%M:%S.%fZ",
+        "start_datetime": "{{ config['start_time'] }}",
+        "end_datetime": "{{ config['end_time'] }}",
+        "partition_field_start": "custom_start",
+        "partition_field_end": "custom_end",
+        "step": "P10D",
+        "cursor_granularity": "PT0.000001S",
+        "lookback_window": "P3D",
+    }
+    concurrent_cursor = (
+        connector_builder_factory.create_concurrent_cursor_from_datetime_based_cursor(
+            state_manager=connector_state_manager,
+            model_type=DatetimeBasedCursorModel,
+            component_definition=cursor_component_definition,
+            stream_name=stream_name,
+            stream_namespace=None,
+            config=config,
+            stream_state=stream_state,
+            stream_state_migrations=[DummyStateMigration()],
+        )
+    )
+    assert concurrent_cursor.state["states"] == [
+        {"cursor": {"updated_at": stream_state["updated_at"]}, "partition": {"type": "type_1"}},
+        {"cursor": {"updated_at": stream_state["updated_at"]}, "partition": {"type": "type_2"}},
+    ]
+
+
+def test_create_concurrent_cursor_from_perpartition_cursor_runs_state_migrations():
+    class DummyStateMigration:
+        def should_migrate(self, stream_state: Mapping[str, Any]) -> bool:
+            return True
+
+        def migrate(self, stream_state: Mapping[str, Any]) -> Mapping[str, Any]:
+            stream_state["lookback_window"] = 10 * 2
+            return stream_state
+
+    state = {
+        "states": [
+            {
+                "partition": {"type": "typ_1"},
+                "cursor": {"updated_at": "2024-08-01T00:00:00.000000Z"},
+            }
+        ],
+        "state": {"updated_at": "2024-08-01T00:00:00.000000Z"},
+        "lookback_window": 10,
+        "parent_state": {"parent_test": {"last_updated": "2024-08-01T00:00:00.000000Z"}},
+    }
+    config = {
+        "start_time": "2024-08-01T00:00:00.000000Z",
+        "end_time": "2024-09-01T00:00:00.000000Z",
+    }
+    list_partition_router = ListPartitionRouter(
+        cursor_field="id",
+        values=["type_1", "type_2", "type_3"],
+        config=config,
+        parameters={},
+    )
+    connector_state_manager = ConnectorStateManager()
+    stream_name = "test"
+    cursor_component_definition = {
+        "type": "DatetimeBasedCursor",
+        "cursor_field": "updated_at",
+        "datetime_format": "%Y-%m-%dT%H:%M:%S.%fZ",
+        "start_datetime": "{{ config['start_time'] }}",
+        "end_datetime": "{{ config['end_time'] }}",
+        "partition_field_start": "custom_start",
+        "partition_field_end": "custom_end",
+        "step": "P10D",
+        "cursor_granularity": "PT0.000001S",
+        "lookback_window": "P3D",
+    }
+    connector_builder_factory = ModelToComponentFactory(emit_connector_builder_messages=True)
+    cursor = connector_builder_factory.create_concurrent_cursor_from_perpartition_cursor(
+        state_manager=connector_state_manager,
+        model_type=DatetimeBasedCursorModel,
+        component_definition=cursor_component_definition,
+        stream_name=stream_name,
+        stream_namespace=None,
+        config=config,
+        stream_state=state,
+        partition_router=list_partition_router,
+        stream_state_migrations=[DummyStateMigration()],
+    )
+    assert cursor.state["lookback_window"] != 10, "State migration wasn't called"
+    assert (
+        cursor.state["lookback_window"] == 20
+    ), "State migration was called, but actual state don't match expected"
+
+
 def test_create_concurrent_cursor_uses_min_max_datetime_format_if_defined():
     """
     Validates a special case for when the start_time.datetime_format and end_time.datetime_format are defined, the date to
@@ -3562,3 +3688,155 @@ def test_create_async_retriever():
     assert isinstance(selector, RecordSelector)
     assert isinstance(extractor, DpathExtractor)
     assert extractor.field_path == ["data"]
+
+
+def test_api_budget():
+    manifest = {
+        "type": "DeclarativeSource",
+        "api_budget": {
+            "type": "HTTPAPIBudget",
+            "ratelimit_reset_header": "X-RateLimit-Reset",
+            "ratelimit_remaining_header": "X-RateLimit-Remaining",
+            "status_codes_for_ratelimit_hit": [429, 503],
+            "policies": [
+                {
+                    "type": "MovingWindowCallRatePolicy",
+                    "rates": [
+                        {
+                            "type": "Rate",
+                            "limit": 3,
+                            "interval": "PT0.1S",  # 0.1 seconds
+                        }
+                    ],
+                    "matchers": [
+                        {
+                            "type": "HttpRequestRegexMatcher",
+                            "method": "GET",
+                            "url_base": "https://api.sendgrid.com",
+                            "url_path_pattern": "/v3/marketing/lists",
+                        }
+                    ],
+                }
+            ],
+        },
+        "my_requester": {
+            "type": "HttpRequester",
+            "path": "/v3/marketing/lists",
+            "url_base": "https://api.sendgrid.com",
+            "http_method": "GET",
+            "authenticator": {
+                "type": "BasicHttpAuthenticator",
+                "username": "admin",
+                "password": "{{ config['password'] }}",
+            },
+        },
+    }
+
+    config = {
+        "password": "verysecrettoken",
+    }
+
+    factory = ModelToComponentFactory()
+    if "api_budget" in manifest:
+        factory.set_api_budget(manifest["api_budget"], config)
+
+    from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+        HttpRequester as HttpRequesterModel,
+    )
+
+    requester_definition = manifest["my_requester"]
+    assert requester_definition["type"] == "HttpRequester"
+
+    http_requester = factory.create_component(
+        model_type=HttpRequesterModel,
+        component_definition=requester_definition,
+        config=config,
+        name="lists_stream",
+        decoder=None,
+    )
+
+    assert http_requester.api_budget is not None
+    assert http_requester.api_budget._ratelimit_reset_header == "X-RateLimit-Reset"
+    assert http_requester.api_budget._status_codes_for_ratelimit_hit == [429, 503]
+    assert len(http_requester.api_budget._policies) == 1
+
+    # The single policy is a MovingWindowCallRatePolicy
+    policy = http_requester.api_budget._policies[0]
+    assert isinstance(policy, MovingWindowCallRatePolicy)
+    assert policy._bucket.rates[0].limit == 3
+    # The 0.1s from 'PT0.1S' is stored in ms by PyRateLimiter internally
+    # but here just check that the limit and interval exist
+    assert policy._bucket.rates[0].interval == 100  # 100 ms
+
+
+def test_api_budget_fixed_window_policy():
+    manifest = {
+        "type": "DeclarativeSource",
+        # Root-level api_budget referencing a FixedWindowCallRatePolicy
+        "api_budget": {
+            "type": "HTTPAPIBudget",
+            "policies": [
+                {
+                    "type": "FixedWindowCallRatePolicy",
+                    "period": "PT1M",  # 1 minute
+                    "call_limit": 10,
+                    "matchers": [
+                        {
+                            "type": "HttpRequestRegexMatcher",
+                            "method": "GET",
+                            "url_base": "https://example.org",
+                            "url_path_pattern": "/v2/data",
+                        }
+                    ],
+                }
+            ],
+        },
+        # We'll define a single HttpRequester that references that base
+        "my_requester": {
+            "type": "HttpRequester",
+            "path": "/v2/data",
+            "url_base": "https://example.org",
+            "http_method": "GET",
+            "authenticator": {"type": "NoAuth"},
+        },
+    }
+
+    config = {}
+
+    factory = ModelToComponentFactory()
+    if "api_budget" in manifest:
+        factory.set_api_budget(manifest["api_budget"], config)
+
+    from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+        HttpRequester as HttpRequesterModel,
+    )
+
+    requester_definition = manifest["my_requester"]
+    assert requester_definition["type"] == "HttpRequester"
+    http_requester = factory.create_component(
+        model_type=HttpRequesterModel,
+        component_definition=requester_definition,
+        config=config,
+        name="my_stream",
+        decoder=None,
+    )
+
+    assert http_requester.api_budget is not None
+    assert len(http_requester.api_budget._policies) == 1
+
+    from airbyte_cdk.sources.streams.call_rate import FixedWindowCallRatePolicy
+
+    policy = http_requester.api_budget._policies[0]
+    assert isinstance(policy, FixedWindowCallRatePolicy)
+    assert policy._call_limit == 10
+    # The period is "PT1M" => 60 seconds
+    assert policy._offset.total_seconds() == 60
+
+    assert len(policy._matchers) == 1
+    matcher = policy._matchers[0]
+    from airbyte_cdk.sources.streams.call_rate import HttpRequestRegexMatcher
+
+    assert isinstance(matcher, HttpRequestRegexMatcher)
+    assert matcher._method == "GET"
+    assert matcher._url_base == "https://example.org"
+    assert matcher._url_path_pattern.pattern == "/v2/data"

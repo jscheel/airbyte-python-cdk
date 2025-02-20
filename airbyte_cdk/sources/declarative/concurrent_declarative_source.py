@@ -3,7 +3,7 @@
 #
 
 import logging
-from typing import Any, Generic, Iterator, List, Mapping, Optional, Tuple
+from typing import Any, Generic, Iterator, List, Mapping, MutableMapping, Optional, Tuple
 
 from airbyte_cdk.models import (
     AirbyteCatalog,
@@ -19,11 +19,11 @@ from airbyte_cdk.sources.declarative.extractors import RecordSelector
 from airbyte_cdk.sources.declarative.extractors.record_filter import (
     ClientSideIncrementalRecordFilterDecorator,
 )
+from airbyte_cdk.sources.declarative.incremental import ConcurrentPerPartitionCursor
 from airbyte_cdk.sources.declarative.incremental.datetime_based_cursor import DatetimeBasedCursor
 from airbyte_cdk.sources.declarative.incremental.per_partition_with_global import (
     PerPartitionWithGlobalCursor,
 )
-from airbyte_cdk.sources.declarative.interpolation import InterpolatedString
 from airbyte_cdk.sources.declarative.manifest_declarative_source import ManifestDeclarativeSource
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     ConcurrencyLevel as ConcurrencyLevelModel,
@@ -35,13 +35,11 @@ from airbyte_cdk.sources.declarative.parsers.model_to_component_factory import (
     ModelToComponentFactory,
 )
 from airbyte_cdk.sources.declarative.partition_routers import AsyncJobPartitionRouter
-from airbyte_cdk.sources.declarative.requesters import HttpRequester
 from airbyte_cdk.sources.declarative.retrievers import AsyncRetriever, Retriever, SimpleRetriever
 from airbyte_cdk.sources.declarative.stream_slicers.declarative_partition_generator import (
     DeclarativePartitionFactory,
     StreamSlicerPartitionGenerator,
 )
-from airbyte_cdk.sources.declarative.transformations.add_fields import AddFields
 from airbyte_cdk.sources.declarative.types import ConnectionDefinition
 from airbyte_cdk.sources.source import TState
 from airbyte_cdk.sources.streams import Stream
@@ -230,6 +228,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     stream_state = self._connector_state_manager.get_stream_state(
                         stream_name=declarative_stream.name, namespace=declarative_stream.namespace
                     )
+                    stream_state = self._migrate_state(declarative_stream, stream_state)
 
                     retriever = self._get_retriever(declarative_stream, stream_state)
 
@@ -238,7 +237,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     ):
                         cursor = declarative_stream.retriever.stream_slicer.stream_slicer
 
-                        if not isinstance(cursor, ConcurrentCursor):
+                        if not isinstance(cursor, ConcurrentCursor | ConcurrentPerPartitionCursor):
                             # This should never happen since we instantiate ConcurrentCursor in
                             # model_to_component_factory.py
                             raise ValueError(
@@ -326,9 +325,6 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     incremental_sync_component_definition
                     and incremental_sync_component_definition.get("type", "")
                     == DatetimeBasedCursorModel.__name__
-                    and self._stream_supports_concurrent_partition_processing(
-                        declarative_stream=declarative_stream
-                    )
                     and hasattr(declarative_stream.retriever, "stream_slicer")
                     and isinstance(
                         declarative_stream.retriever.stream_slicer, PerPartitionWithGlobalCursor
@@ -337,6 +333,8 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     stream_state = self._connector_state_manager.get_stream_state(
                         stream_name=declarative_stream.name, namespace=declarative_stream.namespace
                     )
+                    stream_state = self._migrate_state(declarative_stream, stream_state)
+
                     partition_router = declarative_stream.retriever.stream_slicer._partition_router
 
                     perpartition_cursor = (
@@ -401,81 +399,12 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             and bool(incremental_sync_component_definition)
             and incremental_sync_component_definition.get("type", "")
             == DatetimeBasedCursorModel.__name__
-            and self._stream_supports_concurrent_partition_processing(
-                declarative_stream=declarative_stream
-            )
             and hasattr(declarative_stream.retriever, "stream_slicer")
             and (
                 isinstance(declarative_stream.retriever.stream_slicer, DatetimeBasedCursor)
                 or isinstance(declarative_stream.retriever.stream_slicer, AsyncJobPartitionRouter)
             )
         )
-
-    def _stream_supports_concurrent_partition_processing(
-        self, declarative_stream: DeclarativeStream
-    ) -> bool:
-        """
-        Many connectors make use of stream_state during interpolation on a per-partition basis under the assumption that
-        state is updated sequentially. Because the concurrent CDK engine processes different partitions in parallel,
-        stream_state is no longer a thread-safe interpolation context. It would be a race condition because a cursor's
-        stream_state can be updated in any order depending on which stream partition's finish first.
-
-        We should start to move away from depending on the value of stream_state for low-code components that operate
-        per-partition, but we need to gate this otherwise some connectors will be blocked from publishing. See the
-        cdk-migrations.md for the full list of connectors.
-        """
-
-        if isinstance(declarative_stream.retriever, SimpleRetriever) and isinstance(
-            declarative_stream.retriever.requester, HttpRequester
-        ):
-            http_requester = declarative_stream.retriever.requester
-            if "stream_state" in http_requester._path.string:
-                self.logger.warning(
-                    f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the HttpRequester which is not thread-safe. Defaulting to synchronous processing"
-                )
-                return False
-
-            request_options_provider = http_requester._request_options_provider
-            if request_options_provider.request_options_contain_stream_state():
-                self.logger.warning(
-                    f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the HttpRequester which is not thread-safe. Defaulting to synchronous processing"
-                )
-                return False
-
-            record_selector = declarative_stream.retriever.record_selector
-            if isinstance(record_selector, RecordSelector):
-                if (
-                    record_selector.record_filter
-                    and not isinstance(
-                        record_selector.record_filter, ClientSideIncrementalRecordFilterDecorator
-                    )
-                    and "stream_state" in record_selector.record_filter.condition
-                ):
-                    self.logger.warning(
-                        f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the RecordFilter which is not thread-safe. Defaulting to synchronous processing"
-                    )
-                    return False
-
-                for add_fields in [
-                    transformation
-                    for transformation in record_selector.transformations
-                    if isinstance(transformation, AddFields)
-                ]:
-                    for field in add_fields.fields:
-                        if isinstance(field.value, str) and "stream_state" in field.value:
-                            self.logger.warning(
-                                f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the AddFields which is not thread-safe. Defaulting to synchronous processing"
-                            )
-                            return False
-                        if (
-                            isinstance(field.value, InterpolatedString)
-                            and "stream_state" in field.value.string
-                        ):
-                            self.logger.warning(
-                                f"Low-code stream '{declarative_stream.name}' uses interpolation of stream_state in the AddFields which is not thread-safe. Defaulting to synchronous processing"
-                            )
-                            return False
-        return True
 
     @staticmethod
     def _get_retriever(
@@ -489,10 +418,21 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             # Also a temporary hack. In the legacy Stream implementation, as part of the read,
             # set_initial_state() is called to instantiate incoming state on the cursor. Although we no
             # longer rely on the legacy low-code cursor for concurrent checkpointing, low-code components
-            # like StopConditionPaginationStrategyDecorator and ClientSideIncrementalRecordFilterDecorator
-            # still rely on a DatetimeBasedCursor that is properly initialized with state.
+            # like StopConditionPaginationStrategyDecorator still rely on a DatetimeBasedCursor that is
+            # properly initialized with state.
             if retriever.cursor:
                 retriever.cursor.set_initial_state(stream_state=stream_state)
+
+            # Similar to above, the ClientSideIncrementalRecordFilterDecorator cursor is a separate instance
+            # from the one initialized on the SimpleRetriever, so it also must also have state initialized
+            # for semi-incremental streams using is_client_side_incremental to filter properly
+            if isinstance(retriever.record_selector, RecordSelector) and isinstance(
+                retriever.record_selector.record_filter, ClientSideIncrementalRecordFilterDecorator
+            ):
+                retriever.record_selector.record_filter._cursor.set_initial_state(
+                    stream_state=stream_state
+                )  # type: ignore  # After non-concurrent cursors are deprecated we can remove these cursor workarounds
+
             # We zero it out here, but since this is a cursor reference, the state is still properly
             # instantiated for the other components that reference it
             retriever.cursor = None
@@ -524,3 +464,14 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                 if stream.stream.name not in concurrent_stream_names
             ]
         )
+
+    @staticmethod
+    def _migrate_state(
+        declarative_stream: DeclarativeStream, stream_state: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        for state_migration in declarative_stream.state_migrations:
+            if state_migration.should_migrate(stream_state):
+                # The state variable is expected to be mutable but the migrate method returns an immutable mapping.
+                stream_state = dict(state_migration.migrate(stream_state))
+
+        return stream_state

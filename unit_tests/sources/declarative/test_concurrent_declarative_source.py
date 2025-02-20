@@ -32,6 +32,9 @@ from airbyte_cdk.sources.declarative.concurrent_declarative_source import (
     ConcurrentDeclarativeSource,
 )
 from airbyte_cdk.sources.declarative.declarative_stream import DeclarativeStream
+from airbyte_cdk.sources.declarative.extractors.record_filter import (
+    ClientSideIncrementalRecordFilterDecorator,
+)
 from airbyte_cdk.sources.declarative.partition_routers import AsyncJobPartitionRouter
 from airbyte_cdk.sources.declarative.stream_slicers.declarative_partition_generator import (
     StreamSlicerPartitionGenerator,
@@ -1228,6 +1231,157 @@ def test_read_with_concurrent_and_synchronous_streams_with_sequential_state():
     assert len(party_members_skills_records) == 9
 
 
+def test_concurrent_declarative_source_runs_state_migrations_provided_in_manifest():
+    manifest = {
+        "version": "5.0.0",
+        "definitions": {
+            "selector": {
+                "type": "RecordSelector",
+                "extractor": {"type": "DpathExtractor", "field_path": []},
+            },
+            "requester": {
+                "type": "HttpRequester",
+                "url_base": "https://persona.metaverse.com",
+                "http_method": "GET",
+                "authenticator": {
+                    "type": "BasicHttpAuthenticator",
+                    "username": "{{ config['api_key'] }}",
+                    "password": "{{ config['secret_key'] }}",
+                },
+                "error_handler": {
+                    "type": "DefaultErrorHandler",
+                    "response_filters": [
+                        {
+                            "http_codes": [403],
+                            "action": "FAIL",
+                            "failure_type": "config_error",
+                            "error_message": "Access denied due to lack of permission or invalid API/Secret key or wrong data region.",
+                        },
+                        {
+                            "http_codes": [404],
+                            "action": "IGNORE",
+                            "error_message": "No data available for the time range requested.",
+                        },
+                    ],
+                },
+            },
+            "retriever": {
+                "type": "SimpleRetriever",
+                "record_selector": {"$ref": "#/definitions/selector"},
+                "paginator": {"type": "NoPagination"},
+                "requester": {"$ref": "#/definitions/requester"},
+            },
+            "incremental_cursor": {
+                "type": "DatetimeBasedCursor",
+                "start_datetime": {
+                    "datetime": "{{ format_datetime(config['start_date'], '%Y-%m-%d') }}"
+                },
+                "end_datetime": {"datetime": "{{ now_utc().strftime('%Y-%m-%d') }}"},
+                "datetime_format": "%Y-%m-%d",
+                "cursor_datetime_formats": ["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"],
+                "cursor_granularity": "P1D",
+                "step": "P15D",
+                "cursor_field": "updated_at",
+                "lookback_window": "P5D",
+                "start_time_option": {
+                    "type": "RequestOption",
+                    "field_name": "start",
+                    "inject_into": "request_parameter",
+                },
+                "end_time_option": {
+                    "type": "RequestOption",
+                    "field_name": "end",
+                    "inject_into": "request_parameter",
+                },
+            },
+            "base_stream": {"retriever": {"$ref": "#/definitions/retriever"}},
+            "base_incremental_stream": {
+                "retriever": {
+                    "$ref": "#/definitions/retriever",
+                    "requester": {"$ref": "#/definitions/requester"},
+                },
+                "incremental_sync": {"$ref": "#/definitions/incremental_cursor"},
+            },
+            "party_members_stream": {
+                "$ref": "#/definitions/base_incremental_stream",
+                "retriever": {
+                    "$ref": "#/definitions/base_incremental_stream/retriever",
+                    "requester": {
+                        "$ref": "#/definitions/requester",
+                        "request_parameters": {"filter": "{{stream_partition['type']}}"},
+                    },
+                    "record_selector": {"$ref": "#/definitions/selector"},
+                    "partition_router": [
+                        {
+                            "type": "ListPartitionRouter",
+                            "values": ["type_1", "type_2"],
+                            "cursor_field": "type",
+                        }
+                    ],
+                },
+                "$parameters": {
+                    "name": "party_members",
+                    "primary_key": "id",
+                    "path": "/party_members",
+                },
+                "state_migrations": [
+                    {
+                        "type": "CustomStateMigration",
+                        "class_name": "unit_tests.sources.declarative.custom_state_migration.CustomStateMigration",
+                    }
+                ],
+                "schema_loader": {
+                    "type": "InlineSchemaLoader",
+                    "schema": {
+                        "$schema": "https://json-schema.org/draft-07/schema#",
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "description": "The identifier",
+                                "type": ["null", "string"],
+                            },
+                            "name": {
+                                "description": "The name of the party member",
+                                "type": ["null", "string"],
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "streams": [
+            "#/definitions/party_members_stream",
+        ],
+        "check": {"stream_names": ["party_members", "locations"]},
+        "concurrency_level": {
+            "type": "ConcurrencyLevel",
+            "default_concurrency": "{{ config['num_workers'] or 10 }}",
+            "max_concurrency": 25,
+        },
+    }
+    state_blob = AirbyteStateBlob(updated_at="2024-08-21")
+    state = [
+        AirbyteStateMessage(
+            type=AirbyteStateType.STREAM,
+            stream=AirbyteStreamState(
+                stream_descriptor=StreamDescriptor(name="party_members", namespace=None),
+                stream_state=state_blob,
+            ),
+        ),
+    ]
+    source = ConcurrentDeclarativeSource(
+        source_config=manifest, config=_CONFIG, catalog=_CATALOG, state=state
+    )
+    concurrent_streams, synchronous_streams = source._group_streams(_CONFIG)
+    assert (
+        concurrent_streams[0].cursor.state.get("state") != state_blob.__dict__
+    ), "State was not migrated."
+    assert concurrent_streams[0].cursor.state.get("states") == [
+        {"cursor": {"updated_at": "2024-08-21"}, "partition": {"type": "type_1"}},
+        {"cursor": {"updated_at": "2024-08-21"}, "partition": {"type": "type_2"}},
+    ], "State was migrated, but actual state don't match expected"
+
+
 @freezegun.freeze_time(_NOW)
 @patch(
     "airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter.AbstractStreamStateConverter.__init__",
@@ -1435,38 +1589,6 @@ def test_concurrency_level_initial_number_partitions_to_generate_is_always_one_o
     assert source._concurrent_source._initial_number_partitions_to_generate == 1
 
 
-def test_streams_with_stream_state_interpolation_should_be_synchronous():
-    manifest_with_stream_state_interpolation = copy.deepcopy(_MANIFEST)
-
-    # Add stream_state interpolation to the location stream's HttpRequester
-    manifest_with_stream_state_interpolation["definitions"]["locations_stream"]["retriever"][
-        "requester"
-    ]["request_parameters"] = {
-        "after": "{{ stream_state['updated_at'] }}",
-    }
-
-    # Add a RecordFilter component that uses stream_state interpolation to the party member stream
-    manifest_with_stream_state_interpolation["definitions"]["party_members_stream"]["retriever"][
-        "record_selector"
-    ]["record_filter"] = {
-        "type": "RecordFilter",
-        "condition": "{{ record.updated_at > stream_state['updated_at'] }}",
-    }
-
-    source = ConcurrentDeclarativeSource(
-        source_config=manifest_with_stream_state_interpolation,
-        config=_CONFIG,
-        catalog=_CATALOG,
-        state=None,
-    )
-    concurrent_streams, synchronous_streams = source._group_streams(config=_CONFIG)
-
-    # 1 full refresh stream, 2 with parent stream without incremental dependency, 1 stream with async retriever, 1 incremental with parent stream (palace_enemies)
-    assert len(concurrent_streams) == 5
-    # 2 incremental stream with interpolation on state (locations and party_members)
-    assert len(synchronous_streams) == 2
-
-
 def test_given_partition_routing_and_incremental_sync_then_stream_is_concurrent():
     manifest = {
         "version": "5.0.0",
@@ -1645,6 +1767,44 @@ def test_async_incremental_stream_uses_concurrent_cursor_with_state():
     assert isinstance(async_job_partition_router, AsyncJobPartitionRouter)
     assert isinstance(async_job_partition_router.stream_slicer, ConcurrentCursor)
     assert async_job_partition_router.stream_slicer._concurrent_state == expected_state
+
+
+def test_stream_using_is_client_side_incremental_has_cursor_state():
+    expected_cursor_value = "2024-07-01"
+    state = [
+        AirbyteStateMessage(
+            type=AirbyteStateType.STREAM,
+            stream=AirbyteStreamState(
+                stream_descriptor=StreamDescriptor(name="locations", namespace=None),
+                stream_state=AirbyteStateBlob(updated_at=expected_cursor_value),
+            ),
+        )
+    ]
+
+    manifest_with_stream_state_interpolation = copy.deepcopy(_MANIFEST)
+
+    # Enable semi-incremental on the locations stream
+    manifest_with_stream_state_interpolation["definitions"]["locations_stream"]["incremental_sync"][
+        "is_client_side_incremental"
+    ] = True
+
+    source = ConcurrentDeclarativeSource(
+        source_config=manifest_with_stream_state_interpolation,
+        config=_CONFIG,
+        catalog=_CATALOG,
+        state=state,
+    )
+    concurrent_streams, synchronous_streams = source._group_streams(config=_CONFIG)
+
+    locations_stream = concurrent_streams[2]
+    assert isinstance(locations_stream, DefaultStream)
+
+    simple_retriever = locations_stream._stream_partition_generator._partition_factory._retriever
+    record_filter = simple_retriever.record_selector.record_filter
+    assert isinstance(record_filter, ClientSideIncrementalRecordFilterDecorator)
+    client_side_incremental_cursor_state = record_filter._cursor._cursor
+
+    assert client_side_incremental_cursor_state == expected_cursor_value
 
 
 def create_wrapped_stream(stream: DeclarativeStream) -> Stream:
