@@ -331,6 +331,16 @@ def test_raise_on_http_errors(mocker, error):
     assert send_mock.call_count == stream.max_retries + 1
 
 
+def test_dns_resolution_error_retry():
+    """Test that DNS resolution errors are retried"""
+    stream = StubBasicReadHttpStream()
+    error_handler = stream.get_error_handler()
+    resolution = error_handler.interpret_response(requests.exceptions.InvalidURL())
+
+    assert resolution.response_action == ResponseAction.RETRY
+    assert resolution.failure_type == FailureType.transient_error
+
+
 class PostHttpStream(StubBasicReadHttpStream):
     http_method = "POST"
 
