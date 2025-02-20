@@ -1728,9 +1728,126 @@ definitions:
         description: Enables stream requests caching. This field is automatically set by the CDK.
         type: boolean
         default: false
+      api_budget:
+        title: API Budget
+        description: Defines the call rate policies for an APIs.
+        "$ref": "#/definitions/HttpApiBudget"
       $parameters:
         type: object
         additionalProperties: true
+  HttpApiBudget:
+    type: object
+    title: Http API Budget
+    required:
+      - type
+      - policy
+    properties:
+      type:
+        type: string
+        enum: [HttpApiBudget]
+      policy:
+        "$ref": "#/definitions/MovingWindowCallRatePolicy"
+      maximum_attempts_to_acquire:
+        type: integer
+        default: 100000
+      ratelimit_reset_header:
+        type: string
+        default: "ratelimit-reset"
+      ratelimit_remaining_header:
+        type: string
+        default: "ratelimit-remaining"
+      ratelimit_hit_status_codes:
+        type: array
+        items:
+          type: integer
+        default: [429]
+        examples:
+          - [400, 500]
+  MovingWindowCallRatePolicy:
+    type: object
+    title: Moving Window Call Rate Policy
+    required:
+      - type
+      - matcher
+      - rate
+    properties:
+      type:
+        type: string
+        enum: [MovingWindowCallRatePolicy]
+      matcher:
+        "$ref": "#/definitions/HttpRequestMatcher"
+      rate:
+        "$ref": "#/definitions/CallRateLimit"
+  HttpRequestMatcher:
+    type: object
+    title: Http Request Matcher
+    required:
+      - type
+      - http_method
+      - url
+    properties:
+      type:
+        type: string
+        enum: [HttpRequestMatcher]
+      url:
+        title: API URL
+        description: URL of the API source.
+        type: string
+        interpolation_context:
+          - config
+        examples:
+          - "https://connect.squareup.com/v2/events"
+          - "{{ config['base_url'] + '/names' or 'https://app.posthog.com'}}/api/names"
+      http_method:
+        title: HTTP Method
+        description: The HTTP method used to fetch data from the source (can be GET or POST).
+        type: string
+        enum:
+          - GET
+          - POST
+        default: GET
+        examples:
+          - GET
+          - POST
+      request_headers:
+        title: Request Headers
+        description: Return any non-auth headers. Authentication headers will overwrite any overlapping headers returned from this method.
+        anyOf:
+          - type: string
+          - type: object
+            additionalProperties:
+              type: string
+        examples:
+          - Output-Format: JSON
+      request_parameters:
+        title: Query Parameters
+        description: Specifies the query parameters that should be set on an outgoing HTTP request given the inputs.
+        anyOf:
+          - type: string
+          - type: object
+            additionalProperties:
+              type: string
+        examples:
+          - unit: "day"
+          - sort_by[asc]: updated_at
+  CallRateLimit:
+    type: object
+    title: Call RateLimit
+    required:
+      - type
+      - limit
+      - interval
+    properties:
+      type:
+        type: string
+        enum: [CallRateLimit]
+      limit:
+        type: integer
+      interval:
+        type: string
+        examples:
+          - "PT1H"
+          - "P1D"
   HttpResponseFilter:
     description: A filter that is used to select on properties of the HTTP response received. When used with additional filters, a response will be selected if it matches any of the filter's criteria.
     type: object

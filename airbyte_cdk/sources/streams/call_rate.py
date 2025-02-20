@@ -9,7 +9,7 @@ import logging
 import time
 from datetime import timedelta
 from threading import RLock
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Union, Tuple, List
 from urllib import parse
 
 import requests
@@ -143,7 +143,7 @@ class HttpRequestMatcher(RequestMatcher):
             return False
 
         if self._method is not None:
-            if prepared_request.method != self._method:
+            if prepared_request.method.lower() != self._method.lower():
                 return False
         if self._url is not None and prepared_request.url is not None:
             url_without_params = prepared_request.url.split("?")[0]
@@ -496,7 +496,7 @@ class HttpAPIBudget(APIBudget):
         self,
         ratelimit_reset_header: str = "ratelimit-reset",
         ratelimit_remaining_header: str = "ratelimit-remaining",
-        status_codes_for_ratelimit_hit: tuple[int] = (429,),
+        status_codes_for_ratelimit_hit: Union[Tuple[int], List[int]] = (429,),
         **kwargs: Any,
     ):
         """Constructor

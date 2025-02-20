@@ -344,6 +344,18 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     SessionTokenAuthenticator as SessionTokenAuthenticatorModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    HttpApiBudget as HttpApiBudgetModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    MovingWindowCallRatePolicy as MovingWindowCallRatePolicyModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    CallRateLimit as CallRateLimitModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    HttpRequestMatcher as HttpRequestMatcherModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     SimpleRetriever as SimpleRetrieverModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import Spec as SpecModel
@@ -484,6 +496,7 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.datetime_stream_sta
     DateTimeStreamStateConverter,
 )
 from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction
+from airbyte_cdk.sources.streams.call_rate import HttpAPIBudget, MovingWindowCallRatePolicy, Rate, HttpRequestMatcher
 from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 
@@ -607,6 +620,10 @@ class ModelToComponentFactory:
             StreamConfigModel: self.create_stream_config,
             ComponentMappingDefinitionModel: self.create_components_mapping_definition,
             ZipfileDecoderModel: self.create_zipfile_decoder,
+            HttpApiBudgetModel: self.create_api_budget,
+            MovingWindowCallRatePolicyModel: self.create_moving_window_call_rate_policy,
+            CallRateLimitModel: self.create_call_rate_limit,
+            HttpRequestMatcherModel: self.create_http_request_matcher,
         }
 
         # Needed for the case where we need to perform a second parse on the fields of a custom component
@@ -1885,6 +1902,7 @@ class ModelToComponentFactory:
                 parameters=model.parameters or {},
             )
         )
+        api_budget = self._create_component_from_model(model=model.api_budget, config=config)
 
         request_options_provider = InterpolatedRequestOptionsProvider(
             request_body_data=model.request_body_data,
@@ -1906,6 +1924,7 @@ class ModelToComponentFactory:
             path=model.path,
             authenticator=authenticator,
             error_handler=error_handler,
+            api_budget=api_budget,
             http_method=HttpMethod[model.http_method.value],
             request_options_provider=request_options_provider,
             config=config,
@@ -2312,6 +2331,39 @@ class ModelToComponentFactory:
             parameters=model.parameters or {},
             extra_fields=model.extra_fields,
         )
+
+    def create_api_budget(self, model: HttpApiBudgetModel, config: Config, **kwargs: Any) -> HttpAPIBudget:
+        policy = self._create_component_from_model(model=model.policy, config=config)
+        return HttpAPIBudget(
+            policies=[policy],
+            maximum_attempts_to_acquire=model.maximum_attempts_to_acquire,
+            ratelimit_reset_header=model.ratelimit_reset_header,
+            ratelimit_remaining_header=model.ratelimit_remaining_header,
+            status_codes_for_ratelimit_hit=model.ratelimit_hit_status_codes
+        )
+
+    def create_moving_window_call_rate_policy(
+            self, model: MovingWindowCallRatePolicyModel, config: Config, **kwargs: Any
+    ) -> MovingWindowCallRatePolicy:
+        rate = self._create_component_from_model(model=model.rate, config=config)
+        matcher = self._create_component_from_model(model=model.matcher, config=config)
+        return MovingWindowCallRatePolicy(rates=[rate], matchers=[matcher])
+
+    @staticmethod
+    def create_http_request_matcher(
+            model: HttpRequestMatcherModel, config: Config, **kwargs: Any
+    ) -> HttpRequestMatcher:
+        interpolated_url = InterpolatedString.create(model.url, parameters={},)
+        return HttpRequestMatcher(
+            method=model.http_method.value,
+            url=interpolated_url.eval(config=config),
+            headers=model.request_headers,
+            params=model.request_parameters
+        )
+
+    @staticmethod
+    def create_call_rate_limit(model: CallRateLimitModel, config: Config, **kwargs: Any) -> Rate:
+        return Rate(limit=model.limit, interval=parse_duration(model.interval))
 
     @staticmethod
     def create_record_filter(
