@@ -124,14 +124,48 @@ class CsvParser(Parser):
         """
         Parse CSV data from decompressed bytes.
         """
+        print("Starting CSV parse...")
         raw_data = data.read()
-        buffer = StringIO(raw_data.decode(self.encoding or "utf-8"))
-        reader = csv.DictReader(buffer, delimiter=self._get_delimiter() or ",")
+        print(f"Raw data read, length: {len(raw_data)}")
+
+        # Use decode to convert bytes to string, handling \r\n line endings
+        decoded_data = raw_data.decode(self.encoding or "utf-8")
+        print(f"Decoded data: \n{decoded_data}")
+
+        buffer = io.StringIO(decoded_data)
+        print("Created StringIO buffer")
+
+        delimiter = self._get_delimiter() or ","
+        print(f"Using delimiter: '{delimiter}'")
+
+        # Create DictReader with explicit newline handling
+        reader = csv.DictReader(
+            buffer,
+            delimiter=delimiter,
+        )
+        print(f"Created DictReader with fieldnames: {reader.fieldnames}")
+
         try:
-            for row in reader:
-                yield dict(row)
+            # Convert iterator to list to force reading
+            print("Converting reader to list...")
+            rows = list(reader)
+            print(f"Converted to list. Found {len(rows)} rows")
+
+            for row in rows:
+                print(f"Processing row: {row}")
+                # Ensure we yield a dict with all values properly processed
+                cleaned_row = {k: v.strip() if v else v for k, v in row.items()}
+                print(f"Cleaned row: {cleaned_row}")
+                yield cleaned_row
+
+            print("Finished processing all rows")
+        except Exception as e:
+            print(f"Error processing CSV: {str(e)}")
+            raise
         finally:
+            print("Closing buffer")
             buffer.close()
+
 
 @dataclass
 class CompositeRawDecoder(Decoder):
