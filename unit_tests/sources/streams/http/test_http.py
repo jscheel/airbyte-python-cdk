@@ -337,7 +337,7 @@ def test_dns_resolution_error_retry():
     stream = StubBasicReadHttpStream()
     with pytest.raises(InvalidURL) as exc:
         # Test that InvalidURL is treated as transient error
-        stream._http_client.send_request("GET", "invalid_url", {})
+        stream._http_client.send_request("GET", "http://[invalid-url", {})
     assert exc.value.response_action == ResponseAction.RETRY
     assert exc.value.failure_type == FailureType.transient_error
 
