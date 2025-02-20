@@ -20,7 +20,7 @@ from airbyte_cdk.sources.streams.checkpoint.substream_resumable_full_refresh_cur
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.streams.http import HttpStream, HttpSubStream
 from airbyte_cdk.sources.streams.http.error_handlers import ErrorHandler, HttpStatusErrorHandler
-from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction
+from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction, FailureType
 from airbyte_cdk.sources.streams.http.exceptions import (
     DefaultBackoffException,
     RequestBodyException,
