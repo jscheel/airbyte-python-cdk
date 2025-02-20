@@ -10,6 +10,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 import requests
+from requests.exceptions import InvalidURL
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, SyncMode, Type
 from airbyte_cdk.sources.streams import CheckpointMixin
