@@ -10,7 +10,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 import requests
-from requests.exceptions import InvalidURL
+from requests.exceptions import ConnectionError, InvalidURL
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, SyncMode, Type
 from airbyte_cdk.sources.streams import CheckpointMixin
@@ -362,6 +362,25 @@ def test_invalid_url_fails():
     resolution = error_handler.interpret_response(InvalidURL())
     assert resolution.response_action == ResponseAction.FAIL
     assert resolution.failure_type == FailureType.config_error
+
+
+def test_dns_resolution_error_retry_with_connection_error():
+    """Test that DNS resolution errors from ConnectionError are properly handled"""
+    stream = StubHttpStreamWithErrorHandler()
+    send_mock = MagicMock(
+        side_effect=requests.ConnectionError(
+            "HTTPSConnectionPool(host='api.example.com', port=443): "
+            "Max retries exceeded with url: /v1/data (Caused by "
+            'NameResolutionError("<urllib3.connection.HTTPSConnection '
+            "object at 0x7f9b1c1b3d30>: Failed to resolve 'api.example.com' "
+            '(Name or service not known)"))'
+        )
+    )
+    stream._http_client._session.send = send_mock
+
+    with pytest.raises(DefaultBackoffException):
+        list(stream.read_records(SyncMode.full_refresh))
+    assert send_mock.call_count == stream.max_retries + 1
 
 
 class PostHttpStream(StubBasicReadHttpStream):
