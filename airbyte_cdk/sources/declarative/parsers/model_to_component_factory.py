@@ -228,6 +228,9 @@ from airbyte_cdk.sources.declarative.models.declarative_component_schema import 
     FlattenFields as FlattenFieldsModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
+    GroupingPartitionRouter as GroupingPartitionRouterModel,
+)
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
     GzipDecoder as GzipDecoderModel,
 )
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import (
@@ -379,6 +382,7 @@ from airbyte_cdk.sources.declarative.parsers.custom_code_compiler import (
 )
 from airbyte_cdk.sources.declarative.partition_routers import (
     CartesianProductStreamSlicer,
+    GroupingPartitionRouter,
     ListPartitionRouter,
     PartitionRouter,
     SinglePartitionRouter,
@@ -3043,4 +3047,24 @@ class ModelToComponentFactory:
     def set_api_budget(self, component_definition: ComponentDefinition, config: Config) -> None:
         self._api_budget = self.create_component(
             model_type=HTTPAPIBudgetModel, component_definition=component_definition, config=config
+        )
+
+    def create_grouping_partition_router(
+        self, model: GroupingPartitionRouterModel, config: Config, **kwargs: Any
+    ) -> GroupingPartitionRouter:
+        underlying_router = self._create_component_from_model(
+            model=model.partition_router, config=config
+        )
+
+        if not isinstance(underlying_router, PartitionRouter):
+            raise ValueError(
+                f"Underlying partition router must be a PartitionRouter subclass, got {type(underlying_router)}"
+            )
+
+        return GroupingPartitionRouter(
+            group_size=model.group_size,
+            underlying_partition_router=underlying_router,
+            deduplicate=model.deduplicate if model.deduplicate is not None else True,
+            parameters=model.parameters or {},
+            config=config,
         )
