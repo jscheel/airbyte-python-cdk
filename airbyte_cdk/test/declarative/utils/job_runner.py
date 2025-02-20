@@ -6,16 +6,17 @@ from typing import Callable, Literal
 import orjson
 
 from airbyte_cdk import Connector
+from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 from airbyte_cdk.test import entrypoint_wrapper
 from airbyte_cdk.test.declarative.models import (
-    AcceptanceTestScenario,
+    ConnectorTestScenario,
 )
 
 
 def run_test_job(
     connector: Connector | type[Connector] | Callable[[], Connector],
     verb: Literal["read", "check", "discover"],
-    test_instance: AcceptanceTestScenario,
+    test_instance: ConnectorTestScenario,
     *,
     catalog: dict | None = None,
 ) -> entrypoint_wrapper.EntrypointOutput:
@@ -27,6 +28,8 @@ def run_test_job(
     if isinstance(connector, type):
         connector_obj = connector()
     elif isinstance(connector, Connector):
+        connector_obj = connector
+    elif isinstance(connector, DeclarativeSource):
         connector_obj = connector
     elif isinstance(connector, Callable):
         try:
@@ -45,6 +48,13 @@ def run_test_job(
     args = [verb]
     if test_instance.config_path:
         args += ["--config", str(test_instance.config_path)]
+    elif test_instance.config_dict:
+        config_path = (
+            Path(tempfile.gettempdir()) / "airbyte-test" / f"temp_config_{uuid.uuid4().hex}.json"
+        )
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(orjson.dumps(test_instance.config_dict).decode())
+        args += ["--config", str(config_path)]
 
     catalog_path: Path | None = None
     if verb not in ["discover", "check"]:

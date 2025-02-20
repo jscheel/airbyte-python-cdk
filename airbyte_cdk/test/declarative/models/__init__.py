@@ -1,7 +1,7 @@
 from airbyte_cdk.test.declarative.models.scenario import (
-    AcceptanceTestScenario,
+    ConnectorTestScenario,
 )
 
 __all__ = [
-    "AcceptanceTestScenario",
+    "ConnectorTestScenario",
 ]

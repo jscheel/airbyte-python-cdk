@@ -7,15 +7,22 @@ from pathlib import Path
 import pytest
 
 from airbyte_cdk.models import (
+    AirbyteMessage,
     AirbyteStream,
     ConfiguredAirbyteCatalog,
     ConfiguredAirbyteStream,
     DestinationSyncMode,
     SyncMode,
+    Type,
 )
+from airbyte_cdk.test import entrypoint_wrapper
 from airbyte_cdk.test.declarative.models import (
-    AcceptanceTestScenario,
+    ConnectorTestScenario,
 )
+from airbyte_cdk.test.declarative.test_suites.connector_base import (
+    ConnectorTestSuiteBase,
+)
+from airbyte_cdk.test.declarative.utils.job_runner import run_test_job
 
 
 class SourceTestSuiteBase(ConnectorTestSuiteBase):
@@ -25,36 +32,30 @@ class SourceTestSuiteBase(ConnectorTestSuiteBase):
     inherits all generic connector tests from the `ConnectorTestSuiteBase` class.
     """
 
-    @pytest.mark.parametrize(
-        "instance",
-        get_acceptance_tests("full_refresh"),
-        ids=lambda instance: instance.instance_name,
-    )
-    def test_full_refresh(
+    def test_check(
         self,
-        instance: AcceptanceTestScenario,
+        instance: ConnectorTestScenario,
     ) -> None:
-        """Run acceptance tests."""
-        result = run_test_job(
-            self.new_connector(),
-            "read",
+        """Run `connection` acceptance tests."""
+        result: entrypoint_wrapper.EntrypointOutput = run_test_job(
+            self.create_connector(instance),
+            "check",
             test_instance=instance,
         )
-        if not result.records:
-            raise AssertionError("Expected records but got none.")  # noqa: TRY003
+        conn_status_messages: list[AirbyteMessage] = [
+            msg for msg in result._messages if msg.type == Type.CONNECTION_STATUS
+        ]  # noqa: SLF001  # Non-public API
+        assert len(conn_status_messages) == 1, (
+            "Expected exactly one CONNECTION_STATUS message. Got: \n" + "\n".join(result._messages)
+        )
 
-    @pytest.mark.parametrize(
-        "instance",
-        get_acceptance_tests("basic_read"),
-        ids=lambda instance: instance.instance_name,
-    )
     def test_basic_read(
         self,
-        instance: AcceptanceTestScenario,
+        instance: ConnectorTestScenario,
     ) -> None:
         """Run acceptance tests."""
         discover_result = run_test_job(
-            self.new_connector(),
+            self.create_connector(instance),
             "discover",
             test_instance=instance,
         )
@@ -70,7 +71,7 @@ class SourceTestSuiteBase(ConnectorTestSuiteBase):
             ]
         )
         result = run_test_job(
-            self.new_connector(),
+            self.create_connector(instance),
             "read",
             test_instance=instance,
             catalog=configured_catalog,
@@ -79,14 +80,9 @@ class SourceTestSuiteBase(ConnectorTestSuiteBase):
         if not result.records:
             raise AssertionError("Expected records but got none.")  # noqa: TRY003
 
-    @pytest.mark.parametrize(
-        "instance",
-        get_acceptance_tests("basic_read"),
-        ids=lambda instance: instance.instance_name,
-    )
     def test_fail_with_bad_catalog(
         self,
-        instance: AcceptanceTestScenario,
+        instance: ConnectorTestScenario,
     ) -> None:
         """Test that a bad catalog fails."""
         invalid_configured_catalog = ConfiguredAirbyteCatalog(
@@ -110,27 +106,21 @@ class SourceTestSuiteBase(ConnectorTestSuiteBase):
         )
         # Set expected status to "failed" to ensure the test fails if the connector.
         instance.status = "failed"
-        result = run_test_job(
-            self.new_connector(),
+        result = self.run_test_scenario(
             "read",
-            test_instance=instance,
+            test_scenario=instance,
             catalog=asdict(invalid_configured_catalog),
         )
         assert result.errors, "Expected errors but got none."
         assert result.trace_messages, "Expected trace messages but got none."
 
-    @pytest.mark.parametrize(
-        "instance",
-        get_acceptance_tests("full_refresh"),
-        ids=lambda instance: instance.instance_name,
-    )
     def test_discover(
         self,
-        instance: AcceptanceTestScenario,
+        instance: ConnectorTestScenario,
     ) -> None:
         """Run acceptance tests."""
         run_test_job(
-            self.new_connector(),
+            self.create_connector(instance),
             "check",
             test_instance=instance,
         )
