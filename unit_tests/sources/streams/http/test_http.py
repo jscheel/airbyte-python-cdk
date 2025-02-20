@@ -41,6 +41,9 @@ class StubBasicReadHttpStream(HttpStream):
         self.resp_counter = 1
         self._deduplicate_query_params = deduplicate_query_params
 
+    def get_error_handler(self) -> Optional[ErrorHandler]:
+        return HttpStatusErrorHandler(logging.getLogger())
+
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         return None
 
