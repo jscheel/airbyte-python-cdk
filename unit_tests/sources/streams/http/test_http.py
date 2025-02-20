@@ -346,10 +346,13 @@ def test_dns_resolution_error_retry():
     error_handler = stream.get_error_handler()
     request = requests.PreparedRequest()
     request.url = "https://example.com"
-    dns_error = DNSResolutionError(url="https://example.com", request=request, response=Exception("DNS lookup failed"))
+    dns_error = DNSResolutionError(
+        url="https://example.com", request=request, response=Exception("DNS lookup failed")
+    )
     resolution = error_handler.interpret_response(dns_error)
     assert resolution.response_action == ResponseAction.RETRY
     assert resolution.failure_type == FailureType.transient_error
+
 
 def test_invalid_url_fails():
     """Test that invalid URLs fail immediately"""

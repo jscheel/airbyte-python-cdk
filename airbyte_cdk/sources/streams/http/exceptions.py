@@ -75,4 +75,8 @@ class DNSResolutionError(BaseBackoffException):
         error_message: str = "",
     ):
         self.url = url
-        super().__init__(request=request, response=response, error_message=error_message or f"Failed to resolve DNS for URL: {url}")
+        super().__init__(
+            request=request,
+            response=response,
+            error_message=error_message or f"Failed to resolve DNS for URL: {url}",
+        )
