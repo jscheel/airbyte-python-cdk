@@ -10,8 +10,6 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 import requests
-from requests.exceptions import InvalidURL
-
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, SyncMode, Type
 from airbyte_cdk.sources.streams import CheckpointMixin
 from airbyte_cdk.sources.streams.checkpoint import ResumableFullRefreshCursor
@@ -21,7 +19,7 @@ from airbyte_cdk.sources.streams.checkpoint.substream_resumable_full_refresh_cur
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.streams.http import HttpStream, HttpSubStream
 from airbyte_cdk.sources.streams.http.error_handlers import ErrorHandler, HttpStatusErrorHandler
-from airbyte_cdk.sources.streams.http.error_handlers.response_models import ResponseAction, FailureType
+from airbyte_cdk.sources.streams.http.error_handlers.response_models import FailureType, ResponseAction
 from airbyte_cdk.sources.streams.http.exceptions import (
     DefaultBackoffException,
     RequestBodyException,
@@ -30,6 +28,7 @@ from airbyte_cdk.sources.streams.http.exceptions import (
 from airbyte_cdk.sources.streams.http.http_client import MessageRepresentationAirbyteTracedErrors
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
 from airbyte_cdk.utils.airbyte_secrets_utils import update_secrets
+from requests.exceptions import InvalidURL
 
 
 class StubBasicReadHttpStream(HttpStream):
