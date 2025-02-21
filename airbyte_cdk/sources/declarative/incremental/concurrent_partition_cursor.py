@@ -169,6 +169,8 @@ class ConcurrentPerPartitionCursor(Cursor):
         Pop the leftmost partition state from _partition_parent_state_map only if
         *all partitions* up to (and including) that partition key in _semaphore_per_partition
         are fully finished (i.e. in _finished_partitions and semaphore._value == 0).
+        Additionally, delete finished semaphores with a value of 0 to free up memory,
+        as they are only needed to track errors and completion status.
         """
         last_closed_state = None
 
@@ -178,7 +180,9 @@ class ConcurrentPerPartitionCursor(Cursor):
 
             # Verify ALL partitions from the left up to earliest_key are finished
             all_left_finished = True
-            for p_key, sem in self._semaphore_per_partition.items():
+            for p_key, sem in list(
+                self._semaphore_per_partition.items()
+            ):  # Use list to allow modification during iteration
                 # If any earlier partition is still not finished, we must stop
                 if p_key not in self._finished_partitions or sem._value != 0:
                     all_left_finished = False
@@ -191,17 +195,26 @@ class ConcurrentPerPartitionCursor(Cursor):
             if not all_left_finished:
                 break
 
-            # Otherwise, pop the leftmost entry from parent-state map
+            # Pop the leftmost entry from parent-state map
             _, closed_parent_state = self._partition_parent_state_map.popitem(last=False)
             last_closed_state = closed_parent_state
 
-        # Update _parent_state if we actually popped at least one partition
+            # Clean up finished semaphores with value 0 up to and including earliest_key
+            for p_key in list(self._semaphore_per_partition.keys()):
+                sem = self._semaphore_per_partition[p_key]
+                if p_key in self._finished_partitions and sem._value == 0:
+                    del self._semaphore_per_partition[p_key]
+                    logger.debug(f"Deleted finished semaphore for partition {p_key} with value 0")
+                if p_key == earliest_key:
+                    break
+
+        # Update _parent_state if we popped at least one partition
         if last_closed_state is not None:
             self._parent_state = last_closed_state
 
     def ensure_at_least_one_state_emitted(self) -> None:
         """
-        The platform expect to have at least one state message on successful syncs. Hence, whatever happens, we expect this method to be
+        The platform expects at least one state message on successful syncs. Hence, whatever happens, we expect this method to be
         called.
         """
         if not any(
@@ -238,6 +251,7 @@ class ConcurrentPerPartitionCursor(Cursor):
         self._message_repository.emit_message(state_message)
 
     def stream_slices(self) -> Iterable[StreamSlice]:
+        print("stream_slices")
         if self._timer.is_running():
             raise RuntimeError("stream_slices has been executed more than once.")
 
@@ -313,9 +327,9 @@ class ConcurrentPerPartitionCursor(Cursor):
             while len(self._cursor_per_partition) > self.DEFAULT_MAX_PARTITIONS_NUMBER - 1:
                 # Try removing finished partitions first
                 for partition_key in list(self._cursor_per_partition.keys()):
-                    if (
-                        partition_key in self._finished_partitions
-                        and self._semaphore_per_partition[partition_key]._value == 0
+                    if partition_key in self._finished_partitions and (
+                        partition_key not in self._semaphore_per_partition
+                        or self._semaphore_per_partition[partition_key]._value == 0
                     ):
                         oldest_partition = self._cursor_per_partition.pop(
                             partition_key

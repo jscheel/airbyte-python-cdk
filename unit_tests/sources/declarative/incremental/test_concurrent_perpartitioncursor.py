@@ -3159,6 +3159,7 @@ def test_given_unfinished_first_parent_partition_no_parent_state_update():
     }
     assert mock_cursor_1.stream_slices.call_count == 1  # Called once for each partition
     assert mock_cursor_2.stream_slices.call_count == 1  # Called once for each partition
+    assert len(cursor._semaphore_per_partition) == 2
 
 
 def test_given_unfinished_last_parent_partition_with_partial_parent_state_update():
@@ -3243,6 +3244,7 @@ def test_given_unfinished_last_parent_partition_with_partial_parent_state_update
     }
     assert mock_cursor_1.stream_slices.call_count == 1  # Called once for each partition
     assert mock_cursor_2.stream_slices.call_count == 1  # Called once for each partition
+    assert len(cursor._semaphore_per_partition) == 1
 
 
 def test_given_all_partitions_finished_when_close_partition_then_final_state_emitted():
@@ -3317,6 +3319,7 @@ def test_given_all_partitions_finished_when_close_partition_then_final_state_emi
     assert final_state["lookback_window"] == 1
     assert cursor._message_repository.emit_message.call_count == 2
     assert mock_cursor.stream_slices.call_count == 2  # Called once for each partition
+    assert len(cursor._semaphore_per_partition) == 1
 
 
 def test_given_partition_limit_exceeded_when_close_partition_then_switch_to_global_cursor():
@@ -3377,3 +3380,75 @@ def test_given_partition_limit_exceeded_when_close_partition_then_switch_to_glob
     assert "lookback_window" in final_state
     assert len(cursor._cursor_per_partition) <= cursor.DEFAULT_MAX_PARTITIONS_NUMBER
     assert mock_cursor.stream_slices.call_count == 3  # Called once for each partition
+
+
+def test_semaphore_cleanup():
+    # Create two mock cursors with different states for each partition
+    mock_cursor_1 = MagicMock()
+    mock_cursor_1.stream_slices.return_value = iter(
+        [
+            {"slice1": "data1"},
+            {"slice2": "data1"},  # First partition slices
+        ]
+    )
+    mock_cursor_1.state = {"updated_at": "2024-01-02T00:00:00Z"}  # State for partition "1"
+
+    mock_cursor_2 = MagicMock()
+    mock_cursor_2.stream_slices.return_value = iter(
+        [
+            {"slice2": "data2"},
+            {"slice2": "data2"},  # Second partition slices
+        ]
+    )
+    mock_cursor_2.state = {"updated_at": "2024-01-03T00:00:00Z"}  # State for partition "2"
+
+    # Configure cursor factory to return different mock cursors based on partition
+    cursor_factory_mock = MagicMock()
+    cursor_factory_mock.create.side_effect = [mock_cursor_1, mock_cursor_2]
+
+    cursor = ConcurrentPerPartitionCursor(
+        cursor_factory=cursor_factory_mock,
+        partition_router=MagicMock(),
+        stream_name="test_stream",
+        stream_namespace=None,
+        stream_state={},
+        message_repository=MagicMock(),
+        connector_state_manager=MagicMock(),
+        connector_state_converter=MagicMock(),
+        cursor_field=CursorField(cursor_field_key="updated_at"),
+    )
+
+    # Simulate partitions with unique parent states
+    slices = [
+        StreamSlice(partition={"id": "1"}, cursor_slice={}),
+        StreamSlice(partition={"id": "2"}, cursor_slice={}),
+    ]
+    cursor._partition_router.stream_slices.return_value = iter(slices)
+    # Simulate unique parent states for each partition
+    cursor._partition_router.get_stream_state.side_effect = [
+        {"parent": {"state": "state1"}},  # Parent state for partition "1"
+        {"parent": {"state": "state2"}},  # Parent state for partition "2"
+    ]
+
+    # Generate slices to populate semaphores and parent states
+    generated_slices = list(
+        cursor.stream_slices()
+    )  # Populate _semaphore_per_partition and _partition_parent_state_map
+
+    # Verify initial state
+    assert len(cursor._semaphore_per_partition) == 2
+    assert len(cursor._partition_parent_state_map) == 2
+    assert cursor._partition_parent_state_map['{"id":"1"}'] == {"parent": {"state": "state1"}}
+    assert cursor._partition_parent_state_map['{"id":"2"}'] == {"parent": {"state": "state2"}}
+
+    # Close partitions to acquire semaphores (value back to 0)
+    for s in generated_slices:
+        cursor.close_partition(DeclarativePartition("test_stream", {}, MagicMock(), MagicMock(), s))
+
+    # Check state after closing partitions
+    assert len(cursor._finished_partitions) == 2
+    assert len(cursor._semaphore_per_partition) == 0
+    assert '{"id":"1"}' not in cursor._semaphore_per_partition
+    assert '{"id":"2"}' not in cursor._semaphore_per_partition
+    assert len(cursor._partition_parent_state_map) == 0  # All parent states should be popped
+    assert cursor._parent_state == {"parent": {"state": "state2"}}  # Last parent state
