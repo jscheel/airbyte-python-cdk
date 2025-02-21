@@ -3440,7 +3440,7 @@ definitions:
         examples:
           - 10
           - 50
-      partition_router:
+      underlying_partition_router:
         title: Underlying Partition Router
         description: The partition router whose output will be grouped. This can be any valid partition router component.
         anyOf:

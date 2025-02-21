@@ -3053,7 +3053,7 @@ class ModelToComponentFactory:
         self, model: GroupingPartitionRouterModel, config: Config, **kwargs: Any
     ) -> GroupingPartitionRouter:
         underlying_router = self._create_component_from_model(
-            model=model.partition_router, config=config
+            model=model.underlying_partition_router, config=config
         )
 
         if not isinstance(underlying_router, PartitionRouter):
