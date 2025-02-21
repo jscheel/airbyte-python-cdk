@@ -416,9 +416,6 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                 incremental_sync_component_definition.get("type", "")
                 in (DatetimeBasedCursorModel.__name__, IncrementingCountCursorModel.__name__)
             )
-            and self._stream_supports_concurrent_partition_processing(
-                declarative_stream=declarative_stream
-            )
             and hasattr(declarative_stream.retriever, "stream_slicer")
             and (
                 isinstance(declarative_stream.retriever.stream_slicer, DatetimeBasedCursor)
