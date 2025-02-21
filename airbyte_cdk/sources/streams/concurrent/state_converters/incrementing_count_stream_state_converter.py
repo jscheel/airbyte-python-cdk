@@ -81,7 +81,7 @@ class IncrementingCountStreamStateConverter(AbstractStreamStateConverter):
         start: Optional[int],
     ) -> int:
         sync_start = start if start is not None else self.zero_value
-        prev_sync_low_water_mark = (
+        prev_sync_low_water_mark: Optional[int] = (
             stream_state[cursor_field.cursor_field_key]
             if cursor_field.cursor_field_key in stream_state
             else None

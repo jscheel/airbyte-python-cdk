@@ -257,15 +257,15 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             stream_slicer=declarative_stream.retriever.stream_slicer,
                         )
                     else:
-                        cursor: ConcurrentCursor
+                        # cursor: ConcurrentCursor
                         if (
-                            incremental_sync_component_definition.get("type")
+                            incremental_sync_component_definition
+                            and incremental_sync_component_definition.get("type")
                             == IncrementingCountCursorModel.__name__
                         ):
                             cursor = self._constructor.create_concurrent_cursor_from_incrementing_count_cursor(
                                 model_type=IncrementingCountCursorModel,
-                                component_definition=incremental_sync_component_definition,
-                                # type: ignore  # Not None because of the if condition above
+                                component_definition=incremental_sync_component_definition,  # type: ignore  # Not None because of the if condition above
                                 stream_name=declarative_stream.name,
                                 stream_namespace=declarative_stream.namespace,
                                 config=config or {},
