@@ -2440,6 +2440,8 @@ class ModelToComponentFactory:
             if model.record_filter
             else None
         )
+
+        transform_before_filtering = False
         if client_side_incremental_sync:
             record_filter = ClientSideIncrementalRecordFilterDecorator(
                 config=config,
@@ -2449,6 +2451,8 @@ class ModelToComponentFactory:
                 else None,
                 **client_side_incremental_sync,
             )
+            transform_before_filtering = True
+
         schema_normalization = (
             TypeTransformer(SCHEMA_TRANSFORMER_TYPE_MAPPING[model.schema_normalization])
             if isinstance(model.schema_normalization, SchemaNormalizationModel)
@@ -2463,6 +2467,7 @@ class ModelToComponentFactory:
             transformations=transformations or [],
             schema_normalization=schema_normalization,
             parameters=model.parameters or {},
+            transform_before_filtering=transform_before_filtering,
         )
 
     @staticmethod
@@ -3095,8 +3100,9 @@ class ModelToComponentFactory:
         )
 
     def create_rate(self, model: RateModel, config: Config, **kwargs: Any) -> Rate:
+        interpolated_limit = InterpolatedString.create(str(model.limit), parameters={})
         return Rate(
-            limit=model.limit,
+            limit=int(interpolated_limit.eval(config=config)),
             interval=parse_duration(model.interval),
         )
 
