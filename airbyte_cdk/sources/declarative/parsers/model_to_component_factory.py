@@ -2180,7 +2180,8 @@ class ModelToComponentFactory:
     ) -> DatetimeBasedCursor:
         # This should not actually get used anywhere at runtime, but needed to add this to pass checks since
         # we still parse models into components. The issue is that there's no runtime implementation of a
-        # IncrementingCountCursor. Maybe this should just be a pass or returns None?
+        # IncrementingCountCursor.
+        # A known and expected issue with this stub is running a check with the declared IncrementingCountCursor because it is run without ConcurrentCursor.
         return DatetimeBasedCursor(
             cursor_field=model.cursor_field,
             datetime_format="%Y-%m-%d",
