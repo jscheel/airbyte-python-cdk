@@ -29,6 +29,21 @@ from airbyte_cdk.test.declarative.utils.job_runner import run_test_job
 ACCEPTANCE_TEST_CONFIG = "acceptance-test-config.yml"
 
 
+class JavaClass(str):
+    """A string that represents a Java class."""
+
+
+class DockerImage(str):
+    """A string that represents a Docker image."""
+
+
+class RunnableConnector(abc.ABC):
+    """A connector that can be run in a test scenario."""
+
+    @abc.abstractmethod
+    def launch(cls, args: list[str] | None): ...
+
+
 def generate_tests(metafunc):
     """
     A helper for pytest_generate_tests hook.
@@ -83,22 +98,19 @@ class ConnectorTestSuiteBase(abc.ABC):
     the root of the connector source directory.
     """
 
-    connector_class: type[Connector]
-    """The connector class to test."""
+    connector: type[Connector] | Path | JavaClass | DockerImage | None = None
+    """The connector class or path to the connector to test."""
 
     working_dir: Path | None = None
     """The root directory of the connector source code."""
 
     @override
     @classmethod
-    def create_connector(cls, scenario: ConnectorTestScenario) -> ConcurrentDeclarativeSource:
+    def create_connector(
+        cls, scenario: ConnectorTestScenario
+    ) -> Source | ConcurrentDeclarativeSource | RunnableConnector:
         """Instantiate the connector class."""
-        return ConcurrentDeclarativeSource(
-            config=scenario.get_config_dict(),
-            catalog={},
-            state=None,
-            source_config={},
-        )
+        raise NotImplementedError("Subclasses must implement this method.")
 
     def run_test_scenario(
         self,
