@@ -1707,11 +1707,11 @@ class ModelToComponentFactory:
 
             start_time_option = (
                 self._create_component_from_model(
-                    cursor_model.start_value_option,  # type: ignore: mypy still thinks cursor_model of type DatetimeBasedCursor
+                    cursor_model.start_value_option,  # type: ignore # mypy still thinks cursor_model of type DatetimeBasedCursor
                     config,
                     parameters=cursor_model.parameters or {},
                 )
-                if cursor_model.start_value_option  # type: ignore: mypy still thinks cursor_model of type DatetimeBasedCursor
+                if cursor_model.start_value_option  # type: ignore # mypy still thinks cursor_model of type DatetimeBasedCursor
                 else None
             )
 
