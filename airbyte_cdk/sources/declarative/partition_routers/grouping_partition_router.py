@@ -17,7 +17,7 @@ class GroupingPartitionRouter(PartitionRouter):
 
     Attributes:
         group_size (int): The number of partitions to include in each group.
-        underlying_partition_router (SinglePartitionRouter): The partition router whose output will be grouped.
+        underlying_partition_router (PartitionRouter): The partition router whose output will be grouped.
         deduplicate (bool): If True, ensures unique partitions within each group by removing duplicates based on the partition key.
         config (Config): The connector configuration.
         parameters (Mapping[str, Any]): Additional parameters for interpolation and configuration.
@@ -66,13 +66,33 @@ class GroupingPartitionRouter(PartitionRouter):
             yield self._create_grouped_slice(batch)
 
     def _create_grouped_slice(self, batch: list[StreamSlice]) -> StreamSlice:
+        """
+        Creates a grouped StreamSlice from a batch of partitions, aggregating extra fields into a dictionary with list values.
+
+        Args:
+            batch (list[StreamSlice]): A list of StreamSlice objects to group.
+
+        Returns:
+            StreamSlice: A single StreamSlice with combined partition and extra field values.
+        """
         # Combine partition values into a single dict with lists
         grouped_partition = {
             key: [p.partition.get(key) for p in batch] for key in batch[0].partition.keys()
         }
+
+        # Aggregate extra fields into a dict with list values
+        extra_fields_dict = (
+            {
+                key: [p.extra_fields.get(key) for p in batch]
+                for key in set().union(*(p.extra_fields.keys() for p in batch if p.extra_fields))
+            }
+            if any(p.extra_fields for p in batch)
+            else {}
+        )
         return StreamSlice(
             partition=grouped_partition,
             cursor_slice={},  # Cursor is managed by the underlying router or incremental sync
+            extra_fields=extra_fields_dict,
         )
 
     def get_request_params(
