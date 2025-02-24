@@ -3064,6 +3064,13 @@ class ModelToComponentFactory:
                 f"Underlying partition router must be a PartitionRouter subclass, got {type(underlying_router)}"
             )
 
+        if isinstance(underlying_router, SubstreamPartitionRouter):
+            if any(
+                parent_config.request_option
+                for parent_config in underlying_router.parent_stream_configs
+            ):
+                raise ValueError("Request options are not supported for GroupingPartitionRouter.")
+
         return GroupingPartitionRouter(
             group_size=model.group_size,
             underlying_partition_router=underlying_router,
