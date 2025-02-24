@@ -6,6 +6,7 @@ from typing import Callable, Literal
 import orjson
 
 from airbyte_cdk import Connector
+from airbyte_cdk.sources.abstract_source import AbstractSource
 from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 from airbyte_cdk.test import entrypoint_wrapper
 from airbyte_cdk.test.declarative.models import (
@@ -29,7 +30,7 @@ def run_test_job(
         connector_obj = connector()
     elif isinstance(connector, Connector):
         connector_obj = connector
-    elif isinstance(connector, DeclarativeSource):
+    elif isinstance(connector, DeclarativeSource | AbstractSource):
         connector_obj = connector
     elif isinstance(connector, Callable):
         try:

@@ -104,11 +104,10 @@ class ConnectorTestSuiteBase(abc.ABC):
     working_dir: Path | None = None
     """The root directory of the connector source code."""
 
-    @override
     @classmethod
     def create_connector(
         cls, scenario: ConnectorTestScenario
-    ) -> Source | ConcurrentDeclarativeSource | RunnableConnector:
+    ) -> Source | AbstractSource | ConcurrentDeclarativeSource | RunnableConnector:
         """Instantiate the connector class."""
         raise NotImplementedError("Subclasses must implement this method.")
 
