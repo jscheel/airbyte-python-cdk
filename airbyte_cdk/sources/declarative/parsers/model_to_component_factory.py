@@ -1230,7 +1230,7 @@ class ModelToComponentFactory:
 
         interpolated_start_value = (
             InterpolatedString.create(
-                incrementing_count_cursor_model.start_value,
+                incrementing_count_cursor_model.start_value,  # type: ignore
                 parameters=incrementing_count_cursor_model.parameters or {},
             )
             if incrementing_count_cursor_model.start_value
@@ -1703,15 +1703,15 @@ class ModelToComponentFactory:
         elif model.incremental_sync and isinstance(
             model.incremental_sync, IncrementingCountCursorModel
         ):
-            cursor_model = model.incremental_sync
+            cursor_model: IncrementingCountCursorModel = model.incremental_sync  # type: ignore
 
             start_time_option = (
                 self._create_component_from_model(
-                    cursor_model.start_value_option,
+                    cursor_model.start_value_option,  # type: ignore: mypy still thinks cursor_model of type DatetimeBasedCursor
                     config,
                     parameters=cursor_model.parameters or {},
                 )
-                if cursor_model.start_value_option
+                if cursor_model.start_value_option  # type: ignore: mypy still thinks cursor_model of type DatetimeBasedCursor
                 else None
             )
 
