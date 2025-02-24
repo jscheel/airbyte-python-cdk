@@ -6,7 +6,7 @@ from typing import Any, Iterable, List, Mapping, Optional, Union
 from unittest.mock import MagicMock
 
 import pytest
-from test_substream_partition_router import (
+from unit_tests.sources.declarative.partition_routers.test_substream_partition_router import (
     MockStream,
     parent_slices,
 )  # Reuse MockStream and parent_slices
