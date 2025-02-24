@@ -3436,7 +3436,6 @@ definitions:
         title: Group Size
         description: The number of partitions to include in each group. This determines how many partition values are batched together in a single slice.
         type: integer
-        minimum: 1
         examples:
           - 10
           - 50

@@ -40,7 +40,7 @@ class GroupingPartitionRouter(PartitionRouter):
             Iterable[StreamSlice]: An iterable of StreamSlice objects, where each slice contains a batch of partition values.
         """
         batch = []
-        seen_keys = set() if self.deduplicate else None
+        seen_keys = set()
 
         # Iterate over partitions lazily from the underlying router
         for partition in self.underlying_partition_router.stream_slices():

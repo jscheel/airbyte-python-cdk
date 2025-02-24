@@ -6,7 +6,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic.v1 import BaseModel, Extra, Field, conint
+from pydantic.v1 import BaseModel, Extra, Field
 
 
 class AuthFlowType(Enum):
@@ -2373,7 +2373,7 @@ class SubstreamPartitionRouter(BaseModel):
 
 class GroupingPartitionRouter(BaseModel):
     type: Literal["GroupingPartitionRouter"]
-    group_size: conint(ge=1) = Field(
+    group_size: int = Field(
         ...,
         description="The number of partitions to include in each group. This determines how many partition values are batched together in a single slice.",
         examples=[10, 50],

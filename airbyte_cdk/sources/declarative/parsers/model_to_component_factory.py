@@ -3056,6 +3056,8 @@ class ModelToComponentFactory:
         underlying_router = self._create_component_from_model(
             model=model.underlying_partition_router, config=config
         )
+        if model.group_size < 1:
+            raise ValueError(f"Group size must be greater than 0, got {model.group_size}")
 
         if not isinstance(underlying_router, PartitionRouter):
             raise ValueError(
