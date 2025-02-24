@@ -6,10 +6,6 @@ from typing import Any, Iterable, List, Mapping, Optional, Union
 from unittest.mock import MagicMock
 
 import pytest
-from unit_tests.sources.declarative.partition_routers.test_substream_partition_router import (
-    MockStream,
-    parent_slices,
-)  # Reuse MockStream and parent_slices
 
 from airbyte_cdk.sources.declarative.partition_routers import (
     GroupingPartitionRouter,
@@ -19,6 +15,10 @@ from airbyte_cdk.sources.declarative.partition_routers.substream_partition_route
     ParentStreamConfig,
 )
 from airbyte_cdk.sources.types import StreamSlice
+from unit_tests.sources.declarative.partition_routers.test_substream_partition_router import (
+    MockStream,
+    parent_slices,
+)  # Reuse MockStream and parent_slices
 
 
 @pytest.fixture

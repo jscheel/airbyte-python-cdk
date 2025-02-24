@@ -628,6 +628,7 @@ class ModelToComponentFactory:
             UnlimitedCallRatePolicyModel: self.create_unlimited_call_rate_policy,
             RateModel: self.create_rate,
             HttpRequestRegexMatcherModel: self.create_http_request_matcher,
+            GroupingPartitionRouterModel: self.create_grouping_partition_router,
         }
 
         # Needed for the case where we need to perform a second parse on the fields of a custom component
@@ -3065,6 +3066,5 @@ class ModelToComponentFactory:
             group_size=model.group_size,
             underlying_partition_router=underlying_router,
             deduplicate=model.deduplicate if model.deduplicate is not None else True,
-            parameters=model.parameters or {},
             config=config,
         )
