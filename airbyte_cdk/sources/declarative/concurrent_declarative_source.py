@@ -257,7 +257,6 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                             stream_slicer=declarative_stream.retriever.stream_slicer,
                         )
                     else:
-                        # cursor: ConcurrentCursor
                         if (
                             incremental_sync_component_definition
                             and incremental_sync_component_definition.get("type")

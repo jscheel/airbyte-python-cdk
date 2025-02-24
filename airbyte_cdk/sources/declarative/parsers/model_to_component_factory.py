@@ -1243,13 +1243,6 @@ class ModelToComponentFactory:
         )
         cursor_field = CursorField(interpolated_cursor_field.eval(config=config))
 
-        # todo brian: what do we do about the state converter, is there a way to signal valid integer and what
-        #  should the end provider be when the end time is an unknown uncapped value?
-
-        # hmmmmmm what if we create a new uncapped_end_date_provider which gives back infinite and that indicates
-        # to the concurrent cursor to return an empty slice interval and we create a connector_state_converter
-        # that basically just returns an integer
-
         connector_state_converter = IncrementingCountStreamStateConverter(
             is_sequential_state=True,  # ConcurrentPerPartitionCursor only works with sequential state
         )
