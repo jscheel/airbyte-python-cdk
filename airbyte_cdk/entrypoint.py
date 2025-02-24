@@ -37,8 +37,8 @@ from airbyte_cdk.sources import Source
 from airbyte_cdk.sources.connector_state_manager import HashableStreamDescriptor
 from airbyte_cdk.sources.utils.schema_helpers import check_config_against_spec_or_exit, split_config
 
-# from airbyte_cdk.utils import PrintBuffer, is_cloud_environment, message_utils  # add PrintBuffer back once fixed
-from airbyte_cdk.utils import is_cloud_environment, message_utils
+from airbyte_cdk.utils import PrintBuffer, is_cloud_environment, message_utils  # add PrintBuffer back once fixed
+# from airbyte_cdk.utils import is_cloud_environment, message_utils
 from airbyte_cdk.utils.airbyte_secrets_utils import get_secrets, update_secrets
 from airbyte_cdk.utils.constants import ENV_REQUEST_CACHE_PATH
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
@@ -337,11 +337,11 @@ def launch(source: Source, args: List[str]) -> None:
     parsed_args = source_entrypoint.parse_args(args)
     # temporarily removes the PrintBuffer because we're seeing weird print behavior for concurrent syncs
     # Refer to: https://github.com/airbytehq/oncall/issues/6235
-    # with PrintBuffer():
-    for message in source_entrypoint.run(parsed_args):
-        # simply printing is creating issues for concurrent CDK as Python uses different two instructions to print: one for the message and
-        # the other for the break line. Adding `\n` to the message ensure that both are printed at the same time
-        print(f"{message}\n", end="", flush=True)
+    with PrintBuffer():
+        for message in source_entrypoint.run(parsed_args):
+            # simply printing is creating issues for concurrent CDK as Python uses different two instructions to print: one for the message and
+            # the other for the break line. Adding `\n` to the message ensure that both are printed at the same time
+            print(f"{message}\n", end="", flush=True)
 
 
 def _init_internal_request_filter() -> None:
