@@ -5,7 +5,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from io import BufferedIOBase, TextIOWrapper
+from io import BufferedIOBase, BytesIO, TextIOWrapper
 from typing import Any, Generator, MutableMapping, Optional
 
 import orjson
@@ -124,7 +124,8 @@ class CsvParser(Parser):
         """
         Parse CSV data from decompressed bytes.
         """
-        text_data = TextIOWrapper(data, encoding=self.encoding)  # type: ignore
+        bytes_data = BytesIO(data.read())
+        text_data = TextIOWrapper(bytes_data, encoding=self.encoding)  # type: ignore
         reader = csv.DictReader(text_data, delimiter=self._get_delimiter() or ",")
         for row in reader:
             yield row
