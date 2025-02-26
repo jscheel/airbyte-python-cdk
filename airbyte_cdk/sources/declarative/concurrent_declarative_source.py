@@ -225,7 +225,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
                     and not incremental_sync_component_definition
                 )
 
-                if self._is_datetime_incremental_without_partition_routing(
+                if self._is_concurrent_cursor_incremental_without_partition_routing(
                     declarative_stream, incremental_sync_component_definition
                 ):
                     stream_state = self._connector_state_manager.get_stream_state(
@@ -403,7 +403,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
 
         return concurrent_streams, synchronous_streams
 
-    def _is_datetime_incremental_without_partition_routing(
+    def _is_concurrent_cursor_incremental_without_partition_routing(
         self,
         declarative_stream: DeclarativeStream,
         incremental_sync_component_definition: Mapping[str, Any] | None,
@@ -419,7 +419,7 @@ class ConcurrentDeclarativeSource(ManifestDeclarativeSource, Generic[TState]):
             and (
                 isinstance(declarative_stream.retriever.stream_slicer, DatetimeBasedCursor)
                 # IncrementingCountCursorModel is hardcoded to be of type DatetimeBasedCursor
-                # add isntance check here if we want to have a IncrementingCountCursor
+                # add isintance check here if we want to create a Declarative IncrementingCountCursor
                 # or isinstance(
                 #     declarative_stream.retriever.stream_slicer, IncrementingCountCursor
                 # )
