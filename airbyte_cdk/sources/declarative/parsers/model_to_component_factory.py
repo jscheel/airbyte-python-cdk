@@ -3059,16 +3059,19 @@ class ModelToComponentFactory:
         if model.group_size < 1:
             raise ValueError(f"Group size must be greater than 0, got {model.group_size}")
 
-        if not isinstance(underlying_router, PartitionRouter):
-            raise ValueError(
-                f"Underlying partition router must be a PartitionRouter subclass, got {type(underlying_router)}"
-            )
-
+        # Request options in underlying partition routers are not supported for GroupingPartitionRouter
+        # because they are specific to individual partitions and cannot be aggregated or handled
+        # when grouping, potentially leading to incorrect API calls. Any request customization
+        # should be managed at the stream level or through the retriever's configuration.
         if isinstance(underlying_router, SubstreamPartitionRouter):
             if any(
                 parent_config.request_option
                 for parent_config in underlying_router.parent_stream_configs
             ):
+                raise ValueError("Request options are not supported for GroupingPartitionRouter.")
+
+        if isinstance(underlying_router, ListPartitionRouter):
+            if underlying_router.request_option:
                 raise ValueError("Request options are not supported for GroupingPartitionRouter.")
 
         return GroupingPartitionRouter(
