@@ -779,7 +779,7 @@ definitions:
         enum: [LegacyToPerPartitionStateMigration]
   IncrementingCountCursor:
     title: Incrementing Count Cursor
-    description: Cursor that allows for incremental sync according to a continuously increasing number
+    description: Cursor that allows for incremental sync according to a continuously increasing integer.
     type: object
     required:
       - type
