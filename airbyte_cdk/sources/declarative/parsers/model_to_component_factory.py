@@ -3062,7 +3062,7 @@ class ModelToComponentFactory:
         # Request options in underlying partition routers are not supported for GroupingPartitionRouter
         # because they are specific to individual partitions and cannot be aggregated or handled
         # when grouping, potentially leading to incorrect API calls. Any request customization
-        # should be managed at the stream level or through the retriever's configuration.
+        # should be managed at the stream level through the requester's configuration.
         if isinstance(underlying_router, SubstreamPartitionRouter):
             if any(
                 parent_config.request_option
