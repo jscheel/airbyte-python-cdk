@@ -6,8 +6,12 @@ import logging
 from collections import OrderedDict
 from typing import Any, Callable, Iterable, Mapping, Optional, Union
 
-from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
-from airbyte_cdk.sources.declarative.partition_routers.partition_router import PartitionRouter
+from airbyte_cdk.sources.declarative.incremental.declarative_cursor import (
+    DeclarativeCursor,
+)
+from airbyte_cdk.sources.declarative.partition_routers.partition_router import (
+    PartitionRouter,
+)
 from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import (
     PerPartitionKeySerializer,
 )
@@ -57,6 +61,7 @@ class PerPartitionCursor(DeclarativeCursor):
         self._cursor_per_partition: OrderedDict[str, DeclarativeCursor] = OrderedDict()
         self._over_limit = 0
         self._partition_serializer = PerPartitionKeySerializer()
+        self._stream_state: dict[str, Any] = {"states": [], "parent_state": {}}
 
     def stream_slices(self) -> Iterable[StreamSlice]:
         slices = self._partition_router.stream_slices()
@@ -79,7 +84,9 @@ class PerPartitionCursor(DeclarativeCursor):
 
         for cursor_slice in cursor.stream_slices():
             yield StreamSlice(
-                partition=partition, cursor_slice=cursor_slice, extra_fields=partition.extra_fields
+                partition=partition,
+                cursor_slice=cursor_slice,
+                extra_fields=partition.extra_fields,
             )
 
     def _ensure_partition_limit(self) -> None:
@@ -151,13 +158,15 @@ class PerPartitionCursor(DeclarativeCursor):
 
     def observe(self, stream_slice: StreamSlice, record: Record) -> None:
         self._cursor_per_partition[self._to_partition_key(stream_slice.partition)].observe(
-            StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice), record
+            StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
+            record,
         )
 
     def close_slice(self, stream_slice: StreamSlice, *args: Any) -> None:
         try:
             self._cursor_per_partition[self._to_partition_key(stream_slice.partition)].close_slice(
-                StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice), *args
+                StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
+                *args,
             )
         except KeyError as exception:
             raise ValueError(
@@ -176,12 +185,15 @@ class PerPartitionCursor(DeclarativeCursor):
                         "cursor": cursor_state,
                     }
                 )
-        state: dict[str, Any] = {"states": states}
+
+        self._stream_state.clear()
+        self._stream_state.update({"states": states})
 
         parent_state = self._partition_router.get_stream_state()
         if parent_state:
-            state["parent_state"] = parent_state
-        return state
+            self._stream_state["parent_state"] = parent_state
+
+        return self._stream_state
 
     def _get_state_for_partition(self, partition: Mapping[str, Any]) -> Optional[StreamState]:
         cursor = self._cursor_per_partition.get(self._to_partition_key(partition))
@@ -335,11 +347,14 @@ class PerPartitionCursor(DeclarativeCursor):
         return Record(
             data=record.data,
             stream_name=record.stream_name,
-            associated_slice=StreamSlice(
-                partition={}, cursor_slice=record.associated_slice.cursor_slice
-            )
-            if record.associated_slice
-            else None,
+            associated_slice=(
+                StreamSlice(
+                    partition={},
+                    cursor_slice=record.associated_slice.cursor_slice,
+                )
+                if record.associated_slice
+                else None
+            ),
         )
 
     def _get_cursor(self, record: Record) -> DeclarativeCursor:
