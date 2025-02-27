@@ -10,9 +10,10 @@ import pkgutil
 from typing import Any, ClassVar, Dict, List, Mapping, MutableMapping, Optional, Tuple
 
 import jsonref
-from jsonschema import RefResolver, validate
+from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from pydantic.v1 import BaseModel, Field
+from referencing import Registry, Resource
 
 from airbyte_cdk.models import ConnectorSpecification, FailureType
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
@@ -63,28 +64,29 @@ def resolve_ref_links(obj: Any) -> Any:
         return obj
 
 
-def _expand_refs(schema: Any, ref_resolver: Optional[RefResolver] = None) -> None:
+def _expand_refs(schema: Any, registry: Optional[Registry] = None) -> None:
     """Internal function to iterate over schema and replace all occurrences of $ref with their definitions. Recursive.
 
     :param schema: schema that will be patched
-    :param ref_resolver: resolver to get definition from $ref, if None pass it will be instantiated
+    :param registry: registry to resolve references, if None one will be created from schema
     """
-    ref_resolver = ref_resolver or RefResolver.from_schema(schema)
+    if registry is None:
+        resource = Resource.from_contents(schema)
+        registry = resource @ Registry()  # Add the resource to a new registry
 
     if isinstance(schema, MutableMapping):
         if "$ref" in schema:
             ref_url = schema.pop("$ref")
-            _, definition = ref_resolver.resolve(ref_url)
-            _expand_refs(
-                definition, ref_resolver=ref_resolver
-            )  # expand refs in definitions as well
+            resolver = registry.resolver()
+            definition = resolver.lookup(ref_url).contents
+            _expand_refs(definition, registry=registry)  # expand refs in definitions as well
             schema.update(definition)
         else:
-            for key, value in schema.items():
-                _expand_refs(value, ref_resolver=ref_resolver)
+            for value in schema.values():
+                _expand_refs(value, registry=registry)
     elif isinstance(schema, List):
         for value in schema:
-            _expand_refs(value, ref_resolver=ref_resolver)
+            _expand_refs(value, registry=registry)
 
 
 def expand_refs(schema: Any) -> None:
